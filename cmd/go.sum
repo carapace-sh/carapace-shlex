@@ -1,7 +1,7 @@
-github.com/carapace-sh/carapace v0.50.3-0.20240311185857-480da0e3873f h1:PX63aNSoqguEFMJ38GStsYRncYT1AhV9Vj+GIod4rsk=
-github.com/carapace-sh/carapace v0.50.3-0.20240311185857-480da0e3873f/go.mod h1:UxflttCmX+TRfsKqA0I0cEQFn2rvwGp6iTGyO8oS4NY=
-github.com/carapace-sh/carapace-bridge v0.2.16-0.20240311173237-760172108463 h1:RF7fO6h+sxFmgcqv656vCLEGGFtx8PNBLozbDxKwg7g=
-github.com/carapace-sh/carapace-bridge v0.2.16-0.20240311173237-760172108463/go.mod h1:cmSA24XX0CDcL7kF+kl/0rJYyDsj7B9JxCnoTnU/OGw=
+github.com/carapace-sh/carapace v1.0.0 h1:O4XTxBjrmDG15PeSnBRvu5RdwA5Khd1k/yF6VD4sHHY=
+github.com/carapace-sh/carapace v1.0.0/go.mod h1:4caYCCdFoKqiBFD8t8rxuxzgVXk9bnP/aSBOplTd1Gk=
+github.com/carapace-sh/carapace-bridge v1.0.2 h1:q2yVrhpxjxA0p3ZcGHpjns99KE9lCrJLc3Zgaa7kMK4=
+github.com/carapace-sh/carapace-bridge v1.0.2/go.mod h1:1tuz7tWpJeGMHa6Yvwlkb9QCNqxRD5VsS/4iZdK9ofQ=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
