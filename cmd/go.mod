@@ -3,7 +3,7 @@ module github.com/carapace-sh/carapace-shlex/cmd
 go 1.22.0
 
 require (
-	github.com/carapace-sh/carapace v1.7.0
+	github.com/carapace-sh/carapace v1.7.1
 	github.com/carapace-sh/carapace-bridge v1.1.0
 	github.com/carapace-sh/carapace-shlex v1.0.1
 	github.com/spf13/cobra v1.8.1
