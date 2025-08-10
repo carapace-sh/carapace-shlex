@@ -261,7 +261,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				switch nextRuneType {
 				case eofRuneClass:
 					switch {
-					case t.index == 0: // tonkenizer contains an empty string
+					case t.index == 0: // tokenizer contains an empty string
 						token.removeLastRaw()
 						token.Type = WORD_TOKEN
 						token.Index = t.index
@@ -422,6 +422,8 @@ func Split(s string) (TokenSlice, error) {
 // It quotes and escapes where appropriate.
 // TODO experimental
 func Join(s []string) string {
+	// TODO how to handle unsafe content? similar to `url.PathEscape` and unsafe by default?
+	// TODO how to handle home/named directory expansion?
 	replacer := strings.NewReplacer(
 		"$", "\\$",
 		"`", "\\`",
@@ -431,7 +433,7 @@ func Join(s []string) string {
 	for _, arg := range s {
 		switch {
 		case arg == "",
-			strings.ContainsAny(arg, `"' `+"\n\r\t"):
+			strings.ContainsAny(arg, `"' `+"`$\n\r\t"): // TODO what about pipeline delimiters
 			formatted = append(formatted, replacer.Replace(fmt.Sprintf("%#v", arg)))
 		default:
 			formatted = append(formatted, arg)
