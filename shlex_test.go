@@ -116,3 +116,20 @@ func TestSplit(t *testing.T) {
 		}
 	}
 }
+
+func TestJoin(t *testing.T) {
+	for expected, words := range map[string][]string{
+		``:                          {},
+		`echo "\$(ls)"`:             {"echo", "$(ls)"},
+		"echo \"\\`ls\\`\"":         {"echo", "`ls`"},
+		"echo \"'ls'\"":             {"echo", "'ls'"},
+		`echo "\"ls\""`:             {"echo", `"ls"`},
+		`echo "\$(ls /tmp)"`:        {"echo", "$(ls /tmp)"},
+		`ls /tmp | xargs -n 1 echo`: {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
+		`echo "one\ntwo"`:           {"echo", "one\ntwo"},
+	} {
+		if actual := Join(words); actual != expected {
+			t.Errorf("joined words don't match\nactual  : %#v\nexpected: %#v", actual, expected)
+		}
+	}
+}
