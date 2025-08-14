@@ -23,10 +23,10 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		if cmd.Flag("current").Changed {
+		if cmd.Flag("current-pipeline").Changed {
 			tokens = tokens.CurrentPipeline()
 		}
-		if cmd.Flag("args").Changed {
+		if cmd.Flag("filter-redirects").Changed {
 			tokens = tokens.FilterRedirects()
 		}
 		if cmd.Flag("words").Changed {
@@ -34,7 +34,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		switch {
-		case cmd.Flag("prefix").Changed:
+		case cmd.Flag("wordbreak-prefix").Changed:
 			fmt.Fprintln(cmd.OutOrStdout(), tokens.WordbreakPrefix())
 			return nil
 		case cmd.Flag("join").Changed:
@@ -59,15 +59,15 @@ func Execute(version string) error {
 }
 
 func init() {
-	rootCmd.Flags().Bool("args", false, "show words")
-	rootCmd.Flags().Bool("current", false, "show current pipeline")
-	rootCmd.Flags().Bool("prefix", false, "show wordbreak prefix")
-	rootCmd.Flags().Bool("words", false, "show words")
+	rootCmd.Flags().Bool("filter-redirects", false, "filter redirects")
+	rootCmd.Flags().Bool("current-pipeline", false, "show current pipeline")
+	rootCmd.Flags().Bool("wordbreak-prefix", false, "show wordbreak prefix")
+	rootCmd.Flags().Bool("words", false, "combine adjoining tokens")
 	rootCmd.Flags().Bool("join", false, "re-join words")
 
 	rootCmd.MarkFlagsMutuallyExclusive(
 		"join",
-		"prefix",
+		"wordbreak-prefix",
 	)
 
 	carapace.Gen(rootCmd).PositionalCompletion(
