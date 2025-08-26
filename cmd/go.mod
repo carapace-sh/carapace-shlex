@@ -1,11 +1,11 @@
 module github.com/carapace-sh/carapace-shlex/cmd
 
-go 1.22.0
+go 1.23.1
 
 require (
 	github.com/carapace-sh/carapace v1.8.6
-	github.com/carapace-sh/carapace-bridge v1.4.1
-	github.com/carapace-sh/carapace-shlex v1.0.1
+	github.com/carapace-sh/carapace-bridge v1.4.2
+	github.com/carapace-sh/carapace-shlex v1.1.0
 	github.com/spf13/cobra v1.9.1
 )
 
