@@ -43,3 +43,4 @@ func (bashFormat) NonEscapingQuoteEscapes() bool { return false }
 
 func (bashFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (bashFormat) EscapeNotBareword() bool                { return true }
+func (bashFormat) QuoteWord(s string) string              { return posixQuoteWord(s) }

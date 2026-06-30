@@ -43,4 +43,11 @@ type Format interface {
 	// IN_WORD_STATE — the escape char is treated as a regular word char.
 	// Only elvish needs this (\ is a bareword char in elvish).
 	EscapeNotBareword() bool
+
+	// QuoteWord quotes a single word for safe insertion into a command line.
+	// Used by JoinWith. The implementation should use the shell's preferred
+	// quoting style: backslash-escaping for POSIX shells, double-quote
+	// wrapping for nushell/PowerShell, single-quote wrapping for shells
+	// that support it, etc.
+	QuoteWord(s string) string
 }

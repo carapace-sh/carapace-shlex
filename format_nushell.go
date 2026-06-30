@@ -57,3 +57,4 @@ func (nushellFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (nushellFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (nushellFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (nushellFormat) EscapeNotBareword() bool                { return true }
+func (nushellFormat) QuoteWord(s string) string              { return nushellQuoteWord(s) }

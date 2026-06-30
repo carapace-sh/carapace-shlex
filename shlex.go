@@ -473,26 +473,17 @@ func SplitWith(s string, format Format) (TokenSlice, error) {
 	}
 }
 
-// Join concatenates words to create a single string.
-// It quotes and escapes where appropriate.
-// TODO experimental
+// Join concatenates words to create a single string using the default
+// (bash) format. It quotes and escapes where appropriate.
 func Join(s []string) string {
-	// TODO how to handle unsafe content? similar to `url.PathEscape` and unsafe by default?
-	// TODO how to handle home/named directory expansion?
-	replacer := strings.NewReplacer(
-		"$", "\\$",
-		"`", "\\`",
-	)
+	return JoinWith(s, BashFormat())
+}
 
+// JoinWith concatenates words using the given format's quoting rules.
+func JoinWith(s []string, format Format) string {
 	formatted := make([]string, 0, len(s))
 	for _, arg := range s {
-		switch {
-		case arg == "",
-			strings.ContainsAny(arg, `"' `+"`$\n\r\t"): // TODO what about pipeline delimiters
-			formatted = append(formatted, replacer.Replace(fmt.Sprintf("%#v", arg)))
-		default:
-			formatted = append(formatted, arg)
-		}
+		formatted = append(formatted, format.QuoteWord(arg))
 	}
 	return strings.Join(formatted, " ")
 }

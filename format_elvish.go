@@ -53,4 +53,5 @@ func (elvishFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
 func (elvishFormat) NonEscapingQuoteEscapes() bool          { return true } // '' → '
 func (elvishFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (elvishFormat) EscapeNotBareword() bool                { return false } // \ is a bareword char in elvish
+func (elvishFormat) EscapeNotBareword() bool                { return false }
+func (elvishFormat) QuoteWord(s string) string              { return elvishQuoteWord(s) }
