@@ -45,7 +45,6 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 | xonsh format, xonsh lexing, Python/shell hybrid, subprocess syntax, string literals, p-strings, f-strings, raw strings, quoting, word splitting, glob, tilde, # comment, xonsh operators | [references/format-xonsh.md](references/format-xonsh.md) |
 | tcsh format, csh lexing, single quotes, double quotes, backslash, backslash_quote, $'...' ANSI-C, backtick command substitution, # comment, ! history expansion, tcsh operators, pipe, redirect, ; separator | [references/format-tcsh.md](references/format-tcsh.md) |
 | oil format, OSH lexing, YSH lexing, single quotes, double quotes, ANSI-C quoting, YSH strings, r'...', triple-quoted, # comment, oil operators, pipe, redirect, simple word evaluation | [references/format-oil.md](references/format-oil.md) |
-| ion format, ion lexing, single quotes, double quotes, backslash escape, # comment, ion operators, pipe, redirect, |>, =>, ; separator, ion metacharacters, variable expansion | [references/format-ion.md](references/format-ion.md) |
 | cmd format, cmd.exe lexing, clink lexing, caret escape, ^, double quotes, no single quotes, %variable%, REM, :: comment, command separator, & separator, pipe, redirect, cmd metacharacters | [references/format-cmd.md](references/format-cmd.md) |
 
 ## Quick Guide
@@ -65,7 +64,6 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 - **How does xonsh mix Python and shell lexing?** → [references/format-xonsh.md](references/format-xonsh.md)
 - **How does tcsh differ from POSIX lexing?** → [references/format-tcsh.md](references/format-tcsh.md)
 - **How do OSH and YSH differ lexically?** → [references/format-oil.md](references/format-oil.md)
-- **How does ion tokenize?** → [references/format-ion.md](references/format-ion.md)
 - **How does cmd.exe/clink tokenize?** → [references/format-cmd.md](references/format-cmd.md)
 
 ## Cross-Project References

@@ -266,7 +266,12 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					token.WordbreakIndex = len(token.Value)
 				case escapeRuneClass:
 					token.Type = WORD_TOKEN
-					t.state = ESCAPING_STATE
+					if t.format.EscapeNotBareword() {
+						t.state = ESCAPING_STATE
+					} else {
+						token.add(nextRune)
+						t.state = IN_WORD_STATE
+					}
 				case commentRuneClass:
 					token.Type = COMMENT_TOKEN
 					t.state = COMMENT_STATE
@@ -306,7 +311,11 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				t.state = QUOTING_STATE
 				token.WordbreakIndex = len(token.Value)
 			case escapeRuneClass:
-				t.state = ESCAPING_STATE
+				if t.format.EscapeNotBareword() {
+					t.state = ESCAPING_STATE
+				} else {
+					token.add(nextRune) // elvish: \ is a bareword char
+				}
 			default:
 				token.add(nextRune)
 			}
@@ -334,7 +343,23 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				token.removeLastRaw()
 				return token, err
 			case escapingQuoteRuneClass:
-				t.state = IN_WORD_STATE
+				if t.format.NonEscapingQuoteEscapes() {
+					// PowerShell: "" → literal " (doubled quote), else close
+					peekRune, _, peekErr := t.ReadRune()
+					if peekErr == nil && t.classifier.ClassifyRune(peekRune) == escapingQuoteRuneClass {
+						token.RawValue += string(peekRune)
+						token.add(nextRune) // emit one literal "
+						// stay in QUOTING_ESCAPING_STATE
+					} else {
+						if peekErr == nil {
+							t.UnreadRune()
+							token.RawValue = token.RawValue[:len(token.RawValue)-len(string(peekRune))]
+						}
+						t.state = IN_WORD_STATE
+					}
+				} else {
+					t.state = IN_WORD_STATE
+				}
 			case escapeRuneClass:
 				t.state = ESCAPING_QUOTED_STATE
 			default:

@@ -11,7 +11,7 @@ The shells fall into lexical families. A v2 format can often reuse a family's co
 | Family | Shells | Lexical character |
 |--------|--------|-------------------|
 | **POSIX** | bash, zsh, oil (OSH), tcsh | backslash escape, `'`/`"` quotes, `#` comment, `|`/`<`/`>`/`&`/`;` operators |
-| **Non-POSIX Unix** | fish, elvish, nushell, ion | backslash escape, `'`/`"` quotes, but different operators / no word splitting |
+| **Non-POSIX Unix** | fish, elvish, nushell | backslash escape, `'`/`"` quotes, but different operators / no word splitting |
 | **Python-hybrid** | xonsh | Python string literals + shell operators |
 | **Windows** | PowerShell, cmd (clink) | backtick / caret escape, here-strings, `&` separator |
 
@@ -31,7 +31,6 @@ POSIX-family shells share the v1 operator grammar almost verbatim. The non-POSIX
 | **nushell** | literal (no escapes) | C-style `\" \' \\ \n \t \u{X}` | `"` | `r#'...'#`, `` `...` ``, `$'...'`, `$"..."` |
 | **powershell** | literal (`` ` `` is literal) | `` `$ `" `` `` `` `` `n `t `` escapes | `"` | `@'...'@`, `@"..."@` here-strings |
 | **xonsh** | Python single-quote | Python double-quote | `"` | `r'...'`, `f'...'`, `p'...'`, `b'...'` |
-| **ion** | literal | `\` escapes | `"` | — |
 | **cmd** | — (not a quote) | `"..."` (no escaping inside) | n/a | `%VAR%` |
 
 **Key lexer implication**: "escaping quote" (double-quote-like, `\` is special inside) vs "non-escaping quote" (single-quote-like, literal) maps to `QUOTING_ESCAPING_STATE` vs `QUOTING_STATE` in the state machine. Shells where single quotes have *some* escapes (fish `\'`, elvish `''`) need format-specific handling — the two-state model isn't enough.
@@ -49,7 +48,6 @@ POSIX-family shells share the v1 operator grammar almost verbatim. The non-POSIX
 | **nushell** | `\` | — | C-style in `"..."` and `$"..."` | none in `'...'` |
 | **powershell** | `` ` `` | `` `$ `" `` `` `` `` `n `t `` | same (in `"..."`) | none (literal in `'...'`) |
 | **xonsh** | `\` | Python rules | Python rules | none |
-| **ion** | `\` | escapes next rune | `\` escapes | none |
 | **cmd** | `^` | escapes next char | `^` escapes inside `"..."` | n/a |
 
 ## Word Delimiters (Spaces)
@@ -75,7 +73,6 @@ These are the characters that break a word and are classified as `WORDBREAK_TOKE
 | **nushell** | `\|` | `>` `<` `>>` `out>` `err>` `out+err>` | `;` | — | `( ) [ ] { }` |
 | **powershell** | `\|` | `>` `>>` `2>` `2>&1` etc. | `;` | `&&` `\|\|` (PS7+) | `( ) { } ,` |
 | **xonsh** | `\|` | `>` `>>` `<` `2>` `2>&1` `e>` `e<` etc. | `;` | `&` `\|` `&&` `\|\|` | `@()` `$()` `![]` |
-| **ion** | `\|` `\|>` `|>` | `>` `<` `>>` `<>` `=>` `^>` `>&` `<&` | `;` | `&&` `\|\|` `&` | `( )` |
 | **cmd** | `\|` | `>` `>>` `<` | `&` `&&` `\|\|` | `&` `&&` `\|\|` | — |
 
 **Key lexer implication**: POSIX shells share the bash operator grammar (multi-char greedy matching of `>>`, `<<`, `&&`, `||`, `|&`, `&>>`). Ion needs `|>` and `=>` added. Fish needs *keyword* operator recognition (`and`/`or`/`not` are bare words that act as operators — the tokenizer must match them at word boundaries, not as operator runes). Cmd uses `&` as a *command separator* (like `;` in POSIX), not just a background operator.
@@ -93,7 +90,6 @@ These are the characters that break a word and are classified as `WORDBREAK_TOKE
 | **nushell** | `#` | end of line | also `#` inline after code; block `#` lines |
 | **powershell** | `#` | end of line | also `<# ... #>` block comments (multi-line) |
 | **xonsh** | `#` | end of line | Python `#` comments |
-| **ion** | `#` | end of line | `#` at word start |
 | **cmd** | `REM` / `::` | end of line | `REM` is a command; `::` is a label-style comment |
 
 The v1 tokenizer handles `#`-to-newline comments in `COMMENT_STATE`. Cmd's `REM`/`::` and PowerShell's `<# #>` block comments need format-specific comment handling.
@@ -113,7 +109,6 @@ Whether the escaping-quote state has additional special characters beyond the es
 | **nushell** | only in `$"..."` | `$`, `(...)` |
 | **powershell** | yes | `$variable`, `$(...)` |
 | **xonsh** | yes (f-strings) | `{...}` |
-| **ion** | yes | `$` |
 
 For a *lexer* (not an expander), interpolation matters only insofar as the interpolating characters must not be confused with quote terminators. The tokenizer generally treats the quote char as the only terminator in the escaping-quote state and lets `$`/`` ` `` pass through as regular word characters — matching v1 behavior.
 
@@ -139,7 +134,6 @@ For a *lexer* (not an expander), interpolation matters only insofar as the inter
 - **nushell** → extra string types (`r#'...'#`, backtick, `$'...'`, `$"..."`); metacharacter set for quoting.
 - **powershell** → backtick escape; `''`/`""` doubled-quote; here-strings; `--%` stop-parsing.
 - **xonsh** → Python string literals (raw, f-, p-, b-strings) + shell operators.
-- **ion** → `\` escape; `|>`/`=>` operators.
 - **cmd** → `^` escape; `"`-only quotes; `&` separator; `REM`/`::` comments.
 
 ## References

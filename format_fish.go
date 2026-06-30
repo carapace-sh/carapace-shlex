@@ -57,3 +57,4 @@ func (fishFormat) KeywordOperators() map[string]WordbreakType {
 
 func (fishFormat) NonEscapingQuoteEscapes() bool { return true }  // ' and \\ inside single quotes
 func (fishFormat) NonEscapingQuoteBackslashEscapes() bool { return true }
+func (fishFormat) EscapeNotBareword() bool { return true }

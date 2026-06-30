@@ -224,7 +224,6 @@ func PowershellFormat() Format
 func XonshFormat() Format
 func TcshFormat() Format
 func OilFormat() Format
-func IonFormat() Format
 func CmdFormat() Format
 ```
 
@@ -299,7 +298,6 @@ These reuse the state machine with at most the `nonEscapingQuoteEscapes` flag fl
 1. **Fish** — `nonEscapingQuoteEscapes` with `\'`/`\\`; keyword operators (`and`/`or`/`not`); narrower escape set in `"..."`.
 2. **Elvish** — `nonEscapingQuoteEscapes` with `''`; `\` is *not* an escape outside quotes (bareword char); no POSIX list operators.
 3. **PowerShell** — backtick as escape char (not `\`); `''` and `""` doubled-quote; `#` comments. Here-strings and `--%` deferred.
-4. **Ion** — `^` as wordbreak (operator prefix for `^>`/`^|`); `@` not a wordbreak; custom operator grammar.
 
 ### Phase 4 — Complex string types (optional / as needed)
 
@@ -367,7 +365,7 @@ Cmd needs the most format-specific logic: `REM` keyword-comment detection, `::` 
 
 - [ ] Phase 1: `Format` interface, `BashFormat`, `SplitWith`, `Split` delegates, `Span`, `SplitForCompletion`/`CompletionContext`, all tests pass
 - [ ] Phase 2: `ZshFormat`, `OilFormat`, `TcshFormat` + tests
-- [ ] Phase 3: `FishFormat`, `ElvishFormat`, `PowershellFormat`, `IonFormat` + tests
+- [ ] Phase 3: `FishFormat`, `ElvishFormat`, `PowershellFormat` + tests
 - [ ] Phase 4: `NushellFormat`, `XonshFormat`, multi-rune opener hook (if needed) + tests
 - [ ] Phase 5: `CmdFormat` + tests
 - [ ] Carapace regression: carapace test suite passes with updated shlex

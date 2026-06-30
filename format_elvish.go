@@ -16,13 +16,10 @@ func (elvishFormat) Classifier() tokenClassifier {
 	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)
 	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
 	// Elvish: \ is a bareword character, not an escape outside quotes.
-	// It IS an escape inside double quotes, so we still classify it as
-	// escapeRuneClass — the state machine only uses it in ESCAPING_STATE
-	// which is entered from IN_WORD_STATE. For elvish, we need to NOT
-	// enter ESCAPING_STATE from IN_WORD_STATE.
-	// TODO: this requires a format flag to disable bareword escaping.
-	// For now, classify \ as escape to make double-quote escapes work,
-	// and handle the bareword case in the state machine.
+	// It IS an escape inside double quotes. The EscapeNotBareword() flag
+	// returns false, so the state machine treats \ as a regular word char
+	// in IN_WORD_STATE and START_STATE, but still uses it as an escape
+	// in QUOTING_ESCAPING_STATE (double quotes).
 	t.addRuneClass(escapeRunes, escapeRuneClass)
 	t.addRuneClass(commentRunes, commentRuneClass)
 
@@ -56,3 +53,4 @@ func (elvishFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
 func (elvishFormat) NonEscapingQuoteEscapes() bool { return true }  // '' → '
 func (elvishFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
+func (elvishFormat) EscapeNotBareword() bool { return false } // \ is a bareword char in elvish

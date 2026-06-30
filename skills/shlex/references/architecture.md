@@ -26,7 +26,7 @@ The classifier (`newDefaultClassifier`) reads `COMP_WORDBREAKS` from the environ
 This works for bash and bash-like shells (zsh, oil OSH) but cannot express:
 
 - **Non-POSIX quote types** — fish's `\'` inside single quotes, nushell's `r#'...'#` raw strings and backtick strings, PowerShell's backtick escape and here-strings, elvish's `''` doubled-quote escaping, xonsh's Python string literals.
-- **Non-POSIX operators** — fish's `and`/`or`/`not` keyword operators, ion's `|>` and `=>` pipe/redirect operators, cmd's `&` command separator and `^` escape.
+- **Non-POSIX operators** — fish's `and`/`or`/`not` keyword operators, cmd's `&` command separator and `^` escape.
 - **Different comment semantics** — fish `#`, PowerShell `#` (and `<# #>` block comments), cmd `REM`/`::`.
 - **Different escape characters** — PowerShell uses backtick (`` ` ``) instead of backslash; cmd uses caret (`^`).
 
@@ -182,7 +182,7 @@ const (
 )
 ```
 
-`wordbreakType(t Token)` maps a token's `RawValue` to its type. **In v2, the operator grammar is per-format** — POSIX shells share the bash operator set, but ion uses `|>` for pipes and `=>` for redirection, fish uses keyword operators (`and`, `or`), and cmd uses `&` as a command separator.
+`wordbreakType(t Token)` maps a token's `RawValue` to its type. **In v2, the operator grammar is per-format** — POSIX shells share the bash operator set, fish uses keyword operators (`and`, `or`), and cmd uses `&` as a command separator.
 
 The `IsPipelineDelimiter()` and `IsRedirect()` predicates drive `CurrentPipeline` and `FilterRedirects` respectively.
 

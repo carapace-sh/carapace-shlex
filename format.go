@@ -36,4 +36,11 @@ type Format interface {
 	// and stay in QUOTING_STATE. Only fish needs this.
 	// Requires NonEscapingQuoteEscapes() to also be true.
 	NonEscapingQuoteBackslashEscapes() bool
+
+	// EscapeNotBareword returns false if the escape character (backslash)
+	// is a literal bareword character outside quotes rather than an escape.
+	// When false, the state machine does NOT enter ESCAPING_STATE from
+	// IN_WORD_STATE — the escape char is treated as a regular word char.
+	// Only elvish needs this (\ is a bareword char in elvish).
+	EscapeNotBareword() bool
 }
