@@ -3,30 +3,33 @@ name: shlex
 description: >
   Use when working with the carapace-shlex v2 lexer — a command-line lexer that splits and
   re-joins command lines with quotation-state information for shell completion. Covers the
-  common token model, per-shell lexical formats (quoting, escaping, word breaks, operators,
-  comments), and how to add a new shell format. Triggers on: "shlex", "shlex v2", "carapace-shlex",
-  "shell lexer", "command line lexer", "quotation state", "wordbreak", "WORDBREAK",
-  "COMP_WORDBREAKS", "TokenSlice", "LexerState", "TokenType", "tokenizer", "Split", "Join",
-  "shell format", "lexical format", "POSIX shell lexing", "non-POSIX shell lexing".
+  common token model, the Format interface, per-shell lexical formats (quoting, escaping,
+  word breaks, operators, comments), CompletionContext, and how to add a new shell format.
+  Triggers on: "shlex", "shlex v2", "carapace-shlex", "shell lexer", "command line lexer",
+  "quotation state", "wordbreak", "WORDBREAK", "COMP_WORDBREAKS", "TokenSlice", "LexerState",
+  "TokenType", "tokenizer", "Split", "SplitWith", "SplitForCompletion", "CompletionContext",
+  "Format", "BashFormat", "ZshFormat", "FishFormat", "ElvishFormat", "PowershellFormat",
+  "NushellFormat", "XonshFormat", "TcshFormat", "OilFormat", "CmdFormat",
+  "Span", "shell format", "lexical format", "POSIX shell lexing", "non-POSIX shell lexing".
 user-invocable: true
 ---
 
 # carapace-shlex v2 — Multi-Shell Command-Line Lexer
 
-In-depth reference for the v2 lexer in [carapace-shlex](https://github.com/carapace-sh/carapace-shlex), a fork of [go-shlex](https://github.com/google/shlex) that splits and re-joins command lines while tracking quotation state for shell completion. V1 is POSIX-only; v2 supports multiple shell formats (including non-POSIX).
+In-depth reference for the v2 lexer in [carapace-shlex](https://github.com/carapace-sh/carapace-shlex), a fork of [go-shlex](https://github.com/google/shlex) that splits and re-joins command lines while tracking quotation state for shell completion. V1 was POSIX-only; v2 supports 10 shell formats (including non-POSIX) via the `Format` interface.
 
 ## Data Flow
 
 ```
 command line string
-  → format-specific classifier (rune → rune class)
-    → tokenizer state machine (rune classes → tokens)
-      → TokenSlice (typed tokens with quotation state)
-        → Words() / CurrentPipeline() / FilterRedirects() / WordbreakPrefix()
-          → completion context (current word, prefix, pipeline)
+  → SplitWith(s, format) or SplitForCompletion(s, format)
+    → format.Classifier() (rune → rune class)
+      → tokenizer state machine (rune classes → tokens, format flags for quote behavior)
+        → TokenSlice (typed tokens with Span and quotation state)
+          → CompletionContext (current word, prefix, quoting state, pipeline)
 ```
 
-Each shell format plugs its rune classifications and operator set into the common tokenizer state machine. The token model and `TokenSlice` operations are shared across all formats.
+Each shell format plugs its rune classifications, operator grammar, and quote-behavior flags into the common tokenizer state machine via the `Format` interface. The token model, `TokenSlice` operations, and `CompletionContext` are shared across all formats.
 
 ## Sub-Resources
 
@@ -34,7 +37,7 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 
 | Keywords | Reference |
 |----------|----------|
-| v2 architecture, common token model, TokenType, LexerState, Token, TokenSlice, tokenizer, tokenClassifier, rune class, runeTokenClass, Split, Join, Words, CurrentPipeline, FilterRedirects, WordbreakPrefix, adding a new format, format registration, classifier configuration | [references/architecture.md](references/architecture.md) |
+| v2 architecture, Format interface, Span, Token, TokenSlice, tokenizer, tokenClassifier, rune class, runeTokenClass, Split, SplitWith, SplitForCompletion, CompletionContext, QuotingState, IsRedirect, NonEscapingQuoteEscapes, EscapeNotBareword, KeywordOperators, ClassifyOperator, bashWordbreakType, adding a new format, format registration, implemented formats table, deferred features | [references/architecture.md](references/architecture.md) |
 | cross-shell comparison, quoting comparison, escape character comparison, word break comparison, operator comparison, comment syntax comparison, string interpolation, metacharacters table, POSIX vs non-POSIX, shell family | [references/comparison.md](references/comparison.md) |
 | bash format, POSIX lexing, single quotes, double quotes, backslash escape, ANSI-C quoting, $'...', #" comment, COMP_WORDBREAKS, pipe, redirect, list operators, &&, \|\|, ;, &, \|, <, >, >>, <<<, wordbreaks | [references/format-bash.md](references/format-bash.md) |
 | zsh format, zsh lexing, single quotes, double quotes, $'...' ANSI-C, RC_QUOTES, backslash escape, # comment, WORDCHARS, FIGNORE, pipe, redirect, list operators, process substitution, =<(...), glob qualifiers | [references/format-zsh.md](references/format-zsh.md) |

@@ -1,12 +1,12 @@
 # V2 Architecture — The Common Token Model
 
-How the v2 lexer is structured: a common token model and tokenizer state machine that each shell format plugs into via rune classification and operator sets. V1 is POSIX-only; v2 generalizes to multiple shell formats.
+How the v2 lexer is structured: a common token model and tokenizer state machine that each shell format plugs into via the `Format` interface. V1 was POSIX-only; v2 generalizes to multiple shell formats (including non-POSIX).
 
-> **Source of truth**: `shlex.go`, `tokenslice.go`, `wordbreak.go` in the repo root. For how shells differ lexically, see [comparison.md](comparison.md).
+> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`, `SplitWith`), `format.go` (`Format` interface, `Span`), `completion.go` (`CompletionContext`, `SplitForCompletion`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
 
 ## V1 Recap (POSIX-Only)
 
-V1 is a single lexer hardcoded to POSIX shell lexing. The rune classes and operator set are fixed:
+V1 was a single lexer hardcoded to POSIX shell lexing. The rune classes and operator set were fixed:
 
 ```go
 // shlex.go (v1)
@@ -21,33 +21,56 @@ const (
 const BASH_WORDBREAKS = " \t\r\n" + `"'@><=;|&(:`
 ```
 
-The classifier (`newDefaultClassifier`) reads `COMP_WORDBREAKS` from the environment and merges any custom wordbreak runes that aren't already classified. The tokenizer state machine (`scanStream`) is a single hardcoded switch over `LexerState`.
+The classifier (`newDefaultClassifier`) read `COMP_WORDBREAKS` from the environment and merged any custom wordbreak runes that weren't already classified. The tokenizer state machine (`scanStream`) was a single hardcoded switch over `LexerState`.
 
-This works for bash and bash-like shells (zsh, oil OSH) but cannot express:
+This worked for bash and bash-like shells (zsh, oil OSH) but could not express:
 
-- **Non-POSIX quote types** — fish's `\'` inside single quotes, nushell's `r#'...'#` raw strings and backtick strings, PowerShell's backtick escape and here-strings, elvish's `''` doubled-quote escaping, xonsh's Python string literals.
+- **Non-POSIX quote types** — fish's `\'` inside single quotes, nushell's backtick strings, PowerShell's backtick escape, elvish's `''` doubled-quote escaping.
 - **Non-POSIX operators** — fish's `and`/`or`/`not` keyword operators, cmd's `&` command separator and `^` escape.
-- **Different comment semantics** — fish `#`, PowerShell `#` (and `<# #>` block comments), cmd `REM`/`::`.
 - **Different escape characters** — PowerShell uses backtick (`` ` ``) instead of backslash; cmd uses caret (`^`).
+- **Bareword backslash** — elvish treats `\` as a literal bareword character outside quotes.
 
-## V2 Goal
+## V2 Architecture
 
-V2 keeps the proven tokenizer state machine and `TokenSlice` operations but makes the **rune classification** and **operator set** configurable per shell format. A format is a small struct that declares:
+V2 keeps the proven tokenizer state machine and `TokenSlice` operations but makes the **rune classification**, **operator grammar**, and **quote behavior** configurable per shell format via the `Format` interface. A format is a small struct that implements:
 
-- which runes are spaces, quotes, escapes, comments, word breaks
-- which quote types support escaping (double-quote-like) vs not (single-quote-like)
-- the operator grammar (multi-char operators like `>>`, `&&`, `||`, `|>`)
-- comment termination rules
+```go
+// format.go
+type Format interface {
+	// Classifier returns a rune classifier mapping runes to runeTokenClass.
+	// Called once per tokenizer; should be freshly built (may read env vars).
+	Classifier() tokenClassifier
 
-The tokenizer state machine and token model stay common, so `Split`, `Words`, `CurrentPipeline`, `FilterRedirects`, and `WordbreakPrefix` work identically across all formats.
+	// ClassifyOperator maps a wordbreak token's RawValue to a WordbreakType.
+	ClassifyOperator(raw string) WordbreakType
+
+	// KeywordOperators returns bare-word operators (e.g. fish "and"/"or")
+	// that should be treated as WORDBREAK_TOKEN despite being word characters.
+	// Returns nil for shells without keyword operators.
+	KeywordOperators() map[string]WordbreakType
+
+	// NonEscapingQuoteEscapes returns true if the non-escaping quote (single
+	// quote) supports limited escapes: '' (doubled quote) → literal quote.
+	// Supported by: fish, elvish, zsh (RC_QUOTES), PowerShell.
+	NonEscapingQuoteEscapes() bool
+
+	// NonEscapingQuoteBackslashEscapes returns true if backslash (\) is an
+	// escape inside the non-escaping quote (single quotes): \' and \\.
+	// Only fish needs this.
+	NonEscapingQuoteBackslashEscapes() bool
+
+	// EscapeNotBareword returns false if the escape character (backslash)
+	// is a literal bareword character outside quotes rather than an escape.
+	// Only elvish needs this (\ is a bareword char in elvish).
+	EscapeNotBareword() bool
+}
+```
 
 ## The Common Token Model
 
-These types are shared across all formats and unchanged from v1 in spirit:
+These types are shared across all formats:
 
 ### TokenType
-
-A top-level token classification:
 
 ```go
 type TokenType int
@@ -64,8 +87,6 @@ const (
 The lexer (`lexer.Next`) yields only `WORD_TOKEN` and `WORDBREAK_TOKEN`, skipping comments. The tokenizer (`tokenizer.Next`) yields all types including `COMMENT_TOKEN` and the empty trailing `WORD_TOKEN`.
 
 ### LexerState
-
-The state machine tracks quotation state so that completion can know whether the cursor is inside an open quote:
 
 ```go
 type LexerState int
@@ -84,77 +105,46 @@ const (
 
 `Token.State` reports the state **after** the token was emitted. For a word that ends with an open quote (cursor inside quotes), the state is `QUOTING_STATE` or `QUOTING_ESCAPING_STATE` — this is the signal completion code uses to know it must close the quote.
 
-### Token
+### Span and Token
 
 ```go
+// format.go
+type Span struct {
+	Start int // rune offset of the first character
+	End   int // rune offset after the last character
+}
+
+// shlex.go
 type Token struct {
 	Type           TokenType
 	Value          string      // the processed value (quotes/escapes removed)
 	RawValue       string      // the raw source text including quote chars
-	Index          int         // rune index in the input stream
+	Span           Span        // rune offsets in the input stream
 	State          LexerState  // state after emitting this token
 	WordbreakType  WordbreakType `json:",omitempty"`
 	WordbreakIndex int         // index of last opening quote in Value
 }
 ```
 
-Key fields for completion:
+`Span` replaces v1's `Index` field. `Span.Start` is the rune offset of the first character; `Span.End` is the rune offset after the last character. The `adjoins` check uses `Span.End == other.Span.Start` to detect contiguous tokens that `Words()` should merge.
 
-- **`Value`** — the dequoted word value. Completion matches against this.
-- **`RawValue`** — the original source substring. Used to detect quotation state (e.g., zsh's `quoteValue` reads `RawValue` to decide which replacer to use).
-- **`State`** — whether the word ended inside an open quote.
-- **`WordbreakIndex`** — set when entering a quote, so `WordbreakPrefix()` can extract the prefix before the last opening quote.
-
-## TokenSlice Operations
+### TokenSlice Operations
 
 These are format-agnostic and work on the token stream produced by any format's tokenizer:
 
-### `Split(s string) (TokenSlice, error)`
+| Method | Purpose |
+|--------|---------|
+| `Split(s)` / `SplitWith(s, format)` | Entry point — lexes a string into tokens |
+| `Words()` | Merges adjoining tokens (contiguous `Span`) into single words |
+| `CurrentPipeline()` | Returns the last pipeline (splits on `\|`, `&&`, `;`, etc.) |
+| `FilterRedirects()` | Removes redirect operators and their targets |
+| `WordbreakPrefix()` | Extracts the completion prefix up to the cursor |
+| `CurrentToken()` | Returns the last token |
+| `Strings()` | Returns word values as `[]string` |
 
-Entry point. Creates a lexer over the string and collects all tokens.
+### WordbreakType
 
-### `Words() TokenSlice`
-
-Combines adjoining tokens (tokens whose `RawValue` ranges are contiguous in the source) into single words. A word like `foo"bar"'baz'` is three tokens in the raw stream but one word after `Words()`. The merged token's `State` is taken from the last segment.
-
-```go
-// tokenslice.go
-func (t TokenSlice) Words() TokenSlice {
-	words := make(TokenSlice, 0)
-	for index, token := range t {
-		switch {
-		case index == 0:
-			words = append(words, token)
-		case t[index-1].adjoins(token):
-			words[len(words)-1].Value += token.Value
-			words[len(words)-1].RawValue += token.RawValue
-			words[len(words)-1].State = token.State
-		default:
-			words = append(words, token)
-		}
-	}
-	return words
-}
-```
-
-### `CurrentPipeline() TokenSlice`
-
-Splits the token slice on pipeline-delimiter wordbreaks (`|`, `||`, `&`, `;`, `&&`, etc.) and returns the last pipeline. This lets completion focus on the command currently being typed.
-
-### `FilterRedirects() TokenSlice`
-
-Removes redirect operators (`<`, `>`, `>>`, `<<<`, etc.) and their attached file-descriptor prefixes (e.g., the `2` in `2>`). Completion should not treat redirect targets as command arguments.
-
-### `WordbreakPrefix() string`
-
-Extracts the completion prefix: the text from the last wordbreak (or last opening quote) up to the cursor. This mirrors how bash determines the partial word to complete. Special handling:
-
-- When the last token's state is a quoting state, the prefix starts at `WordbreakIndex` (the position of the last opening quote).
-- `@` is a wordbreak but is **not** included in the prefix (bash quirk).
-
-## WordbreakType
-
-Operators are classified so that `CurrentPipeline` and `FilterRedirects` can decide what's a pipeline delimiter vs a redirect vs other:
+Operators are classified so that `CurrentPipeline` and `FilterRedirects` can decide what's a pipeline delimiter vs a redirect vs other. The v1 hardcoded `wordbreakType()` function was renamed to `bashWordbreakType()` and is now called via `Format.ClassifyOperator()`:
 
 ```go
 type WordbreakType int
@@ -182,63 +172,135 @@ const (
 )
 ```
 
-`wordbreakType(t Token)` maps a token's `RawValue` to its type. **In v2, the operator grammar is per-format** — POSIX shells share the bash operator set, fish uses keyword operators (`and`, `or`), and cmd uses `&` as a command separator.
+`IsPipelineDelimiter()` and `IsRedirect()` drive `CurrentPipeline` and `FilterRedirects`.
 
-The `IsPipelineDelimiter()` and `IsRedirect()` predicates drive `CurrentPipeline` and `FilterRedirects` respectively.
+## CompletionContext
+
+The `SplitForCompletion` function provides a structured completion context, replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains that carapace used with v1:
+
+```go
+// completion.go
+type CompletionContext struct {
+	Words          []string    // pipeline words (redirects filtered)
+	CurrentWord    string      // word at cursor (dequoted)
+	RawCurrentWord string      // raw source of current word (with quotes)
+	Prefix         string      // wordbreak prefix up to cursor
+	QuotingState   LexerState  // IN_WORD / QUOTING / QUOTING_ESCAPING / ESCAPING
+	IsRedirect     bool        // true when completing a redirect target
+	Pipeline       TokenSlice  // raw pipeline tokens (escape hatch)
+}
+
+func SplitForCompletion(s string, format Format) *CompletionContext
+func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContext
+```
+
+This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 regexes on `RawValue`) with `ctx.QuotingState` from the tokenizer directly.
+
+## Implemented Formats
+
+10 formats are implemented, each in a `format_*.go` file:
+
+| Format | File | Key features |
+|--------|------|-------------|
+| `BashFormat()` | `format_bash.go` | POSIX baseline, reads `COMP_WORDBREAKS` |
+| `ZshFormat()` | `format_zsh.go` | RC_QUOTES (`''`→`'`), `NonEscapingQuoteEscapes` |
+| `OilFormat()` | `format_oil.go` | bash-compatible (OSH) |
+| `TcshFormat()` | `format_tcsh.go` | POSIX-family |
+| `FishFormat()` | `format_fish.go` | `\'`/`\\` in single quotes, keyword operators |
+| `ElvishFormat()` | `format_elvish.go` | `''` doubled-quote, `\` as bareword (`EscapeNotBareword`) |
+| `PowershellFormat()` | `format_powershell.go` | backtick escape, `''`/`""` doubled-quotes |
+| `NushellFormat()` | `format_nushell.go` | backtick-as-quote, `$'...'`/`$"..."` |
+| `XonshFormat()` | `format_xonsh.go` | Python string prefixes, POSIX operators |
+| `CmdFormat()` | `format_cmd.go` | caret escape, `"`-only, `&` separator |
+
+### Deferred format features
+
+These require multi-rune opener support not yet implemented:
+
+- Nushell `r#'...'#` raw strings
+- Xonsh triple-quotes (`'''...'''`)
+- Cmd `REM`/`::` keyword comments
+- PowerShell here-strings (`@'...'@`) and `--%` stop-parsing
+
+The basic quote types (single, double, backtick) cover the vast majority of completion input. These deferred features are for completeness.
+
+## State Machine Extensions
+
+The v1 state machine is extended with three format-configurable behaviors (no new states added):
+
+### NonEscapingQuoteEscapes (`''` doubled-quote)
+
+When `NonEscapingQuoteEscapes()` returns true, the `QUOTING_STATE` handler peeks at the next rune on seeing `'`:
+- If next is also `'` → consume both, emit one literal `'`, stay in `QUOTING_STATE`
+- Else → close the quote (`IN_WORD_STATE`)
+
+Also extends to `QUOTING_ESCAPING_STATE` for `""` doubled-quote (PowerShell).
+
+Supported by: zsh, elvish, PowerShell, fish.
+
+### NonEscapingQuoteBackslashEscapes (`\'`/`\\` in single quotes)
+
+When `NonEscapingQuoteBackslashEscapes()` returns true, the `QUOTING_STATE` handler treats `\` as an escape:
+- `\'` → literal `'`, stay in `QUOTING_STATE`
+- `\\` → literal `\`, stay in `QUOTING_STATE`
+
+Only fish needs this.
+
+### EscapeNotBareword (`\` as bareword)
+
+When `EscapeNotBareword()` returns false, the `START_STATE` and `IN_WORD_STATE` handlers treat `\` as a regular word character instead of entering `ESCAPING_STATE`. The `\` still works as an escape inside double quotes (`QUOTING_ESCAPING_STATE`).
+
+Only elvish needs this — `\` is a valid bareword character in elvish.
+
+### Keyword operators (fish `and`/`or`/`not`)
+
+When `KeywordOperators()` returns a non-nil map, the `tokenizer.Next()` method reclassifies `WORD_TOKEN`s whose `RawValue` matches a keyword as `WORDBREAK_TOKEN` with the mapped `WordbreakType`. This lets fish's bare-word operators split pipelines without operator runes.
+
+## API Summary
+
+```go
+// Backward compatible (v1)
+func Split(s string) (TokenSlice, error)    // defaults to BashFormat()
+func Join(s []string) string                // POSIX join
+
+// New (v2)
+func SplitWith(s string, format Format) (TokenSlice, error)
+func SplitForCompletion(s string, format Format) *CompletionContext
+func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContext
+
+// Format constructors
+func BashFormat() Format
+func ZshFormat() Format
+func OilFormat() Format
+func TcshFormat() Format
+func FishFormat() Format
+func ElvishFormat() Format
+func PowershellFormat() Format
+func NushellFormat() Format
+func XonshFormat() Format
+func CmdFormat() Format
+```
+
+`Split(s)` delegates to `SplitWith(s, BashFormat())`, preserving v1 behavior. Existing carapace code using `Split` and `TokenSlice` methods works unchanged (the only breaking change is `Token.Index` → `Token.Span.Start`).
 
 ## Adding a New Shell Format
 
-A v2 format is a configuration of the common tokenizer. To add one:
+1. **Create `format_<shell>.go`** — implement the `Format` interface with a struct
+2. **Configure the classifier** — map runes to `runeTokenClass` values (spaces, quotes, escape, comments, wordbreaks)
+3. **Configure the operator grammar** — implement `ClassifyOperator()` mapping operator strings to `WordbreakType`
+4. **Set the format flags** — `NonEscapingQuoteEscapes`, `NonEscapingQuoteBackslashEscapes`, `EscapeNotBareword`, `KeywordOperators` as needed
+5. **Write tests** — `format_<shell>_test.go` covering quotes, escapes, operators, comments, edge cases (open quote at EOF, escape at EOF, adjacent quoted segments)
 
-### 1. Identify the lexical rules
-
-Determine for the target shell:
-
-| Concern | Questions |
-|---------|-----------|
-| **Spaces** | Which runes delimit words? (Usually ` \t\r\n`.) |
-| **Quotes** | Which quote characters open/close strings? Which support escaping (double-quote-like) and which are literal (single-quote-like)? |
-| **Escape** | What is the escape character? (Backslash `\` for POSIX; backtick `` ` `` for PowerShell; caret `^` for cmd.) |
-| **Comments** | What starts a comment? How does it terminate? (`#` to end-of-line for most; `REM`/`::` for cmd.) |
-| **Word breaks / operators** | Which operator characters break words? What multi-char operators exist (`>>`, `&&`, `||>`, ...)? |
-| **Non-POSIX string types** | Does the shell have string types the tokenizer must track? (nushell `r#'...'#`, backtick strings; PowerShell here-strings; elvish `''`.) |
-
-See [comparison.md](comparison.md) for a per-shell summary and the `format-*.md` references for details.
-
-### 2. Configure the classifier
-
-Provide a rune classifier that maps runes to `runeTokenClass` values. V2 makes the hardcoded rune sets in v1 (`spaceRunes`, `escapingQuoteRunes`, etc.) per-format parameters.
-
-### 3. Configure the operator grammar
-
-Provide the set of operator strings and their `WordbreakType` so that `wordbreakType()` and the predicates work. For shells with keyword operators (fish `and`/`or`), the tokenizer must recognize word-boundary-delimited keywords, not just operator runes.
-
-### 4. Handle format-specific string types
-
-If the shell has string types that don't fit the two-quote model (escaping vs non-escaping), extend the state machine or pre-classify. Examples:
-
-- **Nushell raw strings** `r#'...'#` — the `#` inside the opener is part of the delimiter, not a comment.
-- **PowerShell here-strings** `@"..."@` / `@'...'@` — multi-line, closing delimiter on its own line.
-- **Elvish doubled single quote** `''` — inside single quotes, `''` is an escaped `'`, not a close-then-open.
-
-These may require a small extension to the state machine or a format-specific scan routine.
-
-### 5. Test against the shell's parser
-
-Validate the tokenizer output against the real shell's word splitting where possible. Use the shell's `--headless` mode (oil), test harness, or manual checks. Edge cases to verify:
-
-- Open quote at end of input (cursor inside quotes)
-- Escape at end of input
-- Empty word after an operator
-- Adjacent quoted segments (`a"b"'c'`)
-- Comment at end of input vs comment mid-line
-- Operator runs (`||`, `>>`, `|>`)
+See [comparison.md](comparison.md) for the per-shell lexical rules and the `format-*.md` references for details.
 
 ## References
 
-- `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `Join`
+- `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `SplitWith`, `Join`
+- `format.go` — `Format` interface, `Span`
+- `completion.go` — `CompletionContext`, `SplitForCompletion`
 - `tokenslice.go` — `TokenSlice` operations
-- `wordbreak.go` — `WordbreakType`, operator classification, `BASH_WORDBREAKS`
+- `wordbreak.go` — `WordbreakType`, `bashWordbreakType`, `BASH_WORDBREAKS`
+- `format_*.go` — per-shell format implementations
 - [comparison.md](comparison.md) — cross-shell lexical comparison
 - `format-*.md` — per-shell lexical format references
 
