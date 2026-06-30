@@ -22,4 +22,5 @@ func (zshFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (zshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (zshFormat) NonEscapingQuoteEscapes() bool { return true } // RC_QUOTES: '' → '
+func (zshFormat) NonEscapingQuoteEscapes() bool { return true }  // RC_QUOTES: '' → '
+func (zshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }

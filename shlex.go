@@ -364,6 +364,21 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				} else {
 					t.state = IN_WORD_STATE
 				}
+			case escapeRuneClass:
+				if t.format.NonEscapingQuoteBackslashEscapes() {
+					// Fish: \' and \\ inside single quotes → escaped char
+					peekRune, _, peekErr := t.ReadRune()
+					if peekErr == nil {
+						token.RawValue += string(peekRune)
+						token.add(peekRune) // emit the escaped char
+						// stay in QUOTING_STATE
+					} else {
+						// EOF after \ — emit \ as literal
+						token.add(nextRune)
+					}
+				} else {
+					token.add(nextRune) // literal backslash
+				}
 			default:
 				token.add(nextRune)
 			}
@@ -398,6 +413,15 @@ func (t *tokenizer) Next() (*Token, error) {
 		}
 		if token.Type == WORDBREAK_TOKEN {
 			token.WordbreakType = t.format.ClassifyOperator(token.RawValue)
+		}
+		// Keyword operators (fish and/or/not): reclassify WORD_TOKEN as WORDBREAK_TOKEN
+		if token.Type == WORD_TOKEN {
+			if kwOps := t.format.KeywordOperators(); kwOps != nil {
+				if wbType, ok := kwOps[token.RawValue]; ok {
+					token.Type = WORDBREAK_TOKEN
+					token.WordbreakType = wbType
+				}
+			}
 		}
 	}
 	return token, err

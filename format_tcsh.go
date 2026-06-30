@@ -21,3 +21,4 @@ func (tcshFormat) ClassifyOperator(raw string) WordbreakType {
 func (tcshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
 func (tcshFormat) NonEscapingQuoteEscapes() bool { return false }
+func (tcshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }

@@ -40,3 +40,5 @@ func (bashFormat) ClassifyOperator(raw string) WordbreakType {
 func (bashFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
 func (bashFormat) NonEscapingQuoteEscapes() bool { return false }
+
+func (bashFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
