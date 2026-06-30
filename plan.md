@@ -363,9 +363,9 @@ Cmd needs the most format-specific logic: `REM` keyword-comment detection, `::` 
 
 ## Deliverables Checklist
 
-- [ ] Phase 1: `Format` interface, `BashFormat`, `SplitWith`, `Split` delegates, `Span`, `SplitForCompletion`/`CompletionContext`, all tests pass
-- [ ] Phase 2: `ZshFormat`, `OilFormat`, `TcshFormat` + tests
-- [ ] Phase 3: `FishFormat`, `ElvishFormat`, `PowershellFormat` + tests
-- [ ] Phase 4: `NushellFormat`, `XonshFormat`, multi-rune opener hook (if needed) + tests
-- [ ] Phase 5: `CmdFormat` + tests
-- [ ] Carapace regression: carapace test suite passes with updated shlex
+- [x] Phase 1: `Format` interface, `BashFormat`, `SplitWith`, `Split` delegates, `Span`, `SplitForCompletion`/`CompletionContext`, all tests pass
+- [x] Phase 2: `ZshFormat`, `OilFormat`, `TcshFormat` + tests
+- [x] Phase 3: `FishFormat`, `ElvishFormat`, `PowershellFormat` + tests
+- [x] Phase 4: `NushellFormat`, `XonshFormat` + tests (raw strings `r#'...'#` and triple-quotes deferred)
+- [x] Phase 5: `CmdFormat` + tests (REM/:: keyword comments deferred)
+- [x] Carapace regression: carapace builds and all tests pass with 2-line `Index`→`Span.Start` change in `action.go`
