@@ -198,7 +198,6 @@ func SplitWith(s string, format Format) (TokenSlice, error)
 // This is the ergonomic API for completion callers, replacing the manual
 // tokens.Words().CurrentPipeline().CurrentToken() chains carapace does today.
 func SplitForCompletion(s string, format Format) *CompletionContext
-func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContext
 
 // CompletionContext describes the completion state at a cursor position.
 // Modeled after the dual-parser pattern in carapace-jjlex/carapace-ffmpeg.
@@ -276,7 +275,7 @@ type WordbreakType int                     // unchanged
 5. Make `Split(s)` delegate to `SplitWith(s, BashFormat())`.
 6. Add `nonEscapingQuoteEscapes` format flag (off for bash).
 7. Add `Span{Start, End}` to `Token` (replaces `Index`; update `adjoins` and existing tests).
-8. Add `SplitForCompletion(s, format)` / `SplitForCompletionAt(s, cursor, format)` returning `CompletionContext`.
+8. Add `SplitForCompletion(s, format)` returning `CompletionContext`.
 9. **All existing tests pass** (with mechanical `Index`→`Span.Start` updates) — this is the acceptance criterion.
 
 **Files**: `shlex.go`, `tokenslice.go`, `wordbreak.go`, new `format.go`, new `format_bash.go`, new `completion.go`.

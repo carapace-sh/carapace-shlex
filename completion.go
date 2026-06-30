@@ -1,6 +1,6 @@
 package shlex
 
-// CompletionContext describes the completion state at a cursor position.
+// CompletionContext describes the completion state at the end of the input.
 // It is the primary API for completion callers, replacing the manual
 // tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken() chains.
 type CompletionContext struct {
@@ -35,16 +35,9 @@ type CompletionContext struct {
 	Pipeline TokenSlice
 }
 
-// SplitForCompletion parses s (up to the end) and returns a CompletionContext
-// using the given format. The cursor is assumed to be at the end of the string.
+// SplitForCompletion parses s and returns a CompletionContext describing
+// the completion state at the end of the string, using the given format.
 func SplitForCompletion(s string, format Format) *CompletionContext {
-	return SplitForCompletionAt(s, len([]rune(s)), format)
-}
-
-// SplitForCompletionAt parses s up to the cursor position and returns a
-// CompletionContext describing the completion state at that position.
-// cursor is a rune offset into s.
-func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContext {
 	tokens, err := SplitWith(s, format)
 	if err != nil || len(tokens) == 0 {
 		return &CompletionContext{QuotingState: START_STATE}

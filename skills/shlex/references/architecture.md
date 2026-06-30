@@ -191,7 +191,6 @@ type CompletionContext struct {
 }
 
 func SplitForCompletion(s string, format Format) *CompletionContext
-func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContext
 ```
 
 This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 regexes on `RawValue`) with `ctx.QuotingState` from the tokenizer directly.
@@ -266,7 +265,6 @@ func Join(s []string) string                // POSIX join
 // New (v2)
 func SplitWith(s string, format Format) (TokenSlice, error)
 func SplitForCompletion(s string, format Format) *CompletionContext
-func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContext
 
 // Format constructors
 func BashFormat() Format

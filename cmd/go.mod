@@ -16,3 +16,4 @@ require (
 )
 
 replace github.com/carapace-sh/carapace-shlex => ../
+replace github.com/carapace-sh/carapace => ../carapace
