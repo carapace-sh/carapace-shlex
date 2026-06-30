@@ -85,8 +85,10 @@ func (w WordbreakType) IsRedirect() bool {
 
 }
 
-func wordbreakType(t Token) WordbreakType {
-	switch t.RawValue {
+// bashWordbreakType maps a wordbreak token's RawValue to a WordbreakType
+// using the POSIX/bash operator grammar.
+func bashWordbreakType(raw string) WordbreakType {
+	switch raw {
 	case "<":
 		return WORDBREAK_REDIRECT_INPUT
 	case ">":

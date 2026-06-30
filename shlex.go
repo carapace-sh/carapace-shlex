@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 )
 
@@ -31,7 +30,7 @@ type Token struct {
 	Type           TokenType
 	Value          string
 	RawValue       string
-	Index          int
+	Span           Span
 	State          LexerState
 	WordbreakType  WordbreakType `json:",omitempty"`
 	WordbreakIndex int           // index of last opening quote in Value (only correct when in quoting state)
@@ -47,7 +46,7 @@ func (t *Token) removeLastRaw() {
 }
 
 func (t Token) adjoins(other Token) bool {
-	return t.Index+len(t.RawValue) == other.Index || t.Index == other.Index+len(other.RawValue)
+	return t.Span.End == other.Span.Start || t.Span.Start == other.Span.End
 }
 
 // Equal reports whether tokens a, and b, are equal.
@@ -60,7 +59,7 @@ func (t *Token) Equal(other *Token) bool {
 		t.Type != other.Type,
 		t.Value != other.Value,
 		t.RawValue != other.RawValue,
-		t.Index != other.Index,
+		t.Span != other.Span,
 		t.State != other.State,
 		t.WordbreakType != other.WordbreakType,
 		t.WordbreakIndex != other.WordbreakIndex:
@@ -140,30 +139,6 @@ func (typeMap tokenClassifier) addRuneClass(runes string, tokenType runeTokenCla
 	}
 }
 
-// newDefaultClassifier creates a new classifier for ASCII characters.
-func newDefaultClassifier() tokenClassifier {
-	t := tokenClassifier{}
-	t.addRuneClass(spaceRunes, spaceRuneClass)
-	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)
-	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
-	t.addRuneClass(escapeRunes, escapeRuneClass)
-	t.addRuneClass(commentRunes, commentRuneClass)
-
-	wordbreakRunes := BASH_WORDBREAKS
-	if wordbreaks := os.Getenv("COMP_WORDBREAKS"); wordbreaks != "" {
-		wordbreakRunes = wordbreaks
-	}
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
-
-	return t
-}
-
 // ClassifyRune classifiees a rune
 func (t tokenClassifier) ClassifyRune(runeVal rune) runeTokenClass {
 	return t[runeVal]
@@ -172,9 +147,9 @@ func (t tokenClassifier) ClassifyRune(runeVal rune) runeTokenClass {
 // lexer turns an input stream into a sequence of tokens. Whitespace and comments are skipped.
 type lexer tokenizer
 
-// newLexer creates a new lexer from an input stream.
-func newLexer(r io.Reader) *lexer {
-	return (*lexer)(newTokenizer(r))
+// newLexer creates a new lexer from an input stream and format.
+func newLexer(r io.Reader, format Format) *lexer {
+	return (*lexer)(newTokenizer(r, format))
 }
 
 // Next returns the next token, or an error. If there are no more tokens,
@@ -200,6 +175,7 @@ func (l *lexer) Next() (*Token, error) {
 type tokenizer struct {
 	input      bufio.Reader
 	classifier tokenClassifier
+	format     Format
 	index      int
 	state      LexerState
 }
@@ -218,13 +194,14 @@ func (t *tokenizer) UnreadRune() (err error) {
 	return
 }
 
-// newTokenizer creates a new tokenizer from an input stream.
-func newTokenizer(r io.Reader) *tokenizer {
+// newTokenizer creates a new tokenizer from an input stream and format.
+func newTokenizer(r io.Reader, format Format) *tokenizer {
 	input := bufio.NewReader(r)
-	classifier := newDefaultClassifier()
+	classifier := format.Classifier()
 	return &tokenizer{
 		input:      *input,
-		classifier: classifier}
+		classifier: classifier,
+		format:     format}
 }
 
 // scanStream scans the stream for the next token using the internal state machine.
@@ -256,7 +233,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 		case START_STATE: // no runes read yet
 			{
 				if nextRuneType != spaceRuneClass {
-					token.Index = t.index - 1
+					token.Span.Start = t.index - 1
 				}
 				switch nextRuneType {
 				case eofRuneClass:
@@ -264,13 +241,15 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					case t.index == 0: // tokenizer contains an empty string
 						token.removeLastRaw()
 						token.Type = WORD_TOKEN
-						token.Index = t.index
+						token.Span.Start = t.index
+						token.Span.End = t.index
 						t.index += 1
 						return token, nil // return an additional empty token for current cursor position
 					case previousState == WORDBREAK_STATE, consumed > 1: // consumed is greater than 1 when when there were spaceRunes before
 						token.removeLastRaw()
 						token.Type = WORD_TOKEN
-						token.Index = t.index
+						token.Span.Start = t.index
+						token.Span.End = t.index
 						return token, nil // return an additional empty token for current cursor position
 					default:
 						return nil, io.EOF
@@ -397,14 +376,24 @@ func (t *tokenizer) Next() (*Token, error) {
 	token, err := t.scanStream()
 	if err == nil {
 		token.State = t.state // TODO should be done in scanStream
-		token.WordbreakType = wordbreakType(*token)
+		if token.Span.End == 0 && token.Span.Start >= 0 {
+			token.Span.End = token.Span.Start + len([]rune(token.RawValue))
+		}
+		if token.Type == WORDBREAK_TOKEN {
+			token.WordbreakType = t.format.ClassifyOperator(token.RawValue)
+		}
 	}
 	return token, err
 }
 
-// Split partitions of a string into tokens.
+// Split partitions a string into tokens using the default (bash) format.
 func Split(s string) (TokenSlice, error) {
-	l := newLexer(strings.NewReader(s))
+	return SplitWith(s, BashFormat())
+}
+
+// SplitWith partitions a string into tokens using the given format.
+func SplitWith(s string, format Format) (TokenSlice, error) {
+	l := newLexer(strings.NewReader(s), format)
 	tokens := make(TokenSlice, 0)
 	for {
 		token, err := l.Next()

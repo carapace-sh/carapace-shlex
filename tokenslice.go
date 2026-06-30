@@ -20,7 +20,7 @@ func (t TokenSlice) Pipelines() []TokenSlice {
 	pipeline := make(TokenSlice, 0)
 	for _, token := range t {
 		switch {
-		case token.Type == WORDBREAK_TOKEN && wordbreakType(token).IsPipelineDelimiter():
+		case token.Type == WORDBREAK_TOKEN && token.WordbreakType.IsPipelineDelimiter():
 			pipelines = append(pipelines, pipeline)
 			pipeline = make(TokenSlice, 0)
 		default:
@@ -44,6 +44,7 @@ func (t TokenSlice) Words() TokenSlice {
 		case t[index-1].adjoins(token):
 			words[len(words)-1].Value += token.Value
 			words[len(words)-1].RawValue += token.RawValue
+			words[len(words)-1].Span.End = token.Span.End
 			words[len(words)-1].State = token.State
 		default:
 			words = append(words, token)
@@ -57,13 +58,13 @@ func (t TokenSlice) FilterRedirects() TokenSlice {
 	for index, token := range t {
 		switch token.Type {
 		case WORDBREAK_TOKEN:
-			if wordbreakType(token).IsRedirect() {
+			if token.WordbreakType.IsRedirect() {
 				continue
 			}
 		}
 
 		if index > 0 {
-			if wordbreakType(t[index-1]).IsRedirect() {
+			if t[index-1].WordbreakType.IsRedirect() {
 				continue
 			}
 		}
@@ -72,7 +73,7 @@ func (t TokenSlice) FilterRedirects() TokenSlice {
 			next := t[index+1]
 			if token.adjoins(next) {
 				if _, err := strconv.Atoi(token.RawValue); err == nil {
-					if wordbreakType(t[index+1]).IsRedirect() {
+					if t[index+1].WordbreakType.IsRedirect() {
 						continue
 					}
 				}
