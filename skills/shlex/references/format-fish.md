@@ -91,9 +91,10 @@ Fish performs expansions in order: command substitution â†’ variable expansion â
 
 ## Edge Cases
 
-- **`\'` in single quotes**: the main lexer deviation from bash. A v2 fish format must handle this or `echo 'it\'s'` will be mis-tokenized.
-- **`(...)` command substitution**: parentheses are not word breaks in fish (they're part of command substitution syntax). The lexer should treat `(` and `)` as regular word characters.
+- **`\'` and `\\` in single quotes**: the main lexer deviation from bash. Only `\'` and `\\` are escapes; other `\X` sequences (e.g. `\$`) are literal `\X` (both characters emitted). The `NonEscapingQuoteBackslashEscapes` flag enables this behavior in the state machine.
+- **`(...)` command substitution**: parentheses are not word breaks in fish (they're part of command substitution syntax). The lexer treats `(` and `)` as regular word characters.
 - **No `COMP_WORDBREAKS`**: fish has no equivalent of bash's `COMP_WORDBREAKS` env var. The wordbreak set is fixed by the format.
+- **QuoteWord**: fish uses double-quote wrapping with `\"`, `\$`, `\\`, and `\`+newline escapes for `JoinWith`.
 
 ## References
 

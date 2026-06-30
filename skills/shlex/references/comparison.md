@@ -75,7 +75,7 @@ These are the characters that break a word and are classified as `WORDBREAK_TOKE
 | **xonsh** | `\|` | `>` `>>` `<` `2>` `2>&1` `e>` `e<` etc. | `;` | `&` `\|` `&&` `\|\|` | `@()` `$()` `![]` |
 | **cmd** | `\|` | `>` `>>` `<` | `&` `&&` `\|\|` | `&` `&&` `\|\|` | — |
 
-**Key lexer implication**: POSIX shells share the bash operator grammar (multi-char greedy matching of `>>`, `<<`, `&&`, `||`, `|&`, `&>>`). Ion needs `|>` and `=>` added. Fish needs *keyword* operator recognition (`and`/`or`/`not` are bare words that act as operators — the tokenizer must match them at word boundaries, not as operator runes). Cmd uses `&` as a *command separator* (like `;` in POSIX), not just a background operator.
+**Key lexer implication**: POSIX shells share the bash operator grammar (multi-char greedy matching of `>>`, `<<`, `&&`, `||`, `|&`, `&>>`). Fish needs *keyword* operator recognition (`and`/`or`/`not` are bare words that act as operators — the tokenizer must match them at word boundaries, not as operator runes). Cmd uses `&` as a *command separator* (like `;` in POSIX), not just a background operator.
 
 ## Comment Syntax
 

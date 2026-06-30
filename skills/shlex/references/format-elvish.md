@@ -108,10 +108,11 @@ Elvish does not word-split on variable expansion. `$var` is a single value regar
 
 ## Edge Cases
 
-- **`''` in single quotes**: the primary lexer deviation. Must peek-ahead on `'` in `QUOTING_STATE`.
-- **`\` as bareword**: outside quotes, `\` is literal. The classifier must not mark it as `escapeRuneClass` for the elvish format.
+- **`''` in single quotes**: the primary lexer deviation. The `NonEscapingQuoteEscapes` flag enables peek-ahead on `'` in `QUOTING_STATE` to handle `''` as a literal `'`.
+- **`\` as bareword**: outside quotes, `\` is literal. The `EscapeNotBareword` flag (returns false for elvish) prevents the state machine from entering `ESCAPING_STATE` on `\` in `IN_WORD_STATE`.
 - **Map/option syntax `&`**: `&` is not a list operator in elvish. Including it in the wordbreak set would break `&key=value` map literals.
 - **No `COMP_WORDBREAKS`**: elvish has no equivalent env var.
+- **QuoteWord**: elvish uses single-quote wrapping with `''` for literal `'` in `JoinWith`.
 
 ## References
 

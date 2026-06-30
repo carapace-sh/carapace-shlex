@@ -141,10 +141,12 @@ These are format-agnostic and work on the token stream produced by any format's 
 | `Split(s)` / `SplitWith(s, format)` | Entry point — lexes a string into tokens |
 | `Words()` | Merges adjoining tokens (contiguous `Span`) into single words |
 | `CurrentPipeline()` | Returns the last pipeline (splits on `\|`, `&&`, `;`, etc.) |
+| `Pipelines()` | Splits into all pipelines (used by `CurrentPipeline`) |
 | `FilterRedirects()` | Removes redirect operators and their targets |
 | `WordbreakPrefix()` | Extracts the completion prefix up to the cursor |
 | `CurrentToken()` | Returns the last token |
 | `Strings()` | Returns word values as `[]string` |
+| `Equal(other *Token)` | Reports whether two tokens are equal |
 
 ### WordbreakType
 
@@ -240,6 +242,7 @@ These require multi-rune opener support not yet implemented:
 - Xonsh triple-quotes (`'''...'''`)
 - Cmd `REM`/`::` keyword comments
 - PowerShell here-strings (`@'...'@`) and `--%` stop-parsing
+- Zsh `WORDCHARS` env var (characters that are NOT word breaks)
 
 The basic quote types (single, double, backtick) cover the vast majority of completion input. These deferred features are for completeness.
 
@@ -259,11 +262,25 @@ Supported by: zsh, elvish, PowerShell, fish.
 
 ### NonEscapingQuoteBackslashEscapes (`\'`/`\\` in single quotes)
 
-When `NonEscapingQuoteBackslashEscapes()` returns true, the `QUOTING_STATE` handler treats `\` as an escape:
+When `NonEscapingQuoteBackslashEscapes()` returns true, the `QUOTING_STATE` handler treats `\` as a limited escape:
 - `\'` → literal `'`, stay in `QUOTING_STATE`
 - `\\` → literal `\`, stay in `QUOTING_STATE`
+- `\X` (X ≠ `'`, `\`) → literal `\X` (both chars emitted), stay in `QUOTING_STATE`
+- `\` at EOF → literal `\`
 
-Only fish needs this.
+Requires `NonEscapingQuoteEscapes()` to also be true. Only fish needs this.
+
+### Double-quote escape limitation
+
+The `QUOTING_ESCAPING_STATE` handler unconditionally enters `ESCAPING_QUOTED_STATE` on any escape rune, consuming the backslash and emitting the next rune literally. This means `\n` inside `"..."` produces `n` (backslash consumed), not `hello\nworld`.
+
+In real shells, `\` inside double quotes is only special before specific characters:
+- **bash/zsh/oil/tcsh**: `$`, `` ` ``, `"`, `\`, newline — `\n` should be literal `hello\nworld`
+- **fish**: `"`, `$`, `\`, newline — `\n` should be literal
+- **nushell**: `"`, `\` — `\$` should be literal
+- **PowerShell**: backtick (not `\`) — `\` is always literal
+
+This is a known limitation of the lexer. For completion purposes it doesn't affect word splitting or quote-state tracking — the `Value` field may differ from the shell's actual dequoting, but the `State` and word boundaries are correct. A future improvement could add a format-specific "valid double-quote escape chars" set.
 
 ### EscapeNotBareword (`\` as bareword)
 
