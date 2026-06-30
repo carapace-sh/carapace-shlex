@@ -346,7 +346,24 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				token.removeLastRaw()
 				return token, err
 			case nonEscapingQuoteRuneClass:
-				t.state = IN_WORD_STATE
+				if t.format.NonEscapingQuoteEscapes() {
+					// Peek: '' → literal ' (stay in quote), else close
+					peekRune, _, peekErr := t.ReadRune()
+					if peekErr == nil && t.classifier.ClassifyRune(peekRune) == nonEscapingQuoteRuneClass {
+						token.RawValue += string(peekRune)
+						token.add(nextRune) // emit one literal '
+						// stay in QUOTING_STATE
+					} else {
+						// Not a doubled quote — unread and close
+						if peekErr == nil {
+							t.UnreadRune()
+							token.RawValue = token.RawValue[:len(token.RawValue)-len(string(peekRune))]
+						}
+						t.state = IN_WORD_STATE
+					}
+				} else {
+					t.state = IN_WORD_STATE
+				}
 			default:
 				token.add(nextRune)
 			}
