@@ -2,7 +2,7 @@
 
 Lexical rules a command-line lexer needs for elvish. Elvish uses `'`/`"` quotes with `''` (doubled single quote) as the escape inside single quotes, a bareword charset, no word splitting, and no POSIX list operators.
 
-> **Source of truth**: elvish docs ([String](https://elv.sh/ref/language.html#string), [Bareword](https://elv.sh/ref/language.html#bareword)). For broader elvish internals, use the **elvish** skill. For cross-shell comparison, see [comparison.md](comparison.md).
+> **Source of truth**: elvish docs ([String](https://elv.sh/ref/language.html#string), [Bareword](https://elv.sh/ref/language.html#bareword), [Function](https://elv.sh/ref/language.html#function), [Pipeline](https://elv.sh/ref/language.html#pipeline)) and elvish source (`pkg/parse/parse.go`). For broader elvish internals, use the **elvish** skill. For cross-shell comparison, see [comparison.md](comparison.md).
 
 ## Classification
 
@@ -92,7 +92,7 @@ For the lexer: the elvish format must **not** classify `\` as `escapeRuneClass` 
 
 Elvish has **no** POSIX list operators (`&&`, `||`, `&`, etc.). Logical operations use the `and`/`or` commands (not keyword operators). The `&` character is used for map literals (`&key=value`) and option syntax, not as a background/list operator.
 
-The wordbreak rune set is minimal: `|`, `<`, `>`, `;` and their multi-char combinations. `(`, `)`, `[`, `]`, `{`, `}` are syntax for lambdas, lists, and maps — not word breaks in the pipeline sense.
+The wordbreak rune set is minimal: `|`, `<`, `>`, `;` and their multi-char combinations. `(`, `)`, `[`, `]`, `{`, `}` are syntax for lambdas, lists, and maps — not word breaks in the pipeline sense. However, `|` has a dual role: it is both a pipeline separator **and** a lambda parameter delimiter inside `{...}`. See [Lambdas and Brace Context](#lambdas-and-brace-context) below.
 
 ## Comments
 
@@ -106,6 +106,49 @@ echo hello # a comment
 
 Elvish does not word-split on variable expansion. `$var` is a single value regardless of contents. The lexer splits on literal source whitespace only.
 
+## Lambdas and Brace Context
+
+Elvish uses `{...}` for both **lambda literals** and **braced lists**. The disambiguation rule (from `pkg/parse/parse.go` `lbrace()`):
+
+- If the first rune after `{` is `|`, whitespace, `;`, `\r`, or `\n` → **lambda**
+- Otherwise → **braced list** (e.g. `{a,b}`)
+
+### Lambda syntax
+
+```
+Lambda = '{' [ '|' { (Compound | MapPair) { Space } } '|' ] Chunk '}'
+```
+
+- `{|a b| body}` — lambda with positional parameters `a`, `b`
+- `{ |&opt=default| body }` — lambda with options
+- `{ body }` — lambda with no parameters (whitespace after `{` required)
+- `{a,b}` — braced list (no whitespace after `{`)
+
+### The `|` ambiguity: pipe vs lambda parameter delimiter
+
+`|` has two meanings in elvish:
+1. **Pipeline separator** at the top level: `form1 | form2`
+2. **Lambda signature delimiter** inside `{...}`: `{|params| body}`
+
+Elvish's parser resolves this **contextually** via the recursive-descent call stack — when parsing inside `lambda()`, `|` means parameter delimiter; when parsing inside `Pipeline.parse()`, `|` means pipe. There is no lexer-level disambiguation.
+
+### Current lexer limitation
+
+The carapace-shlex tokenizer is a **flat** state machine with no nesting awareness. It classifies every `|` as `WORDBREAK_PIPE` regardless of brace context. This means:
+
+- `bat | {|` produces: `WORD(bat)`, `WORDBREAK_PIPE(|)`, `WORD({)`, `WORDBREAK_PIPE(|)`, `WORD("")`
+- The second `|` is incorrectly classified as a pipeline delimiter
+- `CurrentPipeline()` splits at the wrong point, producing an empty pipeline
+- The cursor position (after the second `|`) is seen as "start of a new command" rather than "inside a lambda parameter list"
+
+This affects completion correctness when the cursor is inside `{|...|` (parameter declaration position).
+
+### What elvish's own completion system does
+
+Elvish's parser (`pkg/parse/parse.go`) is a handwritten recursive-descent parser with no separate lexer — it tracks context structurally via the call stack. The completion system (`pkg/edit/complete/`) uses `np.FindLeft()` to find the AST path from leaf to root at the cursor position, then pattern-matches upward to determine if the cursor is inside a `Lambda` primary's parameter list.
+
+Notably, elvish's own `completeCommand` completer (line 68-73 of `completers.go`) has a TODO acknowledging it incorrectly triggers after `{|` — it offers command completions when the cursor is in parameter position. There is no dedicated "lambda parameter" completer in elvish.
+
 ## Edge Cases
 
 - **`''` in single quotes**: the primary lexer deviation. The `NonEscapingQuoteEscapes` flag enables peek-ahead on `'` in `QUOTING_STATE` to handle `''` as a literal `'`.
@@ -113,6 +156,7 @@ Elvish does not word-split on variable expansion. `$var` is a single value regar
 - **Map/option syntax `&`**: `&` is not a list operator in elvish. Including it in the wordbreak set would break `&key=value` map literals.
 - **No `COMP_WORDBREAKS`**: elvish has no equivalent env var.
 - **QuoteWord**: elvish uses single-quote wrapping with `''` for literal `'` in `JoinWith`.
+- **Brace/lambda context**: `{` and `}` are not wordbreak runes. `|` inside braces is a lambda parameter delimiter, not a pipe. The current flat tokenizer cannot distinguish these contexts — see "Current lexer limitation" above.
 
 ## References
 

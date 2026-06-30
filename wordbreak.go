@@ -20,6 +20,8 @@ const (
 	// https://www.gnu.org/software/bash/manual/html_node/Pipelines.html
 	WORDBREAK_PIPE
 	WORDBREAK_PIPE_WITH_STDERR
+	// Elvish lambda parameter delimiter: | inside {|params| ...}
+	WORDBREAK_LAMBDA_PIPE
 	// https://www.gnu.org/software/bash/manual/html_node/Lists.html
 	WORDBREAK_LIST_ASYNC
 	WORDBREAK_LIST_SEQUENTIAL
@@ -41,6 +43,7 @@ var wordbreakTypes = map[WordbreakType]string{
 	WORDBREAK_REDIRECT_INPUT_OUTPUT:       "WORDBREAK_REDIRECT_INPUT_OUTPUT",
 	WORDBREAK_PIPE:                        "WORDBREAK_PIPE",
 	WORDBREAK_PIPE_WITH_STDERR:            "WORDBREAK_PIPE_WITH_STDERR",
+	WORDBREAK_LAMBDA_PIPE:                 "WORDBREAK_LAMBDA_PIPE",
 	WORDBREAK_LIST_ASYNC:                  "WORDBREAK_LIST_ASYNC",
 	WORDBREAK_LIST_SEQUENTIAL:             "WORDBREAK_LIST_SEQUENTIAL",
 	WORDBREAK_LIST_AND:                    "WORDBREAK_LIST_AND",

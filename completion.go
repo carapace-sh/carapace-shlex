@@ -29,6 +29,11 @@ type CompletionContext struct {
 	// (e.g. after >, >>, <, etc.).
 	IsRedirect bool
 
+	// InLambdaParams is true when the cursor is inside a lambda parameter
+	// list (e.g. after "{|" in elvish). The completion caller should
+	// complete parameter names, not commands or arguments.
+	InLambdaParams bool
+
 	// Pipeline is the raw token slice of the current pipeline (before
 	// redirect filtering and word merging). Use this as an escape hatch
 	// for edge cases not covered by the fields above.
@@ -77,5 +82,16 @@ func SplitForCompletion(s string, format Format) *CompletionContext {
 	}
 
 	ctx.Prefix = pipeline.WordbreakPrefix()
+
+	// Detect lambda parameter context: an odd number of WORDBREAK_LAMBDA_PIPE
+	// tokens in the current pipeline means we're inside an unclosed {|...| parameter list.
+	lambdaPipeCount := 0
+	for _, t := range pipeline {
+		if t.Type == WORDBREAK_TOKEN && t.WordbreakType == WORDBREAK_LAMBDA_PIPE {
+			lambdaPipeCount++
+		}
+	}
+	ctx.InLambdaParams = lambdaPipeCount%2 == 1
+
 	return ctx
 }

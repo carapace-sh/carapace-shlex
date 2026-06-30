@@ -51,3 +51,11 @@ type Format interface {
 	// that support it, etc.
 	QuoteWord(s string) string
 }
+
+// PostProcessor is an optional interface for formats that need to reclassify
+// tokens after the main tokenization pass. Used by formats that require
+// context not available in the flat state machine (e.g. elvish brace/lambda
+// context for | disambiguation).
+type PostProcessor interface {
+	PostProcess(tokens TokenSlice) TokenSlice
+}

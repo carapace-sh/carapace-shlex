@@ -498,12 +498,16 @@ func SplitWith(s string, format Format) (TokenSlice, error) {
 		token, err := l.Next()
 		if err != nil {
 			if err == io.EOF {
-				return tokens, nil
+				break
 			}
 			return nil, err
 		}
 		tokens = append(tokens, *token)
 	}
+	if pp, ok := format.(PostProcessor); ok {
+		tokens = pp.PostProcess(tokens)
+	}
+	return tokens, nil
 }
 
 // Join concatenates words to create a single string using the default
