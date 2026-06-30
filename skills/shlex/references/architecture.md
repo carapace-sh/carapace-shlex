@@ -63,6 +63,10 @@ type Format interface {
 	// is a literal bareword character outside quotes rather than an escape.
 	// Only elvish needs this (\ is a bareword char in elvish).
 	EscapeNotBareword() bool
+
+	// QuoteWord quotes a single word for safe insertion into a command line.
+	// Used by JoinWith. Each format uses its shell's preferred quoting style.
+	QuoteWord(s string) string
 }
 ```
 
@@ -195,6 +199,22 @@ func SplitForCompletion(s string, format Format) *CompletionContext
 
 This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 regexes on `RawValue`) with `ctx.QuotingState` from the tokenizer directly.
 
+## JoinWith and QuoteWord
+
+`JoinWith(s []string, format Format) string` joins words using the format's `QuoteWord` method. Each format implements `QuoteWord` with its shell's preferred quoting style:
+
+| Format | Quoting style |
+|--------|--------------|
+| bash/zsh/oil/tcsh | double-quote wrapping with `\$ \` \" \\` escapes |
+| fish | double-quote wrapping with `\" \$ \\` + newline escapes |
+| elvish | single-quote wrapping with `''` for literal `'` |
+| powershell | single-quote wrapping with `''` for literal `'` |
+| nushell | double-quote wrapping with `\" \\` escapes |
+| xonsh | Python single-quote wrapping with `\' \\` escapes |
+| cmd | double-quote wrapping with `^"` for literal `"` |
+
+`Join(s []string) string` delegates to `JoinWith(s, BashFormat())` for backward compatibility. The old v1 `Join` that used Go's `%#v` quoting is gone.
+
 ## Implemented Formats
 
 10 formats are implemented, each in a `format_*.go` file:
@@ -260,11 +280,12 @@ When `KeywordOperators()` returns a non-nil map, the `tokenizer.Next()` method r
 ```go
 // Backward compatible (v1)
 func Split(s string) (TokenSlice, error)    // defaults to BashFormat()
-func Join(s []string) string                // POSIX join
+func Join(s []string) string                // defaults to BashFormat()
 
 // New (v2)
 func SplitWith(s string, format Format) (TokenSlice, error)
 func SplitForCompletion(s string, format Format) *CompletionContext
+func JoinWith(s []string, format Format) string
 
 // Format constructors
 func BashFormat() Format
@@ -293,9 +314,10 @@ See [comparison.md](comparison.md) for the per-shell lexical rules and the `form
 
 ## References
 
-- `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `SplitWith`, `Join`
+- `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `SplitWith`, `Join`, `JoinWith`
 - `format.go` — `Format` interface, `Span`
 - `completion.go` — `CompletionContext`, `SplitForCompletion`
+- `quote.go` — per-shell `QuoteWord` implementations
 - `tokenslice.go` — `TokenSlice` operations
 - `wordbreak.go` — `WordbreakType`, `bashWordbreakType`, `BASH_WORDBREAKS`
 - `format_*.go` — per-shell format implementations

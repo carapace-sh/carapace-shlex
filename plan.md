@@ -368,3 +368,22 @@ Cmd needs the most format-specific logic: `REM` keyword-comment detection, `::` 
 - [x] Phase 4: `NushellFormat`, `XonshFormat` + tests (raw strings `r#'...'#` and triple-quotes deferred)
 - [x] Phase 5: `CmdFormat` + tests (REM/:: keyword comments deferred)
 - [x] Carapace regression: carapace builds and all tests pass with 2-line `Index`→`Span.Start` change in `action.go`
+- [x] Carapace migration: all call sites use SplitForCompletion (zsh regex hack eliminated)
+- [x] Join rewrite: format-aware JoinWith with per-shell QuoteWord
+
+---
+
+## Deferred Format Features
+
+These require multi-rune opener support or keyword-based comment detection
+not yet implemented. The basic quote types (single, double, backtick) cover
+the vast majority of completion input. Implement when a concrete need arises.
+
+| Feature | Shell | What's needed | Impact |
+|---------|-------|---------------|--------|
+| Raw strings `r#'...'#` | nushell | Multi-rune opener: `r#` prefix before `'`, matching `#` count in closer. `#` in opener must not trigger comment state. | Low — nushell completers mostly use basic quotes |
+| Triple-quotes `'''...'''` / `"""..."""` | xonsh, oil (YSH) | 3-rune lookahead when entering quote state: if next 2 runes match, consume all 3 as opener. | Low — triple-quotes are rare in completion input |
+| `REM` / `::` keyword comments | cmd | `REM` is a word that starts a comment at command position (keyword detection, not rune-based). `::` is a 2-rune comment opener. | Low — comments don't affect completion in practice |
+| Here-strings `@'...'@` / `@"..."@` | powershell | Multi-line string with line-start closer. Needs format-specific scan routine. | Low — here-strings are rare in completion input |
+| `--%` stop-parsing | powershell | Special word that switches remainder of line to raw lexing mode. | Low — rarely appears in completion input |
+| `WORDCHARS` env var | zsh | Characters that are NOT word breaks (inverse of COMP_WORDBREAKS). Read env var in ZshFormat.Classifier(). | Medium — affects word boundary detection |
