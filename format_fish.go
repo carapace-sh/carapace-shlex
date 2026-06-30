@@ -2,8 +2,9 @@ package shlex
 
 // fishFormat implements Format for fish lexing.
 // Key differences from bash:
-// - \' and \\ are escapes inside single quotes (NonEscapingQuoteEscapes)
-// - Keyword operators: and, or, not (bare words acting as operators)
+// - \' and \\ are escapes inside single quotes (NonEscapingQuoteBackslashEscapes)
+// - Keyword operators: and, or (bare words acting as pipeline delimiters)
+// - `not` is a prefix keyword but not a pipeline delimiter, so not in KeywordOperators
 // - No word splitting on variable expansion (doesn't affect lexing)
 // - Narrower escape set in double quotes (\" \$ \\ and \+newline only)
 type fishFormat struct{}
@@ -55,6 +56,6 @@ func (fishFormat) KeywordOperators() map[string]WordbreakType {
 	}
 }
 
-func (fishFormat) NonEscapingQuoteEscapes() bool { return true }  // ' and \\ inside single quotes
+func (fishFormat) NonEscapingQuoteEscapes() bool          { return true } // ' and \\ inside single quotes
 func (fishFormat) NonEscapingQuoteBackslashEscapes() bool { return true }
-func (fishFormat) EscapeNotBareword() bool { return true }
+func (fishFormat) EscapeNotBareword() bool                { return true }

@@ -259,7 +259,7 @@ type TokenSlice []Token                    // unchanged operations
 type WordbreakType int                     // unchanged
 ```
 
-`TokenSlice` and `WordbreakType` remain. The `TokenSlice` helper methods (`CurrentPipeline`, `FilterRedirects`, `Words`, `WordbreakPrefix`, `CurrentToken`, `Strings`, `Pipelines`) become **unexported** — they're internal implementation details of `SplitForCompletion`. `Split` stays public for low-level token access (nushell `Patch()` uses `tokens[0].Value` directly, no helpers needed).
+`TokenSlice` and `WordbreakType` remain. The `TokenSlice` helper methods (`CurrentPipeline`, `FilterRedirects`, `Words`, `WordbreakPrefix`, `CurrentToken`, `Strings`, `Pipelines`) remain exported — the CLI and carapace both use them directly. `Split` stays public for low-level token access (nushell `Patch()` uses `tokens[0].Value` directly, no helpers needed).
 
 ---
 
@@ -357,7 +357,7 @@ Cmd needs the most format-specific logic: `REM` keyword-comment detection, `::` 
 
 6. **`Span` rename of `Index`** — replacing `Token.Index` with `Token.Span.Start` is the one breaking change in Phase 1. It's mechanical (search/replace in tests) but touches the public API. **Alternative**: keep `Index` as a field and add `Span` alongside it, deprecating `Index` later. **Recommend**: do the clean rename in v2 since we're already breaking the internal `wordbreakType` API; carapace's usage of `Token.Index` is limited.
 
-7. **`CompletionContext` scope** — `SplitForCompletion` becomes the primary API for completion callers. The `TokenSlice` helper methods (`CurrentPipeline`, `FilterRedirects`, `Words`, `WordbreakPrefix`, `CurrentToken`) become internal implementation details. `Split` stays public for low-level use (nushell `Patch()`, raw token access). Carapace's `action.go`, `bash/patch.go`, `cmd_clink/patch.go`, and `zsh/action.go` migrate to `SplitForCompletion` — the zsh regex hack (4 regexes on `RawValue`) is replaced by `ctx.QuotingState`. `IsRedirect` is a field in `CompletionContext` (not caller logic), with `Pipeline TokenSlice` as the escape hatch for edge cases.
+7. **`CompletionContext` scope** — `SplitForCompletion` is the primary API for completion callers. The `TokenSlice` helper methods (`CurrentPipeline`, `FilterRedirects`, `Words`, `WordbreakPrefix`, `CurrentToken`) remain exported for the CLI and low-level use. `Split` stays public for low-level use (nushell `Patch()`, raw token access). Carapace's `action.go`, `bash/patch.go`, `cmd_clink/patch.go`, and `zsh/action.go` can migrate to `SplitForCompletion` — the zsh regex hack (4 regexes on `RawValue`) is replaced by `ctx.QuotingState`. `IsRedirect` is a field in `CompletionContext` (not caller logic), with `Pipeline TokenSlice` as the escape hatch for edge cases.
 
 ---
 

@@ -20,7 +20,7 @@ const (
 	// https://www.gnu.org/software/bash/manual/html_node/Pipelines.html
 	WORDBREAK_PIPE
 	WORDBREAK_PIPE_WITH_STDERR
-	// https://www.gnu.org/software/bash/manual/html_node/Lists.html)
+	// https://www.gnu.org/software/bash/manual/html_node/Lists.html
 	WORDBREAK_LIST_ASYNC
 	WORDBREAK_LIST_SEQUENTIAL
 	WORDBREAK_LIST_AND
@@ -82,7 +82,6 @@ func (w WordbreakType) IsRedirect() bool {
 	default:
 		return false
 	}
-
 }
 
 // bashWordbreakType maps a wordbreak token's RawValue to a WordbreakType

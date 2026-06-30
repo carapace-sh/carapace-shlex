@@ -1,15 +1,11 @@
 package shlex
 
 // zshFormat implements Format for zsh lexing.
-// Extends bash with RC_QUOTES ('' → ' inside single quotes) and
-// WORDCHARS-based wordbreak adjustment.
-type zshFormat struct {
-	wordchars string // characters that are NOT word breaks (from WORDCHARS env)
-}
+// Extends bash with RC_QUOTES (” → ' inside single quotes).
+type zshFormat struct{}
 
 // ZshFormat returns the zsh lexical format.
-// It reads WORDCHARS from the environment at Classifier() call time.
-// RC_QUOTES is enabled (zsh's default for '' inside single quotes).
+// RC_QUOTES is enabled (zsh's default for ” inside single quotes).
 func ZshFormat() Format { return zshFormat{} }
 
 func (zshFormat) Classifier() tokenClassifier {
@@ -22,6 +18,6 @@ func (zshFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (zshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (zshFormat) NonEscapingQuoteEscapes() bool { return true }  // RC_QUOTES: '' → '
+func (zshFormat) NonEscapingQuoteEscapes() bool          { return true } // RC_QUOTES: '' → '
 func (zshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (zshFormat) EscapeNotBareword() bool { return true }
+func (zshFormat) EscapeNotBareword() bool                { return true }

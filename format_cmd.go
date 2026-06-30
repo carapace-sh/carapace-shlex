@@ -62,6 +62,6 @@ func (cmdFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (cmdFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (cmdFormat) NonEscapingQuoteEscapes() bool { return false }
+func (cmdFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (cmdFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (cmdFormat) EscapeNotBareword() bool { return true } // ^ is always an escape
+func (cmdFormat) EscapeNotBareword() bool                { return true } // ^ is always an escape

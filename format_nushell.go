@@ -17,7 +17,7 @@ func NushellFormat() Format { return nushellFormat{} }
 func (nushellFormat) Classifier() tokenClassifier {
 	t := tokenClassifier{}
 	t.addRuneClass(spaceRunes, spaceRuneClass)
-	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)     // "
+	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)       // "
 	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass) // '
 	// Nushell: backtick is a quote character (not an escape)
 	t.addRuneClass("`", nonEscapingQuoteRuneClass)
@@ -54,6 +54,6 @@ func (nushellFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (nushellFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (nushellFormat) NonEscapingQuoteEscapes() bool { return false }
+func (nushellFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (nushellFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (nushellFormat) EscapeNotBareword() bool { return true }
+func (nushellFormat) EscapeNotBareword() bool                { return true }

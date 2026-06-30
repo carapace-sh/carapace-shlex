@@ -25,7 +25,7 @@ func (l LexerState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(lexerStates[l])
 }
 
-// Token is a (type, value) pair representing a lexographical token.
+// Token is a (type, value) pair representing a lexicographic token.
 type Token struct {
 	Type           TokenType
 	Value          string
@@ -139,7 +139,7 @@ func (typeMap tokenClassifier) addRuneClass(runes string, tokenType runeTokenCla
 	}
 }
 
-// ClassifyRune classifiees a rune
+// ClassifyRune classifies a rune
 func (t tokenClassifier) ClassifyRune(runeVal rune) runeTokenClass {
 	return t[runeVal]
 }

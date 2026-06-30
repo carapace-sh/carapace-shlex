@@ -78,7 +78,6 @@ func (t TokenSlice) FilterRedirects() TokenSlice {
 					}
 				}
 			}
-
 		}
 
 		filtered = append(filtered, token)
@@ -94,6 +93,9 @@ func (t TokenSlice) CurrentToken() (token Token) {
 }
 
 func (t TokenSlice) WordbreakPrefix() string {
+	if len(t) == 0 {
+		return ""
+	}
 	found := false
 	prefix := ""
 

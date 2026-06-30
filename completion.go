@@ -84,8 +84,5 @@ func SplitForCompletionAt(s string, cursor int, format Format) *CompletionContex
 	}
 
 	ctx.Prefix = pipeline.WordbreakPrefix()
-
-	_ = cursor // cursor position is implicitly at end (tokens already reflect full input)
-	_ = err
 	return ctx
 }

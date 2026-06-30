@@ -2,7 +2,7 @@ package shlex
 
 // elvishFormat implements Format for elvish lexing.
 // Key differences from bash:
-// - '' inside single quotes → literal ' (same as zsh RC_QUOTES)
+// - ” inside single quotes → literal ' (same as zsh RC_QUOTES)
 // - \ is NOT an escape character outside quotes (it's a bareword char)
 // - No POSIX list operators (no &&, ||, &)
 type elvishFormat struct{}
@@ -51,6 +51,6 @@ func (elvishFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (elvishFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (elvishFormat) NonEscapingQuoteEscapes() bool { return true }  // '' → '
+func (elvishFormat) NonEscapingQuoteEscapes() bool          { return true } // '' → '
 func (elvishFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (elvishFormat) EscapeNotBareword() bool { return false } // \ is a bareword char in elvish
+func (elvishFormat) EscapeNotBareword() bool                { return false } // \ is a bareword char in elvish

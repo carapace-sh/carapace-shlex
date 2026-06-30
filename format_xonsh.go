@@ -2,12 +2,12 @@ package shlex
 
 // xonshFormat implements Format for xonsh lexing.
 // Xonsh is a Python/shell hybrid. For lexing purposes:
-// - Standard single/double quotes work like bash
-// - Prefix strings (r'...', f'...', p'...', b'...') work because the
-//   prefix is a word char and Words() merges the segments
-// - Triple-quotes ('''...''', """...""""") need 3-rune lookahead (deferred)
-// - Shell operators: |, >, >>, <, ;, &&, ||, &
-// - \ is the escape char (Python rules inside quotes)
+//   - Standard single/double quotes work like bash
+//   - Prefix strings (r'...', f'...', p'...', b'...') work because the
+//     prefix is a word char and Words() merges the segments
+//   - Triple-quotes (”'...”', """...""""") need 3-rune lookahead (deferred)
+//   - Shell operators: |, >, >>, <, ;, &&, ||, &
+//   - \ is the escape char (Python rules inside quotes)
 type xonshFormat struct{}
 
 // XonshFormat returns the xonsh lexical format.
@@ -41,6 +41,6 @@ func (xonshFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (xonshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (xonshFormat) NonEscapingQuoteEscapes() bool { return false }
+func (xonshFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (xonshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (xonshFormat) EscapeNotBareword() bool { return true }
+func (xonshFormat) EscapeNotBareword() bool                { return true }

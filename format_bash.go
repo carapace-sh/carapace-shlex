@@ -42,4 +42,4 @@ func (bashFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (bashFormat) NonEscapingQuoteEscapes() bool { return false }
 
 func (bashFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (bashFormat) EscapeNotBareword() bool { return true }
+func (bashFormat) EscapeNotBareword() bool                { return true }
