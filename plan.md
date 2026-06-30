@@ -1,4 +1,4 @@
-# carapace-shlex v2 — Implementation Plan
+# carapace-shlex v2 — Implementation Report
 
 ## Goal
 
