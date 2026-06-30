@@ -391,11 +391,19 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				}
 			case escapeRuneClass:
 				if t.format.NonEscapingQuoteBackslashEscapes() {
-					// Fish: \' and \\ inside single quotes → escaped char
+					// Fish: only \' and \\ are escapes inside single quotes.
+					// Other \X sequences are literal (\ + X).
 					peekRune, _, peekErr := t.ReadRune()
 					if peekErr == nil {
 						token.RawValue += string(peekRune)
-						token.add(peekRune) // emit the escaped char
+						switch peekRune {
+						case '\'', '\\':
+							token.add(peekRune) // emit just the escaped char
+						default:
+							// Not an escape — emit both \ and the char
+							token.add(nextRune)
+							token.add(peekRune)
+						}
 						// stay in QUOTING_STATE
 					} else {
 						// EOF after \ — emit \ as literal
