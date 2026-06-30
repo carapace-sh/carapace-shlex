@@ -29,6 +29,10 @@ const (
 	WORDBREAK_LIST_OR
 	// COMP_WORDBREAKS
 	WORDBREAK_CUSTOM
+	// Elvish-specific: output capture delimiters ( and )
+	WORDBREAK_OUTPUT_CAPTURE
+	// Elvish-specific: list literal / indexing delimiters [ and ]
+	WORDBREAK_BRACKET
 )
 
 var wordbreakTypes = map[WordbreakType]string{
@@ -49,6 +53,8 @@ var wordbreakTypes = map[WordbreakType]string{
 	WORDBREAK_LIST_AND:                    "WORDBREAK_LIST_AND",
 	WORDBREAK_LIST_OR:                     "WORDBREAK_LIST_OR",
 	WORDBREAK_CUSTOM:                      "WORDBREAK_CUSTOM",
+	WORDBREAK_OUTPUT_CAPTURE:              "WORDBREAK_OUTPUT_CAPTURE",
+	WORDBREAK_BRACKET:                     "WORDBREAK_BRACKET",
 }
 
 func (w WordbreakType) MarshalJSON() ([]byte, error) {

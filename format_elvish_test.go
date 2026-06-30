@@ -283,3 +283,128 @@ func TestElvishFormat_CompletionNotInLambda(t *testing.T) {
 		t.Errorf("elvish completion not in lambda: InLambdaParams = true, want false")
 	}
 }
+
+func TestElvishFormat_OutputCapture(t *testing.T) {
+	// ( and ) are word breaks — output capture delimiters
+	tokens, err := SplitWith("echo (ls)", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "(ls)" {
+		t.Errorf("elvish output capture: Words = %v, want [echo (ls)]", words)
+	}
+}
+
+func TestElvishFormat_OutputCaptureWordbreakType(t *testing.T) {
+	tokens, err := SplitWith("echo (ls)", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && (tok.Value == "(" || tok.Value == ")") {
+			if tok.WordbreakType != WORDBREAK_OUTPUT_CAPTURE {
+				t.Errorf("elvish output capture: WordbreakType = %v for %q, want WORDBREAK_OUTPUT_CAPTURE", tok.WordbreakType, tok.Value)
+			}
+		}
+	}
+}
+
+func TestElvishFormat_OutputCaptureDoesNotSplitPipeline(t *testing.T) {
+	// ( and ) are not pipeline delimiters
+	tokens, err := SplitWith("echo (ls | grep foo)", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.Pipelines()
+	// The | inside (...) is a real pipe, so we should get 2 pipelines
+	if len(pipelines) != 2 {
+		t.Errorf("elvish output capture pipeline: %d pipelines, want 2 (pipe inside parens)", len(pipelines))
+	}
+}
+
+func TestElvishFormat_ListLiteral(t *testing.T) {
+	// [ and ] are word breaks at word start — list literal
+	tokens, err := SplitWith("[a b]", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	// [a, b] — [ and a adjoin, b and ] adjoin, but a and b don't (space)
+	if len(words) != 2 || words[0] != "[a" || words[1] != "b]" {
+		t.Errorf("elvish list literal: Words = %v, want [[a b]]", words)
+	}
+}
+
+func TestElvishFormat_ListLiteralWordbreakType(t *testing.T) {
+	tokens, err := SplitWith("[a b]", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && (tok.Value == "[" || tok.Value == "]") {
+			if tok.WordbreakType != WORDBREAK_BRACKET {
+				t.Errorf("elvish list literal: WordbreakType = %v for %q, want WORDBREAK_BRACKET", tok.WordbreakType, tok.Value)
+			}
+		}
+	}
+}
+
+func TestElvishFormat_Indexing(t *testing.T) {
+	// [ after a word char is indexing — Words() should merge $var[0] back together
+	tokens, err := SplitWith("echo $var[0]", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "$var[0]" {
+		t.Errorf("elvish indexing: Words = %v, want [echo $var[0]]", words)
+	}
+}
+
+func TestElvishFormat_IndexingRange(t *testing.T) {
+	// $var[0:3] — indexing with range
+	tokens, err := SplitWith("echo $var[0:3]", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "$var[0:3]" {
+		t.Errorf("elvish indexing range: Words = %v, want [echo $var[0:3]]", words)
+	}
+}
+
+func TestElvishFormat_BracketDoesNotSplitPipeline(t *testing.T) {
+	// [ and ] are not pipeline delimiters
+	tokens, err := SplitWith("echo [a b]", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.Pipelines()
+	if len(pipelines) != 1 {
+		t.Errorf("elvish bracket pipeline: %d pipelines, want 1 (brackets are not pipeline delimiters)", len(pipelines))
+	}
+}
+
+func TestElvishFormat_NestedOutputCapture(t *testing.T) {
+	// Nested output capture: echo (echo (ls))
+	// The inner ( is a word break, so (echo and (ls)) are separate words
+	tokens, err := SplitWith("echo (echo (ls))", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	// (echo and (ls)) don't adjoin (space between echo and (ls))
+	if len(words) != 3 || words[0] != "echo" || words[1] != "(echo" || words[2] != "(ls))" {
+		t.Errorf("elvish nested output capture: Words = %v, want [echo (echo (ls))]", words)
+	}
+}
+
+func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
+	// Cursor inside output capture: echo (ls
+	ctx := SplitForCompletion("echo (ls", ElvishFormat())
+	// The ( is a word break, so words should be echo and (ls
+	if len(ctx.Words) != 2 || ctx.Words[0] != "echo" || ctx.Words[1] != "(ls" {
+		t.Errorf("elvish output capture completion: Words = %v, want [echo (ls]", ctx.Words)
+	}
+}

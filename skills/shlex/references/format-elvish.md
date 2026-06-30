@@ -13,6 +13,7 @@ Lexical rules a command-line lexer needs for elvish. Elvish uses `'`/`"` quotes 
 | non-escaping quote | `'` | `QUOTING_STATE` — **`''` → `'`** |
 | escape | `\` (only inside `"..."`) | — |
 | comment | `#` | `COMMENT_STATE` |
+| wordbreak | `\|` `<` `>` `;` `(` `)` `[` `]` | `WORDBREAK_STATE` |
 
 ## Quotes
 
@@ -86,13 +87,23 @@ For the lexer: the elvish format must **not** classify `\` as `escapeRuneClass` 
 
 | Operator | Meaning | Type |
 |----------|---------|------|
-| `\|` | pipe | pipeline delimiter |
+| `\|` | pipe / lambda parameter delimiter | pipeline delimiter (context-dependent — see [Lambdas and Brace Context](#lambdas-and-brace-context)) |
 | `>` `<` `>>` `>>?` `<>>` | redirects | redirect |
 | `;` | command separator | pipeline delimiter |
+| `(` `)` | output capture delimiters | `WORDBREAK_OUTPUT_CAPTURE` — not a pipeline delimiter |
+| `[` `]` | list literal / indexing delimiters | `WORDBREAK_BRACKET` — not a pipeline delimiter |
 
 Elvish has **no** POSIX list operators (`&&`, `||`, `&`, etc.). Logical operations use the `and`/`or` commands (not keyword operators). The `&` character is used for map literals (`&key=value`) and option syntax, not as a background/list operator.
 
-The wordbreak rune set is minimal: `|`, `<`, `>`, `;` and their multi-char combinations. `(`, `)`, `[`, `]`, `{`, `}` are syntax for lambdas, lists, and maps — not word breaks in the pipeline sense. However, `|` has a dual role: it is both a pipeline separator **and** a lambda parameter delimiter inside `{...}`. See [Lambdas and Brace Context](#lambdas-and-brace-context) below.
+The wordbreak rune set is `|`, `<`, `>`, `;`, `(`, `)`, `[`, `]`. The metacharacters `{` and `}` are not wordbreak runes — they are handled by the `PostProcess` brace-context tracker (see [Lambdas and Brace Context](#lambdas-and-brace-context)).
+
+### Output capture `(...)`
+
+`(` and `)` are unambiguous word breaks — they always delimit words. `echo (ls)` tokenizes as `echo`, `(`, `ls`, `)`. The `Words()` merge rejoins adjacent tokens so `(ls)` becomes a single word.
+
+### List literals `[...]` and indexing `var[0]`
+
+`[` and `]` are word breaks at the rune level. `Words()` merges them back with adjacent tokens: `[a` and `b]` for `[a b]` (list literal with space), or `$var[0]` for indexing (all tokens adjoin, so they merge into one word). Neither `WORDBREAK_OUTPUT_CAPTURE` nor `WORDBREAK_BRACKET` is a pipeline delimiter, so they don't cause pipeline splitting.
 
 ## Comments
 
@@ -156,7 +167,9 @@ Notably, elvish's own `completeCommand` completer (line 68-73 of `completers.go`
 - **Map/option syntax `&`**: `&` is not a list operator in elvish. Including it in the wordbreak set would break `&key=value` map literals.
 - **No `COMP_WORDBREAKS`**: elvish has no equivalent env var.
 - **QuoteWord**: elvish uses single-quote wrapping with `''` for literal `'` in `JoinWith`.
-- **Brace/lambda context**: `{` and `}` are not wordbreak runes. `|` inside braces is a lambda parameter delimiter, not a pipe. The current flat tokenizer cannot distinguish these contexts — see "Current lexer limitation" above.
+- **Brace/lambda context**: `{` and `}` are not wordbreak runes. `|` inside braces is a lambda parameter delimiter, not a pipe. The `PostProcess` post-pass reclassifies these — see [Lambdas and Brace Context](#lambdas-and-brace-context) above.
+- **`^` line continuation**: elvish uses `^` followed by newline as line continuation (like `\` + newline in bash). The lexer currently treats `^` as a regular word character. This only affects multi-line input; single-line completion input is unaffected. Not yet handled.
+- **Metacharacters not in wordbreaks**: `$`, `*`, `?`, `~`, `&`, `=`, `,` are metacharacters in elvish's grammar but are correctly treated as word characters by the lexer (they compound with adjacent text without breaking words). `$` starts a variable use, `*`/`?` are wildcards, `~` is tilde expansion, `&` introduces map pairs/options, `=` terminates map keys, `,` separates braced list elements — none of these cause word breaks in practice.
 
 ## References
 
