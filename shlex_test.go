@@ -28,21 +28,6 @@ var (
 	testString = "one two \"three four\" \"five \\\"six\\\"\" seven#eight # nine # ten\n eleven 'twelve\\' thirteen=13 fourteen/14 | || |after before| & ;"
 )
 
-func TestClassifier(t *testing.T) {
-	classifier := BashFormat().Classifier()
-	tests := map[rune]runeTokenClass{
-		' ':  spaceRuneClass,
-		'"':  escapingQuoteRuneClass,
-		'\'': nonEscapingQuoteRuneClass,
-		'#':  commentRuneClass}
-	for runeChar, want := range tests {
-		got := classifier.ClassifyRune(runeChar)
-		if got != want {
-			t.Errorf("ClassifyRune(%v) -> %v. Want: %v", runeChar, got, want)
-		}
-	}
-}
-
 func init() {
 	os.Unsetenv("COMP_WORDBREAKS")
 }

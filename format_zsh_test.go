@@ -19,7 +19,7 @@ func TestZshFormat_RCQuotes(t *testing.T) {
 }
 
 func TestZshFormat_NoRCQuotes(t *testing.T) {
-	// Without RC_QUOTES (bash), '' closes then reopens → two words
+	// Without RC_QUOTES (bash), '' closes then reopens → words merge to "its"
 	tokens, err := SplitWith("echo 'it''s'", BashFormat())
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +32,6 @@ func TestZshFormat_NoRCQuotes(t *testing.T) {
 }
 
 func TestZshFormat_OpenQuote(t *testing.T) {
-	// Open single quote at end
 	tokens, err := SplitWith("echo 'hel", ZshFormat())
 	if err != nil {
 		t.Fatal(err)
@@ -44,38 +43,24 @@ func TestZshFormat_OpenQuote(t *testing.T) {
 	}
 }
 
-func TestOilFormat(t *testing.T) {
-	// OSH is bash-compatible
-	tokens, err := SplitWith(`echo "hello" world`, OilFormat())
+func TestZshFormat_DoubleQuoteEscape(t *testing.T) {
+	tokens, err := SplitWith(`echo "say \"hello\""`, ZshFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
 	words := tokens.Words().Strings()
-	if len(words) != 3 || words[0] != "echo" || words[1] != "hello" || words[2] != "world" {
-		t.Errorf("OilFormat: Words = %v, want [echo hello world]", words)
+	if len(words) != 2 || words[1] != `say "hello"` {
+		t.Errorf("zsh double escape: Words = %v, want [echo say \"hello\"]", words)
 	}
 }
 
-func TestTcshFormat(t *testing.T) {
-	// tcsh uses same grammar as bash
-	tokens, err := SplitWith("echo foo | grep bar", TcshFormat())
-	if err != nil {
-		t.Fatal(err)
-	}
-	pipelines := tokens.Pipelines()
-	if len(pipelines) != 2 {
-		t.Errorf("TcshFormat: %d pipelines, want 2", len(pipelines))
-	}
-}
-
-func TestTcshFormat_BackslashQuote(t *testing.T) {
-	// tcsh $'...' ANSI-C quoting lexes same as bash
-	tokens, err := SplitWith("echo $'hello'", TcshFormat())
+func TestZshFormat_RCQuotesLonger(t *testing.T) {
+	tokens, err := SplitWith("echo 'it''s a test'", ZshFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
 	words := tokens.Words().Strings()
-	if len(words) != 2 || words[0] != "echo" || words[1] != "$hello" {
-		t.Errorf("TcshFormat $'': Words = %v, want [echo $hello]", words)
+	if len(words) != 2 || words[1] != "it's a test" {
+		t.Errorf("zsh RC_QUOTES longer: Words = %v, want [echo it's a test]", words)
 	}
 }

@@ -131,3 +131,48 @@ func TestCmdFormat_PercentNotWordbreak(t *testing.T) {
 		t.Errorf("cmd %%: Words = %v, want [echo %%PATH%%]", words)
 	}
 }
+
+func TestCmdFormat_DoubleOr(t *testing.T) {
+	tokens, err := SplitWith("echo foo || echo bar", CmdFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tokens.Pipelines()) != 2 {
+		t.Errorf("cmd ||: %d pipelines, want 2", len(tokens.Pipelines()))
+	}
+}
+
+func TestCmdFormat_Redirect(t *testing.T) {
+	ctx := SplitForCompletion("echo foo > bar", CmdFormat())
+	if !ctx.IsRedirect {
+		t.Errorf("cmd redirect: IsRedirect = false, want true")
+	}
+	if ctx.CurrentWord != "bar" {
+		t.Errorf("cmd redirect: CurrentWord = %q, want %q", ctx.CurrentWord, "bar")
+	}
+}
+
+func TestCmdFormat_OpenDoubleQuote(t *testing.T) {
+	tokens, err := SplitWith(`echo "hel`, CmdFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tokens.Words().CurrentToken()
+	if last.State != QUOTING_ESCAPING_STATE {
+		t.Errorf("cmd open double: State = %v, want QUOTING_ESCAPING_STATE", last.State)
+	}
+}
+
+func TestCmdFormat_CaretAtEOF(t *testing.T) {
+	tokens, err := SplitWith("echo foo^", CmdFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tokens.Words().CurrentToken()
+	if last.State != ESCAPING_STATE {
+		t.Errorf("cmd caret EOF: State = %v, want ESCAPING_STATE", last.State)
+	}
+	if last.Value != "foo" {
+		t.Errorf("cmd caret EOF: Value = %q, want %q", last.Value, "foo")
+	}
+}

@@ -13,24 +13,10 @@ type fishFormat struct{}
 func FishFormat() Format { return fishFormat{} }
 
 func (fishFormat) Classifier() tokenClassifier {
-	t := tokenClassifier{}
-	t.addRuneClass(spaceRunes, spaceRuneClass)
-	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)
-	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
-	t.addRuneClass(escapeRunes, escapeRuneClass)
-	t.addRuneClass(commentRunes, commentRuneClass)
-
+	t := newBaseClassifier(escapeRunes)
 	// Fish operators: |, ;, <, >, >>, >>?, >?, <>&
 	// No &&, ||, & — fish uses keyword operators (and, or, not) instead
-	// No @, =, : as wordbreaks (different from bash)
-	wordbreakRunes := "|;<>"
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
+	t.addWordbreaks("|;<>")
 	return t
 }
 

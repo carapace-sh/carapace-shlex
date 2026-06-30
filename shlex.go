@@ -144,6 +144,31 @@ func (t tokenClassifier) ClassifyRune(runeVal rune) runeTokenClass {
 	return t[runeVal]
 }
 
+// newBaseClassifier creates a classifier with the standard POSIX rune classes
+// (space, escaping quote, non-escaping quote, escape, comment) but without
+// any wordbreak runes. Formats add their own wordbreaks on top.
+func newBaseClassifier(escapeChar string) tokenClassifier {
+	t := tokenClassifier{}
+	t.addRuneClass(spaceRunes, spaceRuneClass)
+	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)
+	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
+	t.addRuneClass(escapeChar, escapeRuneClass)
+	t.addRuneClass(commentRunes, commentRuneClass)
+	return t
+}
+
+// addWordbreaks adds wordbreak runes to a classifier, filtering out any
+// that are already classified as space/quote/escape/comment.
+func (t tokenClassifier) addWordbreaks(wordbreakRunes string) {
+	filtered := make([]rune, 0)
+	for _, r := range wordbreakRunes {
+		if t.ClassifyRune(r) == unknownRuneClass {
+			filtered = append(filtered, r)
+		}
+	}
+	t.addRuneClass(string(filtered), wordbreakRuneClass)
+}
+
 // lexer turns an input stream into a sequence of tokens. Whitespace and comments are skipped.
 type lexer tokenizer
 

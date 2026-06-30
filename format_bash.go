@@ -11,24 +11,13 @@ type bashFormat struct{}
 func BashFormat() Format { return bashFormat{} }
 
 func (bashFormat) Classifier() tokenClassifier {
-	t := tokenClassifier{}
-	t.addRuneClass(spaceRunes, spaceRuneClass)
-	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)
-	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
-	t.addRuneClass(escapeRunes, escapeRuneClass)
-	t.addRuneClass(commentRunes, commentRuneClass)
+	t := newBaseClassifier(escapeRunes)
 
 	wordbreakRunes := BASH_WORDBREAKS
 	if wordbreaks := os.Getenv("COMP_WORDBREAKS"); wordbreaks != "" {
 		wordbreakRunes = wordbreaks
 	}
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
+	t.addWordbreaks(wordbreakRunes)
 
 	return t
 }

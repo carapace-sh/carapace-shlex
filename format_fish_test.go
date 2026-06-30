@@ -138,3 +138,39 @@ func TestFishFormat_CompletionContext(t *testing.T) {
 		t.Errorf("fish completion: Words = %v, want 2 words (grep hel)", ctx.Words)
 	}
 }
+
+func TestFishFormat_DollarNotEscapeInSingleQuotes(t *testing.T) {
+	// \$ is NOT an escape in fish single quotes — only \' and \\ are
+	tokens, err := SplitWith(`echo 'cost: \$5'`, FishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != `cost: \$5` {
+		t.Errorf("fish \\$ in single: Words = %v, want [echo cost: \\$5]", words)
+	}
+}
+
+func TestFishFormat_EscapedSpace(t *testing.T) {
+	tokens, err := SplitWith(`echo a\ b`, FishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "a b" {
+		t.Errorf("fish escaped space: Words = %v, want [echo a b]", words)
+	}
+}
+
+func TestFishFormat_ParensNotWordbreak(t *testing.T) {
+	// Fish: () are command substitution, not word breaks.
+	// Spaces still split words, but parens are part of the words.
+	tokens, err := SplitWith("echo (echo test)", FishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "echo" || words[1] != "(echo" || words[2] != "test)" {
+		t.Errorf("fish parens: Words = %v, want [echo (echo test)]", words)
+	}
+}

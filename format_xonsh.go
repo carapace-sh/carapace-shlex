@@ -16,22 +16,9 @@ type xonshFormat struct{}
 func XonshFormat() Format { return xonshFormat{} }
 
 func (xonshFormat) Classifier() tokenClassifier {
-	t := tokenClassifier{}
-	t.addRuneClass(spaceRunes, spaceRuneClass)
-	t.addRuneClass(escapingQuoteRunes, escapingQuoteRuneClass)
-	t.addRuneClass(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
-	t.addRuneClass(escapeRunes, escapeRuneClass)
-	t.addRuneClass(commentRunes, commentRuneClass)
-
+	t := newBaseClassifier(escapeRunes)
 	// Xonsh operators: |, >, >>, <, ;, &&, ||, &
-	wordbreakRunes := "|<>&;"
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
+	t.addWordbreaks("|<>&;")
 	return t
 }
 
