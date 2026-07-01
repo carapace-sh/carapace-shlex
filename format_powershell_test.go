@@ -129,9 +129,13 @@ func TestPowershellFormat_BacktickLineContinuationCRLF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.Words().Strings()
-	if len(words) != 2 || words[1] != "foobar" {
-		t.Errorf("powershell line continuation CRLF: Words = %v, want [echo foobar]", words)
+	words := tokens.Words()
+	if words.Strings()[1] != "foobar" {
+		t.Errorf("powershell line continuation CRLF: Words = %v, want [echo foobar]", words.Strings())
+	}
+	// RawValue should NOT contain the backtick or CRLF (line continuation is consumed)
+	if words[1].RawValue != "foobar" {
+		t.Errorf("powershell line continuation CRLF: RawValue = %q, want foobar", words[1].RawValue)
 	}
 }
 

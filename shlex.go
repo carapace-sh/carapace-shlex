@@ -489,19 +489,18 @@ func (t *tokenizer) scanStream() (*Token, error) {
 								continue
 							}
 							if lc.IsLineContinuation(peekRune) {
-								token.RawValue += string(peekRune)
+								// Consume optional \n after \r
 								if peekRune == '\r' {
-									// Consume optional \n after \r
 									peek2, _, peek2Err := t.ReadRune()
 									if peek2Err == nil && peek2 == '\n' {
-										token.RawValue += string(peek2)
+										// CRLF consumed — don't add to RawValue
 									} else if peek2Err == nil {
 										t.UnreadRune()
 									}
 								}
-								// Line continuation: skip escape+newline, stay in START_STATE
-								token.removeLastRaw() // remove the peeked newline
+								// Line continuation: remove escape char from RawValue and Value
 								token.removeLastRaw() // remove the escape char
+								// Stay in START_STATE (no word content yet)
 								continue
 							}
 							// Not a line continuation — unread and enter ESCAPING_STATE
@@ -643,18 +642,18 @@ func (t *tokenizer) scanStream() (*Token, error) {
 							continue
 						}
 						if lc.IsLineContinuation(peekRune) {
-							token.RawValue += string(peekRune)
+							// Consume optional \n after \r
 							if peekRune == '\r' {
 								peek2, _, peek2Err := t.ReadRune()
 								if peek2Err == nil && peek2 == '\n' {
-									token.RawValue += string(peek2)
+									// CRLF consumed — don't add to RawValue
 								} else if peek2Err == nil {
 									t.UnreadRune()
 								}
 							}
-							// Line continuation: skip escape+newline, stay in IN_WORD_STATE
-							token.removeLastRaw() // remove peeked newline
-							token.removeLastRaw() // remove escape char
+							// Line continuation: remove escape char from RawValue
+							token.removeLastRaw() // remove the escape char
+							// Stay in IN_WORD_STATE (word continues on next line)
 							continue
 						}
 						// Not a line continuation — unread and enter ESCAPING_STATE
@@ -675,17 +674,17 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			default:
 				// Check for line continuation (e.g. PowerShell backtick + newline)
 				if lc, ok := t.format.(LineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
-					// Consume optional \n after \r
+					// Consume optional \n after \r (without adding to RawValue)
 					if nextRune == '\r' {
 						peek2, _, peek2Err := t.ReadRune()
 						if peek2Err == nil && peek2 == '\n' {
-							token.RawValue += string(peek2)
+							// CRLF consumed
 						} else if peek2Err == nil {
 							t.UnreadRune()
 						}
 					}
-					// Line continuation: skip escape+newline
-					token.removeLastRaw() // remove newline
+					// Line continuation: remove newline and escape char from RawValue
+					token.removeLastRaw() // remove newline (\n or \r)
 					token.removeLastRaw() // remove escape char
 					// If we have word content, continue in IN_WORD_STATE;
 					// otherwise go back to START_STATE
@@ -1023,7 +1022,7 @@ func (t *tokenizer) Next() (*Token, error) {
 	if t.state == STOP_PARSING_STATE {
 		token, err := t.scanStopParsing()
 		if err == nil {
-			token.State = t.state
+			// scanStopParsing already sets token.State and t.state
 			if token.Span.End == 0 && token.Span.Start >= 0 {
 				token.Span.End = token.Span.Start + len([]rune(token.RawValue))
 			}
