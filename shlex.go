@@ -360,7 +360,14 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				t.state = QUOTING_ESCAPING_STATE
-				if escapeChars := t.format.EscapingQuoteEscapeChars(); escapeChars != nil {
+				if unescaper, ok := t.format.(EscapingQuoteUnescaper); ok {
+					if replacement, handled := unescaper.EscapingQuoteUnescape(nextRune); handled {
+						token.Value += replacement
+					} else {
+						token.add('\\')
+						token.add(nextRune)
+					}
+				} else if escapeChars := t.format.EscapingQuoteEscapeChars(); escapeChars != nil {
 					if escapeChars[nextRune] {
 						token.add(nextRune)
 					} else {

@@ -99,8 +99,40 @@ For the lexer: the `$'` and `$"` openers are two-rune sequences. The `$` is a wo
 
 Backslash `\`:
 - **Outside quotes**: no escape meaning (bare words only allow word characters; special chars require quoting).
-- **Inside `"..."` and `$"..."`**: C-style escapes (above).
+- **Inside `"..."` and `$"..."`**: C-style escapes (full set below).
 - **Inside `'...'`, `r#'...'#`, `` `...` ``, `$'...'`**: none.
+
+### Full Escape Set in Double Quotes
+
+Nushell's `unescape_string` recognizes these escapes inside `"..."`  and `$"..."`:
+
+| Sequence | Result |
+|----------|--------|
+| `\"` | double quote |
+| `\'` | single quote |
+| `\\` | backslash |
+| `\/` | forward slash |
+| `\b` | backspace (0x08) |
+| `\f` | form feed (0x0C) |
+| `\r` | carriage return (0x0D) |
+| `\n` | newline (0x0A) |
+| `\t` | tab (0x09) |
+| `\0` | NUL (0x00) |
+| `\a` | bell (0x07) |
+| `\e` | escape (0x1B) |
+| `\(` `\)` | literal parens |
+| `\{` `\}` | literal braces |
+| `\$` | literal dollar |
+| `\^` | literal caret |
+| `\#` | literal hash |
+| `\|` | literal pipe |
+| `\~` | literal tilde |
+| `\xHH` | hex byte (2 hex digits) |
+| `\u{X...}` | Unicode (1-6 hex digits, max 0x10FFFF) |
+
+Unrecognized escapes are a parse error in nushell. shlex is lenient: it keeps both `\` and the rune.
+
+The `EscapingQuoteUnescaper` interface provides the full escape set to the tokenizer. `\xHH` and `\u{X}` are not yet handled by shlex (deferred — they require multi-rune lookahead in the escape state).
 
 ## Metacharacters
 
@@ -119,9 +151,16 @@ When a completion value contains any of these, carapace's nushell formatter quot
 | `\|` | pipe | pipeline delimiter |
 | `>` `<` `>>` | redirects | redirect |
 | `out>` `err>` `out+err>` | stream redirects | redirect |
+| `o>` `e>` `o+e>` | short stream redirects | redirect |
+| `err>\|` `e>\|` | stderr pipe | pipeline delimiter (PIPE_WITH_STDERR) |
+| `out+err>\|` `o+e>\|` | combined pipe | pipeline delimiter (PIPE_WITH_STDERR) |
 | `;` | command separator | pipeline delimiter |
 
 Nushell has **no** POSIX list operators (`&&`, `||`, `&`). `(`, `)`, `[`, `]`, `{`, `}` are syntax for expressions, lists, and blocks — they break words but are not pipeline operators.
+
+### Stream Redirect PostProcessing
+
+The tokenizer produces `out` as a WORD_TOKEN and `>` as a separate WORDBREAK_TOKEN because the rune classifier only handles single-rune word breaks. The `PostProcess` step merges adjacent word+wordbreak sequences where the word matches a known stream prefix (`out`, `err`, `o`, `e`, `out+err`, `o+e`) and the wordbreak starts with `>`. If the wordbreak includes a `|` suffix (e.g. `>|`), the merged token is classified as `WORDBREAK_PIPE_WITH_STDERR` instead of a redirect.
 
 ## Comments
 
@@ -149,10 +188,13 @@ Nushell passes args **with quoting intact** (unlike bash which strips quotes). T
 
 ## Edge Cases
 
-- **`r#'...'#` raw strings**: the `#`-not-a-comment issue. Needs multi-rune opener recognition.
+- **`r#'...'#` raw strings**: the `#`-not-a-comment issue. Needs multi-rune opener recognition. Deferred — the `r#` prefix is currently treated as word characters, and `#` inside `r#'...'` is a word character (not a comment) by coincidence because `#` only starts a comment from `START_STATE`.
 - **Backtick as quote** (not escape): opposite of PowerShell. Don't confuse the two formats.
 - **`$` prefix on quotes**: `$'...'` and `$"..."` — the `$` adjoins the quoted segment; `Words()` merges them.
 - **No `COMP_WORDBREAKS`**: nushell has no equivalent env var.
+- **C-style escapes produce real characters**: `\n` in `"..."` produces a newline character (0x0A), not the literal text `n`. Implemented via `EscapingQuoteUnescaper`.
+- **Stream redirect operators**: `out>`, `err>`, `o+e>`, `e>|`, etc. are multi-rune operators. Implemented via `PostProcess`.
+- **`\xHH` and `\u{X}` escapes**: deferred — require multi-rune lookahead in the escape state.
 
 ## References
 

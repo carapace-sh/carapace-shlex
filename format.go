@@ -58,10 +58,21 @@ type Format interface {
 	QuoteWord(s string) string
 }
 
+// EscapingQuoteUnescaper is an optional interface for formats that need to
+// transform escape sequences inside double quotes beyond simple
+// backslash-dropping. When implemented, the ESCAPING_QUOTED_STATE handler
+// calls EscapingQuoteUnescape for the rune following a backslash. If the
+// rune is a recognized escape, the replacement string is used; otherwise
+// both the backslash and the rune are kept literally. Formats implementing
+// this interface take priority over EscapingQuoteEscapeChars.
+type EscapingQuoteUnescaper interface {
+	EscapingQuoteUnescape(r rune) (replacement string, handled bool)
+}
+
 // PostProcessor is an optional interface for formats that need to reclassify
 // tokens after the main tokenization pass. Used by formats that require
 // context not available in the flat state machine (e.g. elvish brace/lambda
-// context for | disambiguation).
+// context for | disambiguation, nushell stream-redirect operator merging).
 type PostProcessor interface {
 	PostProcess(tokens TokenSlice) TokenSlice
 }
