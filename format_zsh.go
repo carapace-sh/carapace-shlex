@@ -1,7 +1,8 @@
 package shlex
 
 // zshFormat implements Format for zsh lexing.
-// Extends bash with RC_QUOTES (” → ' inside single quotes).
+// Extends bash with RC_QUOTES, zsh-specific operators (>>|, ;&, ;|, &|),
+// and WORDCHARS/FIGNORE for word breaks.
 type zshFormat struct{}
 
 // ZshFormat returns the zsh lexical format.
@@ -13,7 +14,18 @@ func (zshFormat) Classifier() tokenClassifier {
 }
 
 func (zshFormat) ClassifyOperator(raw string) WordbreakType {
-	return bashWordbreakType(raw) // zsh uses the same operator grammar as bash
+	switch raw {
+	case ">>|":
+		return WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE
+	case ";&":
+		return WORDBREAK_LIST_FALLTHROUGH
+	case ";|":
+		return WORDBREAK_LIST_FALLTHROUGH_RETRY
+	case "&|":
+		return WORDBREAK_LIST_ASYNC_ERRCHECK
+	default:
+		return bashWordbreakType(raw)
+	}
 }
 
 func (zshFormat) KeywordOperators() map[string]WordbreakType { return nil }

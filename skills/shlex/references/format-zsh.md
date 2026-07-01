@@ -82,11 +82,20 @@ Zsh has a 5-state model (vs bash's 2) because of the "full quoting" states where
 
 ## Operators
 
-Same operator grammar as bash (`|`, `||`, `|&`, `&`, `;`, `&&`, `<`, `>`, `>>`, `<<<`, `<>`, `<&`, `&>`, `&>>`). See [format-bash.md](format-bash.md#operators-wordbreaktype) for the full table.
+Same operator grammar as bash (`|`, `||`, `|&`, `&`, `;`, `&&`, `<`, `>`, `>>`, `>|`, `<<<`, `<>`, `<&`, `&>`, `&>>`, `;;`). See [format-bash.md](format-bash.md#operators-wordbreaktype) for the full table.
 
-Zsh additions (not in bash):
-- **`=(...)` process substitution** — `=` as a wordbreak followed by `(...)`.
-- **Glob qualifiers** `(...)` after a path — these are word breaks but not operators in the pipeline sense.
+Zsh-specific operators (not in bash):
+
+| Operator | RawValue | WordbreakType | Category |
+|----------|----------|---------------|----------|
+| `>>\|` | `>>\|` | `WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE` | redirect (noclobber override) |
+| `;&` | `;&` | `WORDBREAK_LIST_FALLTHROUGH` | list (case fall-through) |
+| `;\|` | `;\|` | `WORDBREAK_LIST_FALLTHROUGH_RETRY` | list (case fall-through with retry) |
+| `&\|` | `&\|` | `WORDBREAK_LIST_ASYNC_ERRCHECK` | list (background with error check) |
+
+Three of the four are pipeline delimiters (`IsPipelineDelimiter() == true`): `;&`, `;|`, `&|`. The exception is `>>|`, which is a redirect (`IsRedirect() == true`) and therefore not a pipeline delimiter.
+
+Zsh also shares `>|` (force output redirect) and `;;` (case terminator) with bash — both are classified in `bashWordbreakType`.
 
 ## Comments
 
@@ -95,8 +104,14 @@ Zsh additions (not in bash):
 ## Edge Cases
 
 - **`RC_QUOTES` off (default)**: `''` closes then reopens single quotes (same as bash).
+- **`RC_QUOTES` inside `$'...'`**: zsh disables RC_QUOTES inside `$'...'` (ANSI-C quoting). The lexer cannot distinguish `$'...'` from `'...'`, so `$'it''s'` with `RC_QUOTES` would incorrectly produce `it's` instead of two segments. Unlikely in completion input.
 - **Named directories**: zsh's `hash -d` creates `~name` expansions. Carapace handles this via `NamedDirectories.Matches` in `quoteValue`, not in the lexer.
 - **`FULL_QUOTING_*_STATE` quirk**: when a word both starts and ends with the same quote, zsh places the trailing space *inside* the quote. Carapace forces nospace in these states.
+- **`=(...)` process substitution**: `=` is a wordbreak (in `BASH_WORDBREAKS`) but classified as `WORDBREAK_UNKNOWN`, not a redirect.
+- **Glob qualifiers** `(...)` after a path: these are word breaks but not operators in the pipeline sense.
+- **Backslash-newline line continuation**: zsh consumes `\` + newline entirely (no character added). The lexer's `ESCAPING_STATE` adds the newline as a literal. Rare in single-line completion input.
+- **`INTERACTIVECOMMENTS`**: `#` is only a comment in interactive mode when this option is set (on by default in modern zsh). The lexer always treats `#` as a comment.
+- **`CSHJUNKIEQUOTES`**: with this tcsh-compatibility option, newlines inside single quotes close the quote. Very niche, not handled.
 
 ## References
 

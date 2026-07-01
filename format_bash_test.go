@@ -117,3 +117,34 @@ func TestBashFormat_Comment(t *testing.T) {
 		t.Errorf("bash comment: Words = %v, want 2 words", words)
 	}
 }
+
+func TestBashFormat_ForceOutputRedirect(t *testing.T) {
+	ctx := SplitForCompletion("echo foo >| bar", BashFormat())
+	if !ctx.IsRedirect {
+		t.Errorf("bash >|: IsRedirect = false, want true")
+	}
+}
+
+func TestBashFormat_CaseTerminator(t *testing.T) {
+	tokens, err := SplitWith("echo foo ;; bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.Pipelines()
+	if len(pipelines) != 2 {
+		t.Errorf("bash ;;: Pipelines = %d, want 2", len(pipelines))
+	}
+	var found *Token
+	for i := range tokens {
+		if tokens[i].Type == WORDBREAK_TOKEN {
+			found = &tokens[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("bash ;;: no wordbreak token found")
+	}
+	if found.WordbreakType != WORDBREAK_LIST_SEQUENTIAL_DOUBLE {
+		t.Errorf("bash ;;: WordbreakType = %v, want WORDBREAK_LIST_SEQUENTIAL_DOUBLE", found.WordbreakType)
+	}
+}

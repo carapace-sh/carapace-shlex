@@ -99,6 +99,7 @@ This is critical for completion: bash's `COMP_WORDBREAKS` determines where the w
 | `<` | `<` | `WORDBREAK_REDIRECT_INPUT` | redirect |
 | `>` | `>` | `WORDBREAK_REDIRECT_OUTPUT` | redirect |
 | `>>` | `>>` | `WORDBREAK_REDIRECT_OUTPUT_APPEND` | redirect |
+| `>\|` | `>\|` | `WORDBREAK_REDIRECT_OUTPUT_FORCE` | redirect (noclobber override) |
 | `&>` / `>&` | `&>` / `>&` | `WORDBREAK_REDIRECT_OUTPUT_BOTH` | redirect |
 | `&>>` | `&>>` | `WORDBREAK_REDIRECT_OUTPUT_BOTH_APPEND` | redirect |
 | `<<<` | `<<<` | `WORDBREAK_REDIRECT_INPUT_STRING` | redirect |
@@ -110,11 +111,12 @@ This is critical for completion: bash's `COMP_WORDBREAKS` determines where the w
 | `;` | `;` | `WORDBREAK_LIST_SEQUENTIAL` | list |
 | `&&` | `&&` | `WORDBREAK_LIST_AND` | list |
 | `\|\|` | `\|\|` | `WORDBREAK_LIST_OR` | list |
+| `;;` | `;;` | `WORDBREAK_LIST_SEQUENTIAL_DOUBLE` | list (case terminator) |
 
 Multi-char operators are matched greedily in the `WORDBREAK_STATE` (consecutive wordbreak runes accumulate into one `WORDBREAK_TOKEN`).
 
-`IsPipelineDelimiter()` → `|`, `|&`, `&`, `;`, `&&`, `||` — these split pipelines in `CurrentPipeline()`.
-`IsRedirect()` → the eight redirect operators — these are stripped in `FilterRedirects()`.
+`IsPipelineDelimiter()` → `|`, `|&`, `&`, `;`, `&&`, `||`, `;;` — these split pipelines in `CurrentPipeline()`.
+`IsRedirect()` → the redirect operators including `>|` — these are stripped in `FilterRedirects()`.
 
 ### File-descriptor prefixes
 
