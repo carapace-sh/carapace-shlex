@@ -7,11 +7,13 @@ import "strings"
 // - Backtick (`) is a quote character (not an escape like PowerShell)
 // - $'...' and $"..." are interpolated strings ($ prefix + standard quote)
 // - C-style escapes in double quotes with a richer set than bash:
-//   \" \' \\ \/ \b \f \r \n \t \0 \a \e \( \) \{ \} \$ \^ \# \| \~ \xHH \u{X}
+//   \" \' \\ \/ \b \f \r \n \t \0 \a \e \( \) \{ \} \$ \^ \# \| \~
+//   \xHH and \u{X...} are deferred (see format-nushell.md → Deferred Features)
 // - No POSIX list operators (no &&, ||, &)
 // - Stream redirect operators: out>, err>, out+err>, o>, e>, o+e>
 //   and pipe variants: e>|, err>|, o+e>|, out+err>|
-// - r#'...'# raw strings need multi-rune opener support (deferred)
+// - r#'...'# raw strings need multi-rune opener support (deferred — see
+//   format-nushell.md → Deferred Features)
 type nushellFormat struct{}
 
 // NushellFormat returns the nushell lexical format.

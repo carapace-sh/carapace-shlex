@@ -188,13 +188,189 @@ Nushell passes args **with quoting intact** (unlike bash which strips quotes). T
 
 ## Edge Cases
 
-- **`r#'...'#` raw strings**: the `#`-not-a-comment issue. Needs multi-rune opener recognition. Deferred — the `r#` prefix is currently treated as word characters, and `#` inside `r#'...'` is a word character (not a comment) by coincidence because `#` only starts a comment from `START_STATE`.
 - **Backtick as quote** (not escape): opposite of PowerShell. Don't confuse the two formats.
 - **`$` prefix on quotes**: `$'...'` and `$"..."` — the `$` adjoins the quoted segment; `Words()` merges them.
 - **No `COMP_WORDBREAKS`**: nushell has no equivalent env var.
 - **C-style escapes produce real characters**: `\n` in `"..."` produces a newline character (0x0A), not the literal text `n`. Implemented via `EscapingQuoteUnescaper`.
-- **Stream redirect operators**: `out>`, `err>`, `o+e>`, `e>|`, etc. are multi-rune operators. Implemented via `PostProcess`.
-- **`\xHH` and `\u{X}` escapes**: deferred — require multi-rune lookahead in the escape state.
+- **Stream redirect operators**: `out>`, `err>`, `o+e>`, `e>|`, etc. are multi-rune operators. Implemented via `PostProcess`. Only bare words are merged — quoted strings like `'out'` are not treated as stream operators.
+- **Quoted words before `>`**: `'out'>bar` is a string literal `out` followed by a plain redirect `>`, not a stream redirect operator. The `PostProcess` check `t.Value == t.RawValue` prevents merging quoted words.
+
+## Deferred Features
+
+Two features require multi-rune lookahead in the tokenizer's core state machine and are documented here for future implementation.
+
+### 1. Raw Strings `r#'...'#`
+
+#### What they are
+
+Nushell raw strings are delimited by `r#`...`'#` (or `r##`...`'##`, `r###`...`'###`, etc.). They behave like single-quoted strings (no escapes) but can contain single quotes. The number of `#` symbols in the opener and closer must match.
+
+```nu
+r#'Raw strings can contain 'quoted' text.'#    # → Raw strings can contain 'quoted' text.
+r##'I can use '#' in a raw string'##            # → I can use '#' in a raw string
+r#''#                                          # → (empty string)
+```
+
+#### Current (wrong) behavior
+
+The tokenizer treats `r` as a regular word character and `#` as either a word character (inside `IN_WORD_STATE`) or a comment (from `START_STATE`). So `r#'hello'#` is tokenized as:
+
+- `r` → word char (IN_WORD_STATE)
+- `#` → word char (not START_STATE, so not a comment — this is the coincidence)
+- `'` → enters QUOTING_STATE
+- `hello` → literal content
+- `'` → exits QUOTING_STATE → IN_WORD_STATE
+- `#` → word char
+
+Result: one WORD_TOKEN with `Value="r#hello#"` and `RawValue="r#'hello'#"`. The `r#` prefix and `'#` suffix are included in the value.
+
+Expected: `Value="hello"`, `RawValue="r#'hello'#"`.
+
+#### How nushell's lexer handles it
+
+In nushell's `lex_item` (`crates/nu-parser/src/lex.rs`), the raw-string check happens **before** the comment check:
+
+```rust
+} else if c == b'r' && input.get(*curr_offset + 1) == Some(b'#').as_ref() {
+    let lex_result = lex_raw_string(input, curr_offset, span_offset);
+    ...
+}
+```
+
+`lex_raw_string` counts consecutive `#` chars after `r` to determine `prefix_sharp_cnt`, expects a `'` after them, then scans forward looking for a closing `'` followed by the same number of `#` chars. The entire `r#'...'#` sequence is consumed as a single `TokenContents::Item`.
+
+#### Implementation plan
+
+The tokenizer's `scanStream` state machine processes one rune at a time via `ReadRune`/`UnreadRune`. To support raw strings, we need multi-rune lookahead in the `START_STATE` and `IN_WORD_STATE` handlers:
+
+1. **Detect the `r#` pattern**: When the current rune is `r` and the state is `START_STATE` or `IN_WORD_STATE`, peek ahead to check if the next rune is `#`. If so, count consecutive `#` runes to determine `prefix_sharp_cnt`.
+
+2. **Validate the opener**: After the `#` sequence, expect a `'`. If not found, treat `r` as a regular word char and `#` as a comment/word char as appropriate.
+
+3. **Scan to the closer**: Read forward until finding a `'` followed by exactly `prefix_sharp_cnt` `#` runes. Everything between the opener `'` and the closer `'#` is the raw string content.
+
+4. **Emit the token**: Set `Token.Value` to the raw content (between opener and closer), `Token.RawValue` to the full `r#'...'#` source text, and `Token.State` to `IN_WORD_STATE` (the state after closing).
+
+5. **Handle EOF in raw string**: If the closer is not found, emit the token with whatever content was consumed and set state to a new `RAW_STRING_STATE` (or reuse `QUOTING_STATE` for completion purposes — an unclosed raw string behaves like an unclosed quote).
+
+**Affected files**:
+- `shlex.go` — `scanStream()` `START_STATE` and `IN_WORD_STATE` handlers: add `r#` detection before the default/wordbreak cases
+- `format.go` — possibly a new `Format` interface method like `RawStringOpeners() bool` or add raw-string support to the classifier
+- `format_nushell.go` — enable raw string support
+
+**Key challenge**: The state machine is shared across all formats. Raw-string detection must be opt-in per format (only nushell has raw strings). This could be:
+- A new `Format` interface method (e.g. `SupportsRawStrings() bool`)
+- A new rune class (e.g. `rawStringOpenerRuneClass`) triggered by a multi-rune classifier
+- A `PostProcessor` approach — but this won't work because by the time PostProcess runs, the tokens are already split incorrectly (the `#` may have been classified as a comment)
+
+The cleanest approach is likely a multi-rune lookahead in `scanStream`, gated by a format check, similar to how `NonEscapingQuoteEscapes()` gates the single-quote peek logic.
+
+**The `#`-not-a-comment issue**: Currently `#` only starts a comment from `START_STATE` (word boundary). Inside `IN_WORD_STATE`, `#` falls through to the `default` case and is added as a word char. This means `r#'hello'#` does not accidentally trigger a comment. However, `r#` at a word boundary (e.g. after a space) would have `#` classified as `commentRuneClass` from `START_STATE`, which would start a comment instead of a raw string. The fix must check for `r#` **before** the `commentRuneClass` check in `START_STATE`.
+
+**Test cases to add**:
+- `r#'hello'#` → value `hello`
+- `r#''#` → value `` (empty)
+- `r##'contains '#'# here'##` → value `contains '#'# here`
+- `r#'unclosed` → state indicates open raw string (for completion)
+- `echo r#'hello'#` → words `[echo hello]`
+- `r#'it's a test'#` → value `it's a test` (single quotes allowed inside)
+
+### 2. Hex and Unicode Escapes `\xHH` and `\u{X...}`
+
+#### What they are
+
+Inside double-quoted strings (`"..."` and `$"..."`), nushell supports:
+
+| Escape | Format | Result |
+|--------|--------|--------|
+| `\xHH` | exactly 2 hex digits | single byte (0x00–0xFF) |
+| `\u{X...}` | 1-6 hex digits in braces, max 0x10FFFF | Unicode codepoint (UTF-8 encoded) |
+
+```nu
+"\x41\x42\x43"           # → ABC
+"\u{1F600}"              # → 😀
+"\u{0041}"               # → A
+$"hello\n($name)"        # → hello\nworld (interpolated)
+```
+
+#### Current (wrong) behavior
+
+The `EscapingQuoteUnescaper` interface handles single-rune escapes (`\n`, `\t`, etc.) but cannot handle multi-rune escapes like `\x41` or `\u{1F600}` because the `ESCAPING_QUOTED_STATE` handler only receives one rune after the backslash. When it sees `x` or `u`, the unescaper returns `handled=false`, so both `\` and `x` (or `u`) are kept literally.
+
+Result: `"\x41"` produces value `\x41` instead of `A`.
+
+#### How nushell's parser handles it
+
+In `unescape_string` (`crates/nu-parser/src/parse_literals.rs`):
+
+```rust
+Some(b'x') => {
+    match parse_hex_escape(bytes, idx, span) { ... }  // reads exactly 2 hex digits
+}
+Some(b'u') => {
+    match parse_unicode_escape(bytes, idx, span) { ... }  // reads {X...}
+}
+```
+
+`parse_hex_escape` reads exactly 2 hex digits after `\x`. `parse_unicode_escape` reads `{`, then 1-6 hex digits, then `}`, validating the codepoint ≤ 0x10FFFF.
+
+#### Implementation plan
+
+The `EscapingQuoteUnescaper` interface is called from `ESCAPING_QUOTED_STATE` with a single rune. To support multi-rune escapes, we need the unescaper to be able to consume additional runes from the tokenizer. Two approaches:
+
+**Option A: Multi-rune unescaper (preferred)**
+
+Extend `EscapingQuoteUnescaper` with a method that takes a `runeReader` or similar interface, allowing it to consume additional runes:
+
+```go
+type EscapingQuoteUnescaper interface {
+    EscapingQuoteUnescape(r rune) (replacement string, handled bool)
+    // EscapingQuoteUnescapeMulti is called when EscapingQuoteUnescape returns
+    // handled=false. It receives the first rune and a peekable reader, allowing
+    // the format to consume additional runes for multi-rune escapes like \xHH.
+    // Returns the replacement string and the number of additional runes consumed
+    // (beyond the first rune). If not handled, returns (0, false).
+    EscapingQuoteUnescapeMulti(r rune, reader *tokenizer) (replacement string, extraConsumed int, handled bool)
+}
+```
+
+In the `ESCAPING_QUOTED_STATE` handler:
+1. Call `EscapingQuoteUnescape(nextRune)` first — handles single-rune escapes.
+2. If not handled, call `EscapingQuoteUnescapeMulti(nextRune, t)` — handles `\xHH` by reading 2 more runes, `\u{...}` by reading until `}`.
+3. If still not handled, keep both `\` and the rune literally (current behavior).
+
+The `tokenizer` already has `ReadRune`/`UnreadRune` methods. The multi-rune unescaper would read additional runes directly from the tokenizer, updating `t.index` and `token.RawValue`.
+
+**Option B: Peek-based approach**
+
+Give the unescaper access to a `PeekRune(n int) (rune, bool)` method that peeks ahead without consuming. The unescaper returns how many additional runes to consume. This is cleaner but requires adding a peek buffer to the tokenizer (currently it only has read/unread).
+
+**Option C: State-machine extension**
+
+Add new states like `ESCAPING_HEX_STATE` and `ESCAPING_UNICODE_STATE` to the state machine, with format-gated transitions. This is more invasive but keeps the single-rune-at-a-time model.
+
+**Affected files**:
+- `format.go` — extend `EscapingQuoteUnescaper` interface
+- `shlex.go` — `ESCAPING_QUOTED_STATE` handler: add multi-rune escape logic
+- `format_nushell.go` — implement `\xHH` and `\u{X...}` in the unescaper
+
+**Key challenges**:
+- The tokenizer's `RawValue` must include all consumed runes (the full `\x41` or `\u{1F600}`), while `Value` gets only the replacement character.
+- Invalid escapes (`\x4`, `\x4z`, `\u{110000}`, `\u{6e`) are parse errors in nushell. shlex should be lenient: if the hex digits are missing or invalid, keep the backslash and the escape letter literally.
+- `EscapingQuoteEscapeChars` (used by fish) and `EscapingQuoteUnescaper` are mutually exclusive — the unescaper takes priority. The multi-rune extension only applies to formats implementing `EscapingQuoteUnescaper`.
+
+**Test cases to add**:
+- `"\x41\x42\x43"` → value `ABC`
+- `"\x00"` → value `\x00` (NUL)
+- `"\xFF"` → value `\xFF` (byte 255)
+- `"\u{1F600}"` → value `😀`
+- `"\u{0041}"` → value `A`
+- `"\u{0}"` → value `\x00` (NUL via unicode)
+- `"\x4"` → value `\x4` (incomplete — lenient, keep literal)
+- `"\x4z"` → value `\x4z` (invalid hex — lenient, keep literal)
+- `"\u{110000}"` → value `\u{110000}` (out of range — lenient, keep literal)
+- `"\u{6e"` → value `\u{6e"` (missing `}` — lenient, keep literal, quote stays open)
+- `$"\x41"` → value `$A` (interpolated double-quote with hex escape)
 
 ## References
 
