@@ -38,7 +38,7 @@ func (xonshFormat) KeywordOperators() map[string]WordbreakType {
 }
 
 func (xonshFormat) NonEscapingQuoteEscapes() bool           { return false }
-func (xonshFormat) NonEscapingQuoteBackslashEscapes() bool  { return false }
+func (xonshFormat) NonEscapingQuoteBackslashEscapes() bool  { return true } // \' and \\ inside single quotes (Python syntax)
 func (xonshFormat) EscapeNotBareword() bool                 { return true }
 func (xonshFormat) EscapeNotInEscapingQuote() bool          { return false }
 func (xonshFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }

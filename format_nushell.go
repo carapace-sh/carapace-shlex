@@ -33,14 +33,7 @@ func (nushellFormat) Classifier() tokenClassifier {
 
 	// Nushell operators: |, ;, >, <, >>
 	// No &&, ||, & — no POSIX list operators
-	wordbreakRunes := "|;<>"
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
+	t.addWordbreaks("|;<>")
 	return t
 }
 

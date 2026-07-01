@@ -38,14 +38,7 @@ func (cmdFormat) Classifier() tokenClassifier {
 	// Note: & is a command separator (like ; in POSIX), not background
 	// ; is NOT a separator in cmd (it is a literal character)
 	// ( and ) are grouping operators for command blocks
-	wordbreakRunes := "|&<>()"
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
+	t.addWordbreaks("|&<>()")
 	return t
 }
 

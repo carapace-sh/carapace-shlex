@@ -117,9 +117,9 @@ func TestJoin(t *testing.T) {
 		`echo "with space"`:           {"echo", "with space"},
 		"echo \"with\\`backtick\"":    {"echo", "with`backtick"},
 		`echo "with\$dollar"`:         {"echo", "with$dollar"},
-		`echo "with\nlinefeed"`:       {"echo", "with\nlinefeed"},
-		`echo "with\rcarriageReturn"`: {"echo", "with\rcarriageReturn"},
-		`echo "with\ttab"`:            {"echo", "with\ttab"},
+		"echo \"with\\\nlinefeed\"":     {"echo", "with\nlinefeed"},
+		"echo \"with\rcarriageReturn\"": {"echo", "with\rcarriageReturn"},
+		"echo \"with\ttab\"":            {"echo", "with\ttab"},
 	} {
 		if actual := Join(words); actual != expected {
 			t.Errorf("joined words don't match\nactual  : %#v\nexpected: %#v", actual, expected)

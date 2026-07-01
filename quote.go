@@ -4,12 +4,15 @@ import "strings"
 
 // posixQuoteWord quotes a word for POSIX shells (bash, zsh, oil, tcsh).
 // Uses double-quote wrapping with escape sequences for $, `, ", \, and
-// control characters. Safe words (no special chars) are returned as-is.
+// newline (the only control char that backslash escapes inside double quotes
+// in POSIX shells). Tab and CR are emitted literally inside double quotes
+// since they are safe there and not backslash-escaped by the shell.
+// Safe words (no special chars) are returned as-is.
 func posixQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, `"' `+"`$\n\r\t") {
+	if !strings.ContainsAny(s, `"' `+"`$\n\r\t\\") {
 		return s
 	}
 	var b strings.Builder
@@ -25,11 +28,7 @@ func posixQuoteWord(s string) string {
 		case '`':
 			b.WriteString("\\`")
 		case '\n':
-			b.WriteString(`\n`)
-		case '\r':
-			b.WriteString(`\r`)
-		case '\t':
-			b.WriteString(`\t`)
+			b.WriteString(`\` + "\n")
 		default:
 			b.WriteRune(r)
 		}
@@ -45,7 +44,7 @@ func fishQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, `"' `+"$\n\r\t") {
+	if !strings.ContainsAny(s, `"' `+"$\n\r\t\\") {
 		return s
 	}
 	var b strings.Builder
@@ -74,7 +73,7 @@ func elvishQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, "' ") {
+	if !strings.ContainsAny(s, "'\" \t\r\n") {
 		return s
 	}
 	var b strings.Builder
@@ -96,7 +95,7 @@ func nushellQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, " {}()[]<>$&\"'|;#`") {
+	if !strings.ContainsAny(s, " {}()[]<>$&\"'|;#`\n\r\t\\") {
 		return s
 	}
 	var b strings.Builder
@@ -121,7 +120,7 @@ func powershellQuoteWord(s string) string {
 	if s == "" {
 		return `''`
 	}
-	if !strings.ContainsAny(s, " '\"`$&|;<>(){}") {
+	if !strings.ContainsAny(s, " '\"`$&|;<>(){}\n\r\t") {
 		return s
 	}
 	var b strings.Builder
@@ -143,7 +142,7 @@ func xonshQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, "' ") {
+	if !strings.ContainsAny(s, "'\" \t\r\n\\") {
 		return s
 	}
 	var b strings.Builder
@@ -171,7 +170,7 @@ func cmdQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, " \"&|<>()^,") {
+	if !strings.ContainsAny(s, " \"&|<>()^,\t\n\r") {
 		return s
 	}
 	var b strings.Builder

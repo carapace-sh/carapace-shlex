@@ -28,14 +28,7 @@ func (powershellFormat) Classifier() tokenClassifier {
 
 	// PowerShell operators: |, ;, >, >>, &&, ||, &
 	// Note: & is the call operator, not a background operator
-	wordbreakRunes := "|;&><"
-	filtered := make([]rune, 0)
-	for _, r := range wordbreakRunes {
-		if t.ClassifyRune(r) == unknownRuneClass {
-			filtered = append(filtered, r)
-		}
-	}
-	t.addRuneClass(string(filtered), wordbreakRuneClass)
+	t.addWordbreaks("|;&><")
 	return t
 }
 

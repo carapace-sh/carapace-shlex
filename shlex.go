@@ -739,7 +739,6 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					} else {
 						if peekErr == nil {
 							t.UnreadRune()
-							token.RawValue = token.RawValue[:len(token.RawValue)-len(string(peekRune))]
 						}
 						t.rawQuote = false
 						t.state = IN_WORD_STATE
@@ -777,7 +776,6 @@ func (t *tokenizer) scanStream() (*Token, error) {
 						// Not a doubled quote — unread and close
 						if peekErr == nil {
 							t.UnreadRune()
-							token.RawValue = token.RawValue[:len(token.RawValue)-len(string(peekRune))]
 						}
 						t.state = IN_WORD_STATE
 					}

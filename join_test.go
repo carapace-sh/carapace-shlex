@@ -13,9 +13,9 @@ func TestJoinWith_Posix(t *testing.T) {
 		`echo "with\"doubleQuote"`:    {"echo", `with"doubleQuote`},
 		`echo "with'singleQuote"`:     {"echo", "with'singleQuote"},
 		`echo "with\$dollar"`:         {"echo", "with$dollar"},
-		`echo "with\nlinefeed"`:       {"echo", "with\nlinefeed"},
-		`echo "with\rcarriageReturn"`: {"echo", "with\rcarriageReturn"},
-		`echo "with\ttab"`:            {"echo", "with\ttab"},
+		"echo \"with\\\nlinefeed\"":   {"echo", "with\nlinefeed"},
+		"echo \"with\rcarriageReturn\"": {"echo", "with\rcarriageReturn"},
+		"echo \"with\ttab\"":            {"echo", "with\ttab"},
 		`ls /tmp | xargs -n 1 echo`:   {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
 	}
 	for expected, words := range tests {
