@@ -42,4 +42,6 @@ func (zshFormat) EscapingQuoteEscapeChars() map[rune]bool {
 		'\n': true,
 	}
 }
-func (zshFormat) QuoteWord(s string) string              { return posixQuoteWord(s) }
+func (zshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
+func (zshFormat) TripleQuoteSupport() bool  { return false }
+func (zshFormat) RawPrefixSupport() bool    { return false }

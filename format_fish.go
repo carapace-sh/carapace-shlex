@@ -81,3 +81,5 @@ var fishDoubleQuoteEscapes = map[rune]bool{
 }
 
 func (fishFormat) QuoteWord(s string) string { return fishQuoteWord(s) }
+func (fishFormat) TripleQuoteSupport() bool  { return false }
+func (fishFormat) RawPrefixSupport() bool    { return false }

@@ -51,6 +51,19 @@ type Format interface {
 	// `"`, `$`, `\`, and newline (no backtick).
 	EscapingQuoteEscapeChars() map[rune]bool
 
+	// TripleQuoteSupport returns true if the shell supports triple-quoted
+	// strings ('''...''' and """..."""). When true, the tokenizer peeks
+	// ahead two runes on seeing a quote char to detect triple quotes and
+	// enters a dedicated triple-quote state. Only xonsh needs this.
+	TripleQuoteSupport() bool
+
+	// RawPrefixSupport returns true if the shell supports raw string prefixes
+	// (r'...', r"...") that suppress escape processing inside double quotes.
+	// When true, the tokenizer checks whether the current word ends with a
+	// raw prefix (r/R) before entering QUOTING_ESCAPING_STATE, and if so
+	// treats the double quote as non-escaping instead. Only xonsh needs this.
+	RawPrefixSupport() bool
+
 	// QuoteWord quotes a single word for safe insertion into a command line.
 	// Used by JoinWith. The implementation should use the shell's preferred
 	// quoting style: backslash-escaping for POSIX shells, double-quote

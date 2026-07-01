@@ -47,7 +47,7 @@ echo r'C:\path\to\file'      # C:\path\to\file (raw — backslashes literal)
 echo f"value: {x}"           # value: <x> (interpolated)
 ```
 
-For the lexer: the prefix characters (`r`, `f`, `p`, `b`) are word characters that adjoin the following quoted segment — `Words()` merges them. The quote behavior inside is standard Python: `\` is an escape in non-raw strings, literal in raw strings. Triple-quotes (`'''`/`"""`) need a three-rune lookahead to distinguish from single quotes.
+For the lexer: the prefix characters (`r`, `f`, `p`, `b`) are word characters that adjoin the following quoted segment — `Words()` merges them. The quote behavior inside is standard Python: `\` is an escape in non-raw strings, literal in raw strings. Triple-quotes (`'''`/`"""`) are detected via 2-rune lookahead and enter dedicated triple-quote states. Raw string prefixes (`r`/`R`) suppress escape processing in double quotes.
 
 ### Python escape sequences (in non-raw strings)
 
@@ -65,7 +65,7 @@ For the lexer: the prefix characters (`r`, `f`, `p`, `b`) are word characters th
 Backslash `\` follows Python rules:
 - **Outside quotes**: no special meaning (bareword context).
 - **Inside non-raw strings**: Python escape sequences.
-- **Inside raw strings** (`r'...'`): literal (no escapes).
+- **Inside raw strings** (`r'...'`, `r"..."`, `r"""..."""`): literal (no escapes). The lexer detects the `r`/`R` prefix and suppresses escape processing.
 
 ## Word Breaks and Operators
 
@@ -113,8 +113,10 @@ Carapace's xonsh integration receives `CommandContext.args` (already split by xo
 ## Edge Cases
 
 - **String prefixes** (`r`, `f`, `p`, `b`): word characters that adjoin the quote. `Words()` handles merging.
-- **Triple-quotes**: `'''` and `"""` need 3-rune lookahead.
-- **Raw strings**: `\` is literal inside — the escaping-quote state should be bypassed for `r'...'`/`r"..."`.
+- **Triple-quotes**: `'''` and `"""` are detected via 2-rune lookahead and enter dedicated triple-quote states (`QUOTING_TRIPLE_STATE` for non-escaping, `QUOTING_TRIPLE_ESCAPING_STATE` for escaping). Closing requires 3 consecutive matching quote runes.
+- **Raw strings**: `r'...'` and `r"..."` suppress escape processing. The lexer checks if the word ends with `r`/`R` before entering the quoting state. When raw prefix is detected, backslash is treated as a literal character inside double quotes (same as single quotes). Also applies to triple-quoted raw strings (`r"""..."""`).
+- **Keyword operators**: `and` and `or` bare words are treated as `&&` and `||` respectively when they appear as standalone words (surrounded by whitespace). Implemented via `KeywordOperators()`.
+- **Stream redirect operators**: `e>`, `e>>`, `o>`, `o>>`, `a>`, `a>>`, `err>`, `out>`, `all>`, and pipe-channel variants (`e>p`, `o>p`, `a>p`) are merged via `PostProcess`. The word portion (`e`, `o`, `a`, `err`, `out`, `all`) is a WORD_TOKEN that adjoins the `>`/`>>` WORDBREAK_TOKEN; the PostProcess step merges them into a single WORDBREAK_TOKEN.
 - **Subprocess capture syntax**: `$(...)`, `!(...)`, `$[...]`, `![...]` — `(`, `)`, `[`, `]` are word characters in this context.
 - **`@()` expression**: Python expression interpolation in subprocess args.
 

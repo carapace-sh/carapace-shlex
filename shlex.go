@@ -109,25 +109,29 @@ var tokenTypes = map[TokenType]string{
 
 // Lexer state machine states
 const (
-	START_STATE            LexerState = iota // no runes have been seen
-	IN_WORD_STATE                            // processing regular runes in a word
-	ESCAPING_STATE                           // we have just consumed an escape rune; the next rune is literal
-	ESCAPING_QUOTED_STATE                    // we have just consumed an escape rune within a quoted string
-	QUOTING_ESCAPING_STATE                   // we are within a quoted string that supports escaping ("...")
-	QUOTING_STATE                            // we are within a string that does not support escaping ('...')
-	COMMENT_STATE                            // we are within a comment (everything following an unquoted or unescaped #
-	WORDBREAK_STATE                          // we have just consumed a wordbreak rune
+	START_STATE                   LexerState = iota // no runes have been seen
+	IN_WORD_STATE                                   // processing regular runes in a word
+	ESCAPING_STATE                                  // we have just consumed an escape rune; the next rune is literal
+	ESCAPING_QUOTED_STATE                           // we have just consumed an escape rune within a quoted string
+	QUOTING_ESCAPING_STATE                          // we are within a quoted string that supports escaping ("...")
+	QUOTING_STATE                                   // we are within a string that does not support escaping ('...')
+	QUOTING_TRIPLE_STATE                            // we are within a triple-quoted non-escaping string ('''...''')
+	QUOTING_TRIPLE_ESCAPING_STATE                   // we are within a triple-quoted escaping string ("""...""")
+	COMMENT_STATE                                   // we are within a comment (everything following an unquoted or unescaped #
+	WORDBREAK_STATE                                 // we have just consumed a wordbreak rune
 )
 
 var lexerStates = map[LexerState]string{
-	START_STATE:            "START_STATE",
-	IN_WORD_STATE:          "IN_WORD_STATE",
-	ESCAPING_STATE:         "ESCAPING_STATE",
-	ESCAPING_QUOTED_STATE:  "ESCAPING_QUOTED_STATE",
-	QUOTING_ESCAPING_STATE: "QUOTING_ESCAPING_STATE",
-	QUOTING_STATE:          "QUOTING_STATE",
-	COMMENT_STATE:          "COMMENT_STATE",
-	WORDBREAK_STATE:        "WORDBREAK_STATE",
+	START_STATE:                   "START_STATE",
+	IN_WORD_STATE:                 "IN_WORD_STATE",
+	ESCAPING_STATE:                "ESCAPING_STATE",
+	ESCAPING_QUOTED_STATE:         "ESCAPING_QUOTED_STATE",
+	QUOTING_ESCAPING_STATE:        "QUOTING_ESCAPING_STATE",
+	QUOTING_STATE:                 "QUOTING_STATE",
+	QUOTING_TRIPLE_STATE:          "QUOTING_TRIPLE_STATE",
+	QUOTING_TRIPLE_ESCAPING_STATE: "QUOTING_TRIPLE_ESCAPING_STATE",
+	COMMENT_STATE:                 "COMMENT_STATE",
+	WORDBREAK_STATE:               "WORDBREAK_STATE",
 }
 
 // tokenClassifier is used for classifying rune characters.
@@ -198,11 +202,13 @@ func (l *lexer) Next() (*Token, error) {
 
 // tokenizer turns an input stream into a sequence of typed tokens
 type tokenizer struct {
-	input      bufio.Reader
-	classifier tokenClassifier
-	format     Format
-	index      int
-	state      LexerState
+	input           bufio.Reader
+	classifier      tokenClassifier
+	format          Format
+	index           int
+	state           LexerState
+	rawQuote        bool // true when current quote was opened with a raw prefix (r/R)
+	tripleQuoteRune rune // the quote char (' or ") that opened a triple-quote
 }
 
 func (t *tokenizer) ReadRune() (r rune, size int, err error) {
@@ -229,11 +235,107 @@ func newTokenizer(r io.Reader, format Format) *tokenizer {
 		format:     format}
 }
 
+// checkTripleQuote peeks ahead two runes to check if this is a triple-quote.
+// Returns true if the next two runes match the quote rune. The two runes are
+// consumed (added to index) and returned so the caller can add them to RawValue.
+// If not a triple-quote, all peeked runes are unread (at most one unread is
+// needed since bufio.Reader only supports one level of UnreadRune; the first
+// rune is returned via the consumedRune parameter so the caller can handle it).
+func (t *tokenizer) checkTripleQuote(quote rune) (isTriple bool, r1 rune, r2 rune, consumedRune rune) {
+	if !t.format.TripleQuoteSupport() {
+		return false, 0, 0, 0
+	}
+	peek1, _, err1 := t.ReadRune()
+	if err1 != nil {
+		return false, 0, 0, 0
+	}
+	if peek1 != quote {
+		t.UnreadRune()
+		return false, 0, 0, 0
+	}
+	peek2, _, err2 := t.ReadRune()
+	if err2 != nil {
+		// peek1 matched but EOF after — can't unread peek1, return it as consumed
+		return false, 0, 0, peek1
+	}
+	if peek2 != quote {
+		// peek1 matched but peek2 didn't — unread peek2, return peek1 as consumed
+		t.UnreadRune()
+		return false, 0, 0, peek1
+	}
+	return true, peek1, peek2, 0
+}
+
+// checkRawPrefix examines the current token's Value to see if it ends with
+// a raw string prefix (r or R) that qualifies as a Python string prefix.
+// The r/R must be at word start or preceded only by other valid prefix
+// characters (b, B, p, P, f, F, u, U, r, R). This prevents false positives
+// like "abr" where the r is part of a regular word.
+func (t *tokenizer) checkRawPrefix(token *Token) bool {
+	if !t.format.RawPrefixSupport() {
+		return false
+	}
+	val := token.Value
+	if len(val) == 0 {
+		return false
+	}
+	// Check that all chars in Value are valid string prefix chars
+	for i := 0; i < len(val); i++ {
+		if !isStringPrefixChar(val[i]) {
+			return false
+		}
+	}
+	// Must end with r or R
+	last := val[len(val)-1]
+	return last == 'r' || last == 'R'
+}
+
+// isStringPrefixChar returns true for characters valid in Python string
+// prefixes: b, B, p, P, r, R, u, U, f, F.
+func isStringPrefixChar(c byte) bool {
+	switch c {
+	case 'b', 'B', 'p', 'P', 'r', 'R', 'u', 'U', 'f', 'F':
+		return true
+	}
+	return false
+}
+
+// checkTripleClose checks if the current quote rune (already consumed and added
+// to RawValue at the top of the loop) is the start of a closing triple-quote.
+// Reads two more runes. Returns:
+//   - closed=true: both runes matched, closing triple-quote consumed (added to RawValue by caller)
+//   - closed=false, consumedRune!=0: first rune matched but second didn't. The first rune was
+//     consumed and cannot be unread; it's returned as consumedRune so the caller can add it
+//     to RawValue and emit it as a literal. The second rune was unread.
+//   - closed=false, consumedRune=0: first rune didn't match (or EOF), it was unread.
+//     The caller should emit the current quote rune as a literal.
+func (t *tokenizer) checkTripleClose() (closed bool, r1 rune, r2 rune, consumedRune rune) {
+	peek1, _, err1 := t.ReadRune()
+	if err1 != nil {
+		return false, 0, 0, 0
+	}
+	if peek1 != t.tripleQuoteRune {
+		t.UnreadRune()
+		return false, 0, 0, 0
+	}
+	peek2, _, err2 := t.ReadRune()
+	if err2 != nil {
+		return false, 0, 0, peek1
+	}
+	if peek2 != t.tripleQuoteRune {
+		t.UnreadRune()
+		return false, 0, 0, peek1
+	}
+	return true, peek1, peek2, 0
+}
+
 // scanStream scans the stream for the next token using the internal state machine.
 // It will panic if it encounters a rune which it does not know how to handle.
 func (t *tokenizer) scanStream() (*Token, error) {
 	previousState := t.state
 	t.state = START_STATE
+	t.rawQuote = false
+	t.tripleQuoteRune = 0
 	token := &Token{}
 	var nextRune rune
 	var nextRuneType runeTokenClass
@@ -283,12 +385,40 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					token.removeLastRaw()
 				case escapingQuoteRuneClass:
 					token.Type = WORD_TOKEN
-					t.state = QUOTING_ESCAPING_STATE
 					token.WordbreakIndex = len(token.Value)
+					if isTriple, r1, r2, consumed := t.checkTripleQuote(nextRune); isTriple {
+						token.RawValue += string(r1)
+						token.RawValue += string(r2)
+						t.tripleQuoteRune = nextRune
+						if t.checkRawPrefix(token) {
+							t.rawQuote = true
+							t.state = QUOTING_TRIPLE_STATE
+						} else {
+							t.state = QUOTING_TRIPLE_ESCAPING_STATE
+						}
+					} else if consumed != 0 {
+						token.RawValue += string(consumed)
+						t.state = IN_WORD_STATE
+					} else if t.checkRawPrefix(token) {
+						t.rawQuote = true
+						t.state = QUOTING_ESCAPING_STATE
+					} else {
+						t.state = QUOTING_ESCAPING_STATE
+					}
 				case nonEscapingQuoteRuneClass:
 					token.Type = WORD_TOKEN
-					t.state = QUOTING_STATE
 					token.WordbreakIndex = len(token.Value)
+					if isTriple, r1, r2, consumed := t.checkTripleQuote(nextRune); isTriple {
+						token.RawValue += string(r1)
+						token.RawValue += string(r2)
+						t.tripleQuoteRune = nextRune
+						t.state = QUOTING_TRIPLE_STATE
+					} else if consumed != 0 {
+						token.RawValue += string(consumed)
+						t.state = IN_WORD_STATE
+					} else {
+						t.state = QUOTING_STATE
+					}
 				case escapeRuneClass:
 					token.Type = WORD_TOKEN
 					if t.format.EscapeNotBareword() {
@@ -338,11 +468,39 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				t.UnreadRune()
 				return token, err
 			case escapingQuoteRuneClass:
-				t.state = QUOTING_ESCAPING_STATE
 				token.WordbreakIndex = len(token.Value)
+				if isTriple, r1, r2, consumed := t.checkTripleQuote(nextRune); isTriple {
+					token.RawValue += string(r1)
+					token.RawValue += string(r2)
+					t.tripleQuoteRune = nextRune
+					if t.checkRawPrefix(token) {
+						t.rawQuote = true
+						t.state = QUOTING_TRIPLE_STATE
+					} else {
+						t.state = QUOTING_TRIPLE_ESCAPING_STATE
+					}
+				} else if consumed != 0 {
+					token.RawValue += string(consumed)
+					t.state = IN_WORD_STATE
+				} else if t.checkRawPrefix(token) {
+					t.rawQuote = true
+					t.state = QUOTING_ESCAPING_STATE
+				} else {
+					t.state = QUOTING_ESCAPING_STATE
+				}
 			case nonEscapingQuoteRuneClass:
-				t.state = QUOTING_STATE
 				token.WordbreakIndex = len(token.Value)
+				if isTriple, r1, r2, consumed := t.checkTripleQuote(nextRune); isTriple {
+					token.RawValue += string(r1)
+					token.RawValue += string(r2)
+					t.tripleQuoteRune = nextRune
+					t.state = QUOTING_TRIPLE_STATE
+				} else if consumed != 0 {
+					token.RawValue += string(consumed)
+					t.state = IN_WORD_STATE
+				} else {
+					t.state = QUOTING_STATE
+				}
 			case escapeRuneClass:
 				if t.format.EscapeNotBareword() {
 					t.state = ESCAPING_STATE
@@ -404,13 +562,19 @@ func (t *tokenizer) scanStream() (*Token, error) {
 							t.UnreadRune()
 							token.RawValue = token.RawValue[:len(token.RawValue)-len(string(peekRune))]
 						}
+						t.rawQuote = false
 						t.state = IN_WORD_STATE
 					}
 				} else {
+					t.rawQuote = false
 					t.state = IN_WORD_STATE
 				}
 			case escapeRuneClass:
-				t.state = ESCAPING_QUOTED_STATE
+				if t.rawQuote {
+					token.add(nextRune) // raw string: backslash is literal
+				} else {
+					t.state = ESCAPING_QUOTED_STATE
+				}
 			default:
 				token.add(nextRune)
 			}
@@ -420,6 +584,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				token.removeLastRaw()
 				return token, err
 			case nonEscapingQuoteRuneClass:
+				t.rawQuote = false
 				if t.format.NonEscapingQuoteEscapes() {
 					// Peek: '' → literal ' (stay in quote), else close
 					peekRune, _, peekErr := t.ReadRune()
@@ -460,6 +625,66 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					}
 				} else {
 					token.add(nextRune) // literal backslash
+				}
+			default:
+				token.add(nextRune)
+			}
+		case QUOTING_TRIPLE_STATE: // in triple-quoted non-escaping string ('''...''')
+			switch nextRuneType {
+			case eofRuneClass: // EOF found when expecting closing triple-quote
+				token.removeLastRaw()
+				return token, err
+			case nonEscapingQuoteRuneClass, escapingQuoteRuneClass:
+				if nextRune == t.tripleQuoteRune {
+					closed, r1, r2, consumed := t.checkTripleClose()
+					if closed {
+						token.RawValue += string(r1)
+						token.RawValue += string(r2)
+						t.rawQuote = false
+						t.tripleQuoteRune = 0
+						t.state = IN_WORD_STATE
+					} else if consumed != 0 {
+						token.RawValue += string(consumed)
+						token.add(nextRune)
+						token.add(consumed)
+					} else {
+						token.add(nextRune)
+					}
+				} else {
+					token.add(nextRune)
+				}
+			default:
+				token.add(nextRune)
+			}
+		case QUOTING_TRIPLE_ESCAPING_STATE: // in triple-quoted escaping string ("""...""")
+			switch nextRuneType {
+			case eofRuneClass: // EOF found when expecting closing triple-quote
+				token.removeLastRaw()
+				return token, err
+			case escapingQuoteRuneClass, nonEscapingQuoteRuneClass:
+				if nextRune == t.tripleQuoteRune {
+					closed, r1, r2, consumed := t.checkTripleClose()
+					if closed {
+						token.RawValue += string(r1)
+						token.RawValue += string(r2)
+						t.rawQuote = false
+						t.tripleQuoteRune = 0
+						t.state = IN_WORD_STATE
+					} else if consumed != 0 {
+						token.RawValue += string(consumed)
+						token.add(nextRune)
+						token.add(consumed)
+					} else {
+						token.add(nextRune)
+					}
+				} else {
+					token.add(nextRune)
+				}
+			case escapeRuneClass:
+				if t.rawQuote {
+					token.add(nextRune) // raw string: backslash is literal
+				} else {
+					t.state = ESCAPING_QUOTED_STATE
 				}
 			default:
 				token.add(nextRune)

@@ -32,4 +32,6 @@ func (tcshFormat) EscapingQuoteEscapeChars() map[rune]bool {
 		'\n': true,
 	}
 }
-func (tcshFormat) QuoteWord(s string) string              { return posixQuoteWord(s) }
+func (tcshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
+func (tcshFormat) TripleQuoteSupport() bool  { return false }
+func (tcshFormat) RawPrefixSupport() bool    { return false }

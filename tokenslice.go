@@ -101,7 +101,8 @@ func (t TokenSlice) WordbreakPrefix() string {
 
 	last := t[len(t)-1]
 	switch last.State {
-	case QUOTING_STATE, QUOTING_ESCAPING_STATE, ESCAPING_QUOTED_STATE:
+	case QUOTING_STATE, QUOTING_ESCAPING_STATE, ESCAPING_QUOTED_STATE,
+		QUOTING_TRIPLE_STATE, QUOTING_TRIPLE_ESCAPING_STATE:
 		// Seems bash handles the last opening quote as wordbreak when in quoting state.
 		// So add value up to last opening quote to prefix.
 		found = true

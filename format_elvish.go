@@ -40,21 +40,23 @@ func (elvishFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (elvishFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (elvishFormat) NonEscapingQuoteEscapes() bool          { return true } // '' → '
-func (elvishFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
-func (elvishFormat) EscapeNotBareword() bool                { return false }
+func (elvishFormat) NonEscapingQuoteEscapes() bool           { return true } // '' → '
+func (elvishFormat) NonEscapingQuoteBackslashEscapes() bool  { return false }
+func (elvishFormat) EscapeNotBareword() bool                 { return false }
 func (elvishFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
-func (elvishFormat) QuoteWord(s string) string              { return elvishQuoteWord(s) }
+func (elvishFormat) QuoteWord(s string) string               { return elvishQuoteWord(s) }
+func (elvishFormat) TripleQuoteSupport() bool                { return false }
+func (elvishFormat) RawPrefixSupport() bool                  { return false }
 
 // braceState tracks the parser context inside braces.
 type braceState int
 
 const (
-	braceOutside     braceState = iota // not inside braces
-	braceLambdaOpen                    // saw '{' followed by |/space/newline → lambda, no params yet
-	braceParams                        // inside {|...| parameter list (between first | and second |)
-	braceLambdaBody                    // after closing | of params, in lambda body
-	braceBraced                        // inside braced list {a,b}
+	braceOutside    braceState = iota // not inside braces
+	braceLambdaOpen                   // saw '{' followed by |/space/newline → lambda, no params yet
+	braceParams                       // inside {|...| parameter list (between first | and second |)
+	braceLambdaBody                   // after closing | of params, in lambda body
+	braceBraced                       // inside braced list {a,b}
 )
 
 // PostProcess reclassifies WORDBREAK_PIPE tokens that are inside elvish

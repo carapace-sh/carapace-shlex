@@ -21,7 +21,8 @@ type CompletionContext struct {
 	Prefix string
 
 	// QuotingState is the lexer state of the current word.
-	// IN_WORD_STATE, QUOTING_STATE, QUOTING_ESCAPING_STATE, or ESCAPING_STATE.
+	// IN_WORD_STATE, QUOTING_STATE, QUOTING_ESCAPING_STATE, QUOTING_TRIPLE_STATE,
+	// QUOTING_TRIPLE_ESCAPING_STATE, or ESCAPING_STATE.
 	// Replaces the regex-based quoting detection in carapace's zsh action.
 	QuotingState LexerState
 
