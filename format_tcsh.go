@@ -39,6 +39,7 @@ func (tcshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (tcshFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (tcshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (tcshFormat) EscapeNotBareword() bool                { return true }
+func (tcshFormat) EscapeNotInEscapingQuote() bool         { return false }
 func (tcshFormat) EscapingQuoteEscapeChars() map[rune]bool {
 	return map[rune]bool{
 		'\\': true,

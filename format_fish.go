@@ -65,6 +65,7 @@ func (fishFormat) KeywordOperators() map[string]WordbreakType {
 func (fishFormat) NonEscapingQuoteEscapes() bool          { return true } // ' and \\ inside single quotes
 func (fishFormat) NonEscapingQuoteBackslashEscapes() bool { return true }
 func (fishFormat) EscapeNotBareword() bool                { return true }
+func (fishFormat) EscapeNotInEscapingQuote() bool         { return false }
 
 // EscapingQuoteEscapeChars returns the limited set of characters that
 // backslash can escape inside fish double quotes: ", $, \, and newline.

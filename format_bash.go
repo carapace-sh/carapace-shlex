@@ -32,6 +32,7 @@ func (bashFormat) NonEscapingQuoteEscapes() bool { return false }
 
 func (bashFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (bashFormat) EscapeNotBareword() bool                { return true }
+func (bashFormat) EscapeNotInEscapingQuote() bool         { return false }
 func (bashFormat) EscapingQuoteEscapeChars() map[rune]bool {
 	return map[rune]bool{
 		'\\': true,

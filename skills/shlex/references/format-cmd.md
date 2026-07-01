@@ -11,8 +11,10 @@ Lexical rules a command-line lexer needs for Windows cmd.exe (with clink). Cmd u
 | space | ` \t` | word delimiter (within a command) |
 | newline | `\r\n` | command terminator |
 | quote | `"` | `QUOTING_ESCAPING_STATE`-like (but no `\` escapes) |
-| escape | `^` | `ESCAPING_STATE` |
-| comment | `REM` / `::` | `COMMENT_STATE` |
+| escape | `^` | `ESCAPING_STATE` (outside quotes only; literal inside `"..."`) |
+| comment | `REM` / `::` | `COMMENT_STATE` (deferred) |
+| wordbreak | `\|` `&` `<` `>` `(` `)` | `WORDBREAK_STATE` |
+| delimiter | `,` | word delimiter (like space) |
 
 **Key differences from POSIX**:
 - **No single quotes** — `'` is a literal character, not a quote.
@@ -31,7 +33,7 @@ echo "hello world"          # hello world
 echo "say "hello""          # say hello (quotes toggle, no escaping)
 ```
 
-For the lexer: cmd double quotes are a simple toggle state — enter on `"`, exit on `"`. No `ESCAPING_QUOTED_STATE` because `\` is not special. The caret `^` **does** escape inside quotes in cmd (`` ^" `` produces a literal `"`), so the state machine needs `^` to work as an escape in the quoting state.
+For the lexer: cmd double quotes are a simple toggle state — enter on `"`, exit on `"`. No `ESCAPING_QUOTED_STATE` because `\` is not special. The caret `^` is **literal** inside double quotes in cmd.exe (it does not escape), implemented via the `EscapeNotInEscapingQuote` flag. For quoting words (`cmdQuoteWord`), a literal `"` inside a quoted string is handled by closing the quote, escaping the `"` with `^`, and reopening: `"hello"^"world"`.
 
 ### No single quotes
 
@@ -57,7 +59,7 @@ echo ^|                     # | (literal pipe)
 echo "say ^"hello^""        # say "hello"
 ```
 
-For the lexer: `^` enters `ESCAPING_STATE` (and `ESCAPING_QUOTED_STATE` inside quotes) — the next rune is literal.
+For the lexer: `^` enters `ESCAPING_STATE` (outside quotes) — the next rune is literal. Inside double quotes, `^` is **completely literal** — it does not escape the next character. This is implemented via the `EscapeNotInEscapingQuote` flag. `^` followed by `\n` or `\r\n` is a line continuation (via `LineContinuationEscaper`) — the sequence is consumed and the word continues on the next line.
 
 ## Variable Expansion `%VAR%`
 
@@ -83,7 +85,9 @@ For the lexer: `%` is a word character (expansion happens post-lexing). `%` is *
 
 **Key difference from POSIX**: `&` in cmd is a *command separator* (like `;` in bash), not a background operator. `command1 & command2` runs both sequentially. `&&` and `||` are conditional separators.
 
-The wordbreak rune set for cmd: `|`, `&`, `<`, `>`, and `\r\n` (command terminators). `;` is **not** a separator in cmd (it's a literal character or argument separator within some commands).
+`(` and `)` are grouping operators for command blocks, not pipeline delimiters.
+
+The wordbreak rune set for cmd: `|`, `&`, `<`, `>`, `(`, `)`, and `\r\n` (command terminators). `,` is a word delimiter (like space). `;` is **not** a separator in cmd (it's a literal character or argument separator within some commands, but kept as a word char for completion safety).
 
 ## Comments
 
@@ -123,13 +127,19 @@ The clink snippet is a Lua function that invokes carapace with the completion li
 ## Edge Cases
 
 - **No single quotes**: `'` is literal. Don't classify it as a quote.
-- **Caret `^` as escape**: both inside and outside quotes.
+- **Caret `^` as escape**: outside quotes only. Inside double quotes, `^` is completely literal (no escaping). This matches cmd.exe's Phase 2 parser where only `"` and `<LF>` are special inside quotes.
 - **`&` as separator**: `&` splits commands (like `;` in POSIX), not background. `&&`/`||` are conditional.
+- **`(` `)` grouping**: parentheses are wordbreak operators for command blocks `(echo foo & echo bar)`.
+- **Comma `,` as word delimiter**: cmd treats comma as a word delimiter (like space). Semicolons and equals are also delimiters in cmd, but kept as word chars for safety (e.g. `set VAR=value`).
 - **`REM` keyword comment**: not a rune-based comment — needs word-level detection.
 - **`::` comment**: two-rune opener at word boundary.
 - **`%` not a wordbreak**: variable sigil, part of words.
-- **`\r\n` command terminator**: within a single command, only space/tab delimit words; newlines terminate the command.
+- **`\r\n` command terminator**: within a single command, only space/tab/comma delimit words; newlines terminate the command.
 - **No `\` escaping**: backslash is literal (Windows paths use `\` freely).
+- **Line continuation**: `^` followed by `\n` or `\r\n` is a line continuation — the `^`+newline sequence is consumed and the word continues on the next line. A stray space after `^` breaks the continuation (the space is escaped instead).
+- **Numeric stream redirects**: `2>`, `2>>`, `2>&1`, `1>&2` are merged in PostProcess from adjacent `WORD_TOKEN` + `WORDBREAK_TOKEN` sequences.
+- **Quote joining**: `cmdQuoteWord` uses close-quote, `^"`, reopen-quote to embed literal `"` inside double-quoted strings, since cmd.exe has no escape mechanism inside quotes (`^` is literal, `\"` is not recognized).
+- **Caret doubling through pipes**: each pipe spawns a new cmd.exe instance that re-parses; carets must be tripled (`^^^&`) to survive. This is a runtime behavior, not a lexer concern.
 
 ## References
 

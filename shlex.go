@@ -206,15 +206,15 @@ func (l *lexer) Next() (*Token, error) {
 
 // tokenizer turns an input stream into a sequence of typed tokens
 type tokenizer struct {
-	input           bufio.Reader
-	classifier      tokenClassifier
-	format          Format
-	index           int
-	state           LexerState
-	rawQuote        bool   // true when current quote was opened with a raw prefix (r/R)
-	tripleQuoteRune rune   // the quote char (' or ") that opened a triple-quote
-	blockCloser     string // the closer string for the current block comment
-	blockCloserIdx  int    // index into blockCloser for match tracking
+	input            bufio.Reader
+	classifier       tokenClassifier
+	format           Format
+	index            int
+	state            LexerState
+	rawQuote         bool   // true when current quote was opened with a raw prefix (r/R)
+	tripleQuoteRune  rune   // the quote char (' or ") that opened a triple-quote
+	blockCloser      string // the closer string for the current block comment
+	blockCloserIdx   int    // index into blockCloser for match tracking
 	stopParsingDelim string // pipeline delimiter set for stop-parsing mode
 }
 
@@ -751,6 +751,8 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			case escapeRuneClass:
 				if t.rawQuote {
 					token.add(nextRune) // raw string: backslash is literal
+				} else if t.format.EscapeNotInEscapingQuote() {
+					token.add(nextRune) // cmd: caret is literal inside double quotes
 				} else {
 					t.state = ESCAPING_QUOTED_STATE
 				}

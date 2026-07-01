@@ -44,6 +44,15 @@ type Format interface {
 	// Only elvish needs this (\ is a bareword char in elvish).
 	EscapeNotBareword() bool
 
+	// EscapeNotInEscapingQuote returns true if the escape character is
+	// literal inside the escaping quote (double quotes) rather than acting
+	// as an escape. When true, the QUOTING_ESCAPING_STATE handler treats
+	// the escape rune as a regular word character instead of entering
+	// ESCAPING_QUOTED_STATE. Only cmd needs this: cmd's caret (^) is
+	// completely literal inside double quotes — it does not escape the
+	// next character when quoted.
+	EscapeNotInEscapingQuote() bool
+
 	// EscapingQuoteEscapeChars returns the set of characters that backslash
 	// can escape inside the escaping quote (double quotes). If nil, backslash
 	// escapes any character. POSIX shells (bash, zsh, tcsh) return the
@@ -113,8 +122,8 @@ type LineContinuationEscaper interface {
 // it enters a dedicated BLOCK_COMMENT_STATE that scans until the
 // blockCommentCloser runes are found, spanning multiple lines.
 type BlockCommenter interface {
-	BlockCommentOpener() string  // e.g. "<#" for PowerShell
-	BlockCommentCloser() string  // e.g. "#>" for PowerShell
+	BlockCommentOpener() string // e.g. "<#" for PowerShell
+	BlockCommentCloser() string // e.g. "#>" for PowerShell
 }
 
 // StopParsingToken is an optional interface for formats that support a

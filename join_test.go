@@ -80,9 +80,9 @@ func TestJoinWith_Nushell(t *testing.T) {
 
 func TestJoinWith_Cmd(t *testing.T) {
 	tests := map[string][]string{
-		`echo hello`:           {"echo", "hello"},
-		`echo "hello world"`:   {"echo", "hello world"},
-		`echo "say ^"hello^""`: {"echo", `say "hello"`},
+		`echo hello`:             {"echo", "hello"},
+		`echo "hello world"`:     {"echo", "hello world"},
+		`echo "say "^"hello"^""`: {"echo", `say "hello"`},
 	}
 	for expected, words := range tests {
 		if actual := JoinWith(words, CmdFormat()); actual != expected {

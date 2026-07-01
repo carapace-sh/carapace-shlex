@@ -43,6 +43,7 @@ func (elvishFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (elvishFormat) NonEscapingQuoteEscapes() bool           { return true } // '' → '
 func (elvishFormat) NonEscapingQuoteBackslashEscapes() bool  { return false }
 func (elvishFormat) EscapeNotBareword() bool                 { return false }
+func (elvishFormat) EscapeNotInEscapingQuote() bool          { return false }
 func (elvishFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (elvishFormat) QuoteWord(s string) string               { return elvishQuoteWord(s) }
 func (elvishFormat) TripleQuoteSupport() bool                { return false }

@@ -163,19 +163,22 @@ func xonshQuoteWord(s string) string {
 }
 
 // cmdQuoteWord quotes a word for cmd.exe.
-// Uses double-quote wrapping. Caret escapes inside quotes for ".
+// Uses double-quote wrapping for spaces. Since cmd.exe has no escape
+// mechanism inside double quotes (^ is literal inside quotes), a literal
+// " is handled by closing the quote, escaping the " with ^, and reopening:
+// "hello"^"world" — this produces the literal text hello"world.
 func cmdQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, " \"&|<>") {
+	if !strings.ContainsAny(s, " \"&|<>()^,") {
 		return s
 	}
 	var b strings.Builder
 	b.WriteByte('"')
 	for _, r := range s {
 		if r == '"' {
-			b.WriteString("^\"")
+			b.WriteString(`"^"`)
 		} else {
 			b.WriteRune(r)
 		}

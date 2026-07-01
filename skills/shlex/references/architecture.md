@@ -246,6 +246,16 @@ These require multi-rune opener support not yet implemented:
 
 The basic quote types (single, double, backtick) cover the vast majority of completion input. These deferred features are for completeness.
 
+### Implemented cmd.exe features
+
+The cmd format now implements:
+- Line continuation (`^` + newline, via `LineContinuationEscaper`)
+- `(` `)` grouping operators (wordbreak runes, `WORDBREAK_UNKNOWN`)
+- `,` as word delimiter (space class, not a command separator)
+- Numeric stream redirects `2>`, `2>>`, `2>&1`, `1>&2` (via `PostProcessor`)
+- `^` is literal inside double quotes (via `EscapeNotInEscapingQuote` flag — cmd's Phase 2 parser only treats `"` and `<LF>` as special inside quotes)
+- `cmdQuoteWord` uses close-quote/`^"`/reopen-quote to embed literal `"` (no escape mechanism exists inside cmd double quotes)
+
 ## State Machine Extensions
 
 The v1 state machine is extended with three format-configurable behaviors (no new states added):
