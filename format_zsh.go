@@ -21,4 +21,5 @@ func (zshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (zshFormat) NonEscapingQuoteEscapes() bool          { return true } // RC_QUOTES: '' → '
 func (zshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (zshFormat) EscapeNotBareword() bool                { return true }
+func (zshFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (zshFormat) QuoteWord(s string) string              { return posixQuoteWord(s) }

@@ -31,4 +31,5 @@ func (xonshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (xonshFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (xonshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (xonshFormat) EscapeNotBareword() bool                { return true }
+func (xonshFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (xonshFormat) QuoteWord(s string) string              { return xonshQuoteWord(s) }

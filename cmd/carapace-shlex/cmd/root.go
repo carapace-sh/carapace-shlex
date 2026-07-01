@@ -79,7 +79,7 @@ var rootCmd = &cobra.Command{
 				for _, word := range tokens.Words() {
 					words = append(words, word.Value)
 				}
-				fmt.Fprintln(cmd.OutOrStdout(), shlex.Join(words))
+				fmt.Fprintln(cmd.OutOrStdout(), shlex.JoinWith(words, format))
 				return nil
 			default:
 				encoder := json.NewEncoder(cmd.OutOrStdout())

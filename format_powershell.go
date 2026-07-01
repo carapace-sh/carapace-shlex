@@ -61,4 +61,5 @@ func (powershellFormat) KeywordOperators() map[string]WordbreakType { return nil
 func (powershellFormat) NonEscapingQuoteEscapes() bool          { return true } // '' → '
 func (powershellFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (powershellFormat) EscapeNotBareword() bool                { return true }
+func (powershellFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (powershellFormat) QuoteWord(s string) string              { return powershellQuoteWord(s) }

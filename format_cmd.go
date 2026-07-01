@@ -65,4 +65,5 @@ func (cmdFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (cmdFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (cmdFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (cmdFormat) EscapeNotBareword() bool                { return true }
+func (cmdFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (cmdFormat) QuoteWord(s string) string              { return cmdQuoteWord(s) }

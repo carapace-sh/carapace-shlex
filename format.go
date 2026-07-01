@@ -44,6 +44,12 @@ type Format interface {
 	// Only elvish needs this (\ is a bareword char in elvish).
 	EscapeNotBareword() bool
 
+	// EscapingQuoteEscapeChars returns the set of characters that backslash
+	// can escape inside the escaping quote (double quotes). If nil, backslash
+	// escapes any character (the POSIX/bash default). Fish returns only
+	// `"`, `$`, `\`, and newline.
+	EscapingQuoteEscapeChars() map[rune]bool
+
 	// QuoteWord quotes a single word for safe insertion into a command line.
 	// Used by JoinWith. The implementation should use the shell's preferred
 	// quoting style: backslash-escaping for POSIX shells, double-quote

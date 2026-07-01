@@ -360,7 +360,16 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				t.state = QUOTING_ESCAPING_STATE
-				token.add(nextRune)
+				if escapeChars := t.format.EscapingQuoteEscapeChars(); escapeChars != nil {
+					if escapeChars[nextRune] {
+						token.add(nextRune)
+					} else {
+						token.add('\\')
+						token.add(nextRune)
+					}
+				} else {
+					token.add(nextRune)
+				}
 			}
 		case QUOTING_ESCAPING_STATE: // in escaping double quotes
 			switch nextRuneType {

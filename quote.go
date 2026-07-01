@@ -40,11 +40,12 @@ func posixQuoteWord(s string) string {
 
 // fishQuoteWord quotes a word for fish.
 // Fish double quotes escape only ", $, \, and newline.
+// Backtick is a regular character in fish (not command substitution).
 func fishQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, `"' `+"`$\n\r\t") {
+	if !strings.ContainsAny(s, `"' `+"$\n\r\t") {
 		return s
 	}
 	var b strings.Builder
