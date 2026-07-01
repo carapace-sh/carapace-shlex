@@ -1,3 +1,4 @@
-cmd/carapace-shlex/carapace-shlex
-dist
-profile.cov
+/carapace-shlex
+/cmd/carapace-shlex/carapace-shlex
+/dist
+/profile.cov
