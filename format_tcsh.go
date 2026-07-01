@@ -3,11 +3,12 @@ package shlex
 // tcshFormat implements Format for tcsh lexing.
 // Tcsh is POSIX-family (csh heritage) with operator grammar similar to bash
 // but with key differences:
-//   - >! and >>! for noclobber force override (bash uses >| and >>|)
 //   - >& for combined stdout+stderr redirect (bash uses &>)
 //   - no <<< here-string, no ;; case operators, no &> redirect
 //   - = and @ are not wordbreak characters (unlike bash)
-//   - ! is a wordbreak character (for >! and >>! operators)
+//   - >! and >>! are parser-level constructs, not lexer operators:
+//     '!' is a regular word char (_PUN) in tcsh's lexer; the parser in
+//     syn3() recognizes > followed by ! as noclobber override.
 //
 // backslash_quote and $'...' are handled by the state machine
 // (backslash is already the escape char, $ is a word char before quotes).
@@ -19,8 +20,9 @@ func TcshFormat() Format { return tcshFormat{} }
 // TCSH_WORDBREAKS are the wordbreak characters for tcsh, derived from the
 // _META character class in tcsh's _cmap table (sh.char.c).
 // Unlike bash, tcsh does not include = or @ as wordbreak characters.
-// ! is included for >! and >>! noclobber override operators.
-const TCSH_WORDBREAKS = "><;|&()!"
+// ! is NOT a wordbreak: it is _PUN (punctuation) in tcsh's lexer, not _META.
+// The >! and >>! noclobber operators are recognized at the parser level.
+const TCSH_WORDBREAKS = "><;|&()"
 
 func (tcshFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)

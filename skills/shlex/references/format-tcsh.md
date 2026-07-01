@@ -70,14 +70,13 @@ When set (`set backslash_quote`), backslashes always quote `\`, `'`, and `"` —
 
 ## Word Breaks and Operators
 
-Tcsh has its own operator grammar, distinct from bash. The wordbreak runes are derived from tcsh's `_META` character class in `sh.char.c`: `><;|&()!`. Unlike bash, `=` and `@` are **not** wordbreak characters in tcsh. `!` is a wordbreak (for `>!` and `>>!` noclobber override operators).
+Tcsh has its own operator grammar, distinct from bash. The wordbreak runes are derived from tcsh's `_META` character class in `sh.char.c`: `><;|&()`. Unlike bash, `=` and `@` are **not** wordbreak characters in tcsh. `!` is also **not** a wordbreak — it is `_PUN` (punctuation) in tcsh's lexer, not `_META`. The `>!` and `>>!` noclobber override operators are recognized at the **parser** level in `syn3()`, not the lexer level: the lexer produces `>` and `!` as separate tokens, and the parser checks if the word after `>` is `!`.
 
 | Operator | Meaning | Type |
 |----------|---------|------|
 | `\|` | pipe | pipeline delimiter |
 | `\|&` | pipe with stderr | pipeline delimiter |
 | `<` `>` `>>` | redirects | redirect |
-| `>!` `>>!` | noclobber force override | redirect |
 | `<<` | here document | redirect |
 | `>&` | redirect stdout and stderr | redirect |
 | `<&` | duplicate input fd | redirect |
@@ -91,9 +90,14 @@ Tcsh has its own operator grammar, distinct from bash. The wordbreak runes are d
 
 | Operator | Tcsh | Bash equivalent |
 |----------|------|----------------|
-| `>!` | Force overwrite (noclobber) | `>\|` |
-| `>>!` | Force append (noclobber) | `>>\|` |
 | `>&` | Combined stdout+stderr redirect | `&>` |
+
+### Parser-level operators (not lexer tokens)
+
+| Operator | How tcsh handles it |
+|----------|---------------------|
+| `>!` | Lexer produces `>` and `!` as separate tokens; parser in `syn3()` checks if word after `>` is `!` |
+| `>>!` | Same: lexer produces `>>` and `!`; parser recognizes the `!` as noclobber override |
 
 ### Operators NOT in tcsh
 
@@ -138,10 +142,9 @@ Carapace's tcsh integration uses the `COMMAND_LINE` variable which contains the 
 
 ## Edge Cases
 
-- **`!` inside single quotes**: history expansion still occurs (pre-quoting). The lexer treats `!` as a word char for history, but as a wordbreak for `>!`/`>>!` operators.
+- **`!` is a regular word character**: tcsh's lexer classifies `!` as `_PUN` (punctuation), not `_META`. The lexer treats `!` as a word char. History expansion (`!`) is a separate pre-processing layer. The `>!` and `>>!` noclobber operators are parser-level constructs (the parser checks if the word after `>` is `!`).
 - **`backslash_quote`**: changes escape behavior inside quotes — a format configuration option (not currently implemented).
 - **`<<` here-doc**: tcsh uses `<<` (not `<<<`). `<<<` is not a valid tcsh operator.
-- **`>!` / `>>!`**: tcsh noclobber override operators (bash uses `>|` / `>>|` instead).
 - **`>&`**: tcsh combined stdout+stderr redirect (bash uses `&>` instead).
 - **`|&`**: tcsh pipes both stdout and stderr to the next command (same as bash).
 - **`=` not a wordbreak**: tcsh treats `=` as a regular word character (bash has `=` in COMP_WORDBREAKS for `--foo=bar`). `set foo=bar` lexes as two words.

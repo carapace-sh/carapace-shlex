@@ -114,35 +114,25 @@ func TestTcshFormat_OpenSingleQuote(t *testing.T) {
 	}
 }
 
-func TestTcshFormat_ForceOutputBang(t *testing.T) {
-	tokens, err := SplitWith("echo foo >! /tmp/bar", TcshFormat())
+func TestTcshFormat_BangNotWordbreak(t *testing.T) {
+	tokens, err := SplitWith("echo !$", TcshFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
-	var op Token
-	for _, tok := range tokens {
-		if tok.RawValue == ">!" {
-			op = tok
-		}
-	}
-	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG {
-		t.Errorf("tcsh >!: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT_FORCE_BANG", op.Type, op.WordbreakType)
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "!$" {
+		t.Errorf("tcsh !$: Words = %v, want [echo !$]", words)
 	}
 }
 
-func TestTcshFormat_ForceAppendBang(t *testing.T) {
-	tokens, err := SplitWith("echo foo >>! /tmp/bar", TcshFormat())
+func TestTcshFormat_BangInWord(t *testing.T) {
+	tokens, err := SplitWith("echo foo!bar", TcshFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
-	var op Token
-	for _, tok := range tokens {
-		if tok.RawValue == ">>!" {
-			op = tok
-		}
-	}
-	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG {
-		t.Errorf("tcsh >>!: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT_APPEND_FORCE_BANG", op.Type, op.WordbreakType)
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foo!bar" {
+		t.Errorf("tcsh foo!bar: Words = %v, want [echo foo!bar]", words)
 	}
 }
 
@@ -235,19 +225,26 @@ func TestTcshFormat_AtNotWordbreak(t *testing.T) {
 	}
 }
 
-func TestTcshFormat_BangIsWordbreak(t *testing.T) {
+func TestTcshFormat_GreaterBangIsRedirectPlusWord(t *testing.T) {
 	tokens, err := SplitWith("echo foo >!bar", TcshFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
-	var op Token
+	var redirect Token
+	var word Token
 	for _, tok := range tokens {
-		if tok.RawValue == ">!" {
-			op = tok
+		if tok.RawValue == ">" {
+			redirect = tok
+		}
+		if tok.Type == WORD_TOKEN && tok.RawValue == "!bar" {
+			word = tok
 		}
 	}
-	if op.Type != WORDBREAK_TOKEN {
-		t.Errorf("tcsh >!bar: expected >! to be WORDBREAK_TOKEN, got Type=%v", op.Type)
+	if redirect.Type != WORDBREAK_TOKEN || redirect.WordbreakType != WORDBREAK_REDIRECT_OUTPUT {
+		t.Errorf("tcsh >!bar: redirect Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT", redirect.Type, redirect.WordbreakType)
+	}
+	if word.Type != WORD_TOKEN {
+		t.Errorf("tcsh >!bar: expected !bar as WORD_TOKEN, got Type=%v", word.Type)
 	}
 }
 

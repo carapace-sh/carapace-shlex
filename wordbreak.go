@@ -35,9 +35,6 @@ const (
 	WORDBREAK_LIST_FALLTHROUGH_RETRY // ;| (zsh case fall-through with retry)
 	WORDBREAK_LIST_CASE_NEXT         // ;;& (case next pattern)
 	WORDBREAK_LIST_ASYNC_ERRCHECK    // &| (zsh background with error check)
-	// tcsh-specific: >! and >>! (noclobber override — tcsh uses ! instead of |)
-	WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG        // >! (tcsh noclobber override)
-	WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG // >>! (tcsh noclobber override for append)
 	// COMP_WORDBREAKS
 	WORDBREAK_CUSTOM
 	// Elvish-specific: output capture delimiters ( and )
@@ -71,8 +68,6 @@ var wordbreakTypes = map[WordbreakType]string{
 	WORDBREAK_LIST_FALLTHROUGH_RETRY:       "WORDBREAK_LIST_FALLTHROUGH_RETRY",
 	WORDBREAK_LIST_CASE_NEXT:               "WORDBREAK_LIST_CASE_NEXT",
 	WORDBREAK_LIST_ASYNC_ERRCHECK:          "WORDBREAK_LIST_ASYNC_ERRCHECK",
-	WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG:        "WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG",
-	WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG: "WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG",
 	WORDBREAK_CUSTOM:                       "WORDBREAK_CUSTOM",
 	WORDBREAK_OUTPUT_CAPTURE:               "WORDBREAK_OUTPUT_CAPTURE",
 	WORDBREAK_BRACKET:                      "WORDBREAK_BRACKET",
@@ -110,8 +105,6 @@ func (w WordbreakType) IsRedirect() bool {
 		WORDBREAK_REDIRECT_OUTPUT_APPEND,
 		WORDBREAK_REDIRECT_OUTPUT_FORCE,
 		WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE,
-		WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG,
-		WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG,
 		WORDBREAK_REDIRECT_OUTPUT_BOTH,
 		WORDBREAK_REDIRECT_OUTPUT_BOTH_APPEND,
 		WORDBREAK_REDIRECT_INPUT_STRING,
@@ -174,10 +167,14 @@ func bashWordbreakType(raw string) WordbreakType {
 
 // tcshWordbreakType maps a wordbreak token's RawValue to a WordbreakType
 // using tcsh's operator grammar. Tcsh differs from bash in:
-//   - >! and >>! for noclobber force override (bash uses >| and >>|)
 //   - >& for combined stdout+stderr redirect (bash uses &>)
 //   - |& for pipe with stderr (same as bash)
 //   - no <<< here-string, no ;; case operators, no &> redirect
+//   - no >| or >>| (tcsh uses >! and >>! at the parser level, not lexer level)
+//
+// Note: >! and >>! are NOT single operator tokens in tcsh's lexer. The '!'
+// is a regular word character (_PUN, not _META). The parser in syn3()
+// recognizes > followed by ! as a separate word as the noclobber override.
 func tcshWordbreakType(raw string) WordbreakType {
 	switch raw {
 	case "<":
@@ -186,10 +183,6 @@ func tcshWordbreakType(raw string) WordbreakType {
 		return WORDBREAK_REDIRECT_OUTPUT
 	case ">>":
 		return WORDBREAK_REDIRECT_OUTPUT_APPEND
-	case ">!":
-		return WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG
-	case ">>!":
-		return WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG
 	case ">&":
 		return WORDBREAK_REDIRECT_OUTPUT_BOTH
 	case "<<":
