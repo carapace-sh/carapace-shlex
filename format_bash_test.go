@@ -42,9 +42,9 @@ func TestBashFormat_EscapedSpace(t *testing.T) {
 }
 
 func TestBashFormat_BackslashNInDoubleQuotes(t *testing.T) {
-	// In bash, \n inside "..." is literal (backslash not special before n)
-	// The state machine consumes \ + next char, so Value = "hellonworld"
-	// This is a known limitation — the lexer is not a full expander.
+	// In bash, \n inside "..." is literal (backslash not special before n).
+	// Backslash is only special before $, `, ", \, and newline.
+	// Both backslash and n should be preserved in the value.
 	tokens, err := SplitWith(`echo "hello\nworld"`, BashFormat())
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +53,9 @@ func TestBashFormat_BackslashNInDoubleQuotes(t *testing.T) {
 	last := words[len(words)-1]
 	if last.State != IN_WORD_STATE {
 		t.Errorf("bash \\n in double: State = %v, want IN_WORD_STATE", last.State)
+	}
+	if last.Value != `hello\nworld` {
+		t.Errorf("bash \\n in double: Value = %q, want %q", last.Value, `hello\nworld`)
 	}
 }
 
@@ -146,5 +149,221 @@ func TestBashFormat_CaseTerminator(t *testing.T) {
 	}
 	if found.WordbreakType != WORDBREAK_LIST_SEQUENTIAL_DOUBLE {
 		t.Errorf("bash ;;: WordbreakType = %v, want WORDBREAK_LIST_SEQUENTIAL_DOUBLE", found.WordbreakType)
+	}
+}
+
+func TestBashFormat_BackslashDollarInDoubleQuotes(t *testing.T) {
+	// \$ inside "..." should drop the backslash — $ is a CBSDQUOTE char
+	tokens, err := SplitWith(`echo "hello\$world"`, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "hello$world" {
+		t.Errorf("bash \\$ in double: Words = %v, want [echo hello$world]", words)
+	}
+}
+
+func TestBashFormat_BackslashQuoteInDoubleQuotes(t *testing.T) {
+	// \" inside "..." should drop the backslash — " is a CBSDQUOTE char
+	tokens, err := SplitWith(`echo "say \"hello\""`, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != `say "hello"` {
+		t.Errorf("bash \\\" in double: Words = %v, want [echo say \"hello\"]", words)
+	}
+}
+
+func TestBashFormat_BackslashBacktickInDoubleQuotes(t *testing.T) {
+	// \` inside "..." should drop the backslash — ` is a CBSDQUOTE char
+	tokens, err := SplitWith("echo \"hello\\`world\"", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "hello`world" {
+		t.Errorf("bash \\` in double: Words = %v, want [echo hello`world]", words)
+	}
+}
+
+func TestBashFormat_BackslashBackslashInDoubleQuotes(t *testing.T) {
+	// \\ inside "..." should produce a single \ — \ is a CBSDQUOTE char
+	tokens, err := SplitWith(`echo "hello\\world"`, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != `hello\world` {
+		t.Errorf("bash \\\\ in double: Words = %v, want [echo hello\\world]", words)
+	}
+}
+
+func TestBashFormat_OperatorBoundary(t *testing.T) {
+	// >; should be two separate tokens: > and ;
+	// not a single unknown operator >;
+	tokens, err := SplitWith("echo foo >; bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wordbreaks []Token
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN {
+			wordbreaks = append(wordbreaks, tok)
+		}
+	}
+	if len(wordbreaks) != 2 {
+		t.Fatalf("bash >;: got %d wordbreak tokens, want 2", len(wordbreaks))
+	}
+	if wordbreaks[0].RawValue != ">" {
+		t.Errorf("bash >;: first wordbreak = %q, want >", wordbreaks[0].RawValue)
+	}
+	if wordbreaks[1].RawValue != ";" {
+		t.Errorf("bash >;: second wordbreak = %q, want ;", wordbreaks[1].RawValue)
+	}
+}
+
+func TestBashFormat_HereDocOperator(t *testing.T) {
+	tokens, err := SplitWith("echo foo << bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found *Token
+	for i := range tokens {
+		if tokens[i].Type == WORDBREAK_TOKEN {
+			found = &tokens[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("bash <<: no wordbreak token found")
+	}
+	if found.WordbreakType != WORDBREAK_REDIRECT_HERE_DOC {
+		t.Errorf("bash <<: WordbreakType = %v, want WORDBREAK_REDIRECT_HERE_DOC", found.WordbreakType)
+	}
+	if !found.WordbreakType.IsRedirect() {
+		t.Errorf("bash <<: IsRedirect() = false, want true")
+	}
+}
+
+func TestBashFormat_HereStringOperator(t *testing.T) {
+	tokens, err := SplitWith("echo foo <<< bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found *Token
+	for i := range tokens {
+		if tokens[i].Type == WORDBREAK_TOKEN {
+			found = &tokens[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("bash <<<: no wordbreak token found")
+	}
+	if found.WordbreakType != WORDBREAK_REDIRECT_INPUT_STRING {
+		t.Errorf("bash <<<: WordbreakType = %v, want WORDBREAK_REDIRECT_INPUT_STRING", found.WordbreakType)
+	}
+}
+
+func TestBashFormat_CaseFallthrough(t *testing.T) {
+	// ;& is bash 4+ case fall-through
+	tokens, err := SplitWith("echo foo ;& bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found *Token
+	for i := range tokens {
+		if tokens[i].Type == WORDBREAK_TOKEN {
+			found = &tokens[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("bash ;&: no wordbreak token found")
+	}
+	if found.WordbreakType != WORDBREAK_LIST_FALLTHROUGH {
+		t.Errorf("bash ;&: WordbreakType = %v, want WORDBREAK_LIST_FALLTHROUGH", found.WordbreakType)
+	}
+}
+
+func TestBashFormat_CaseNextPattern(t *testing.T) {
+	// ;;& is bash 4+ case next pattern
+	tokens, err := SplitWith("echo foo ;;& bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found *Token
+	for i := range tokens {
+		if tokens[i].Type == WORDBREAK_TOKEN {
+			found = &tokens[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("bash ;;&: no wordbreak token found")
+	}
+	if found.WordbreakType != WORDBREAK_LIST_CASE_NEXT {
+		t.Errorf("bash ;;&: WordbreakType = %v, want WORDBREAK_LIST_CASE_NEXT", found.WordbreakType)
+	}
+	if !found.WordbreakType.IsPipelineDelimiter() {
+		t.Errorf("bash ;;&: IsPipelineDelimiter() = false, want true")
+	}
+}
+
+func TestBashFormat_CloseParenAsWordbreak(t *testing.T) {
+	// ) is a shell break character in bash (shell_break_chars includes it)
+	tokens, err := SplitWith("echo (foo) bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wordbreaks []string
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN {
+			wordbreaks = append(wordbreaks, tok.RawValue)
+		}
+	}
+	if len(wordbreaks) < 2 {
+		t.Fatalf("bash (foo): got %d wordbreak tokens, want at least 2", len(wordbreaks))
+	}
+	hasOpen := false
+	hasClose := false
+	for _, wb := range wordbreaks {
+		if wb == "(" {
+			hasOpen = true
+		}
+		if wb == ")" {
+			hasClose = true
+		}
+	}
+	if !hasOpen {
+		t.Errorf("bash (foo): no ( wordbreak found in %v", wordbreaks)
+	}
+	if !hasClose {
+		t.Errorf("bash (foo): no ) wordbreak found in %v", wordbreaks)
+	}
+}
+
+func TestBashFormat_OperatorSequencePipeSemicolon(t *testing.T) {
+	// |; should be two separate tokens: | and ;
+	tokens, err := SplitWith("echo foo |; bar", BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wordbreaks []Token
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN {
+			wordbreaks = append(wordbreaks, tok)
+		}
+	}
+	if len(wordbreaks) != 2 {
+		t.Fatalf("bash |;: got %d wordbreak tokens, want 2", len(wordbreaks))
+	}
+	if wordbreaks[0].RawValue != "|" {
+		t.Errorf("bash |;: first wordbreak = %q, want |", wordbreaks[0].RawValue)
+	}
+	if wordbreaks[1].RawValue != ";" {
+		t.Errorf("bash |;: second wordbreak = %q, want ;", wordbreaks[1].RawValue)
 	}
 }

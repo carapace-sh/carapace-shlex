@@ -23,5 +23,13 @@ func (tcshFormat) KeywordOperators() map[string]WordbreakType { return nil }
 func (tcshFormat) NonEscapingQuoteEscapes() bool          { return false }
 func (tcshFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (tcshFormat) EscapeNotBareword() bool                { return true }
-func (tcshFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
+func (tcshFormat) EscapingQuoteEscapeChars() map[rune]bool {
+	return map[rune]bool{
+		'\\': true,
+		'`':  true,
+		'$':  true,
+		'"':  true,
+		'\n': true,
+	}
+}
 func (tcshFormat) QuoteWord(s string) string              { return posixQuoteWord(s) }

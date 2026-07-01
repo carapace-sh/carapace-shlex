@@ -313,6 +313,14 @@ func (t *tokenizer) scanStream() (*Token, error) {
 		case WORDBREAK_STATE:
 			switch nextRuneType {
 			case wordbreakRuneClass:
+				// token.RawValue already includes nextRune (added at top of loop).
+				// If the extended raw value is not a known operator, the current
+				// rune starts a new operator — unread it and return the current token.
+				if t.format.ClassifyOperator(token.RawValue) == WORDBREAK_UNKNOWN {
+					token.removeLastRaw()
+					t.UnreadRune()
+					return token, err
+				}
 				token.add(nextRune)
 			default:
 				token.removeLastRaw()

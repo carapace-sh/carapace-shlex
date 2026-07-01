@@ -46,8 +46,9 @@ type Format interface {
 
 	// EscapingQuoteEscapeChars returns the set of characters that backslash
 	// can escape inside the escaping quote (double quotes). If nil, backslash
-	// escapes any character (the POSIX/bash default). Fish returns only
-	// `"`, `$`, `\`, and newline.
+	// escapes any character. POSIX shells (bash, zsh, tcsh) return the
+	// CBSDQUOTE set: \, `, $, ", and newline. Fish returns only
+	// `"`, `$`, `\`, and newline (no backtick).
 	EscapingQuoteEscapeChars() map[rune]bool
 
 	// QuoteWord quotes a single word for safe insertion into a command line.

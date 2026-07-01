@@ -3,7 +3,7 @@ package shlex
 import "os"
 
 // bashFormat implements Format for POSIX/bash lexing.
-// This is the default format and reproduces v1 behavior exactly.
+// This is the default format.
 type bashFormat struct{}
 
 // BashFormat returns the POSIX/bash lexical format.
@@ -32,5 +32,13 @@ func (bashFormat) NonEscapingQuoteEscapes() bool { return false }
 
 func (bashFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
 func (bashFormat) EscapeNotBareword() bool                { return true }
-func (bashFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
+func (bashFormat) EscapingQuoteEscapeChars() map[rune]bool {
+	return map[rune]bool{
+		'\\': true,
+		'`':  true,
+		'$':  true,
+		'"':  true,
+		'\n': true,
+	}
+}
 func (bashFormat) QuoteWord(s string) string              { return posixQuoteWord(s) }
