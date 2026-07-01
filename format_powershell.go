@@ -7,7 +7,11 @@ package shlex
 //   - "" inside double quotes → literal " (doubled quote)
 //   - No single-quote-as-quote for outer quote pairs in the POSIX sense;
 //     both ' and " are quote chars
-//   - Here-strings (@'...'@, @"..."@) and --% are deferred to Phase 4
+//   - Backtick + newline is line continuation (consumed, not part of word)
+//   - Block comments <# ... #> (multi-line)
+//   - --% stop-parsing token (raw mode for remainder of line)
+//   - Stream redirects: 2>, 2>>, 2>&1, 1>&2, *>, *>> (merged in PostProcess)
+//   - Here-strings (@'...'@, @"..."@) are deferred
 type powershellFormat struct{}
 
 // PowershellFormat returns the PowerShell lexical format.
@@ -65,3 +69,93 @@ func (powershellFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (powershellFormat) QuoteWord(s string) string               { return powershellQuoteWord(s) }
 func (powershellFormat) TripleQuoteSupport() bool                { return false }
 func (powershellFormat) RawPrefixSupport() bool                  { return false }
+
+// IsLineContinuation implements LineContinuationEscaper. PowerShell's
+// backtick followed by \n or \r is a line continuation — the sequence is
+// consumed and the word continues on the next line.
+func (powershellFormat) IsLineContinuation(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
+// BlockCommentOpener implements BlockCommenter. PowerShell supports
+// multi-line block comments delimited by <# and #>.
+func (powershellFormat) BlockCommentOpener() string { return "<#" }
+
+// BlockCommentCloser implements BlockCommenter.
+func (powershellFormat) BlockCommentCloser() string { return "#>" }
+
+// StopParsingWord implements StopParsingToken. PowerShell's --% token
+// stops PowerShell from interpreting subsequent input.
+func (powershellFormat) StopParsingWord() string { return "--%" }
+
+// PostProcess merges PowerShell stream-redirect operators. The tokenizer
+// produces e.g. `2` as a WORD_TOKEN and `>` (or `>>`) as a WORDBREAK_TOKEN.
+// This step detects adjacent word+wordbreak sequences like `2>`, `2>>`,
+// `2>&1`, `1>&2`, `*>`, `*>>` and reclassifies them as single
+// WORDBREAK_TOKENs with the appropriate WordbreakType.
+func (powershellFormat) PostProcess(tokens TokenSlice) TokenSlice {
+	result := make(TokenSlice, 0, len(tokens))
+	for i := 0; i < len(tokens); i++ {
+		t := tokens[i]
+
+		// Look for bare WORD_TOKEN (digit or *) immediately followed by
+		// WORDBREAK_TOKEN starting with '>' (redirect operator)
+		if t.Type == WORD_TOKEN && t.Value == t.RawValue && i+1 < len(tokens) {
+			next := tokens[i+1]
+			if next.Type == WORDBREAK_TOKEN && next.adjoins(t) &&
+				next.WordbreakType.IsRedirect() && len(next.RawValue) > 0 && next.RawValue[0] == '>' {
+				// Check if the word is a valid stream number or *
+				if t.Value == "*" || (len(t.Value) == 1 && t.Value[0] >= '1' && t.Value[0] <= '6') {
+					// Check for merging redirect: next token after > is &N
+					// e.g. 2>&1 — the & and digit are separate wordbreak/word tokens
+					wbType := next.WordbreakType
+					mergedRaw := t.RawValue + next.RawValue
+					mergedVal := t.Value + next.Value
+					mergedSpan := Span{Start: t.Span.Start, End: next.Span.End}
+
+					// Check for &N pattern (stream merge) in the token after next
+					if i+2 < len(tokens) && tokens[i+2].Type == WORDBREAK_TOKEN &&
+						tokens[i+2].Value == "&" && tokens[i+2].adjoins(next) {
+						if i+3 < len(tokens) && tokens[i+3].Type == WORD_TOKEN &&
+							tokens[i+3].Value == tokens[i+3].RawValue &&
+							tokens[i+3].adjoins(tokens[i+2]) &&
+							len(tokens[i+3].Value) == 1 &&
+							(tokens[i+3].Value[0] == '1' || tokens[i+3].Value[0] == '2') {
+							// 2>&1 pattern — merge all four tokens
+							mergedRaw += tokens[i+2].RawValue + tokens[i+3].RawValue
+							mergedVal += tokens[i+2].Value + tokens[i+3].Value
+							mergedSpan.End = tokens[i+3].Span.End
+							wbType = WORDBREAK_REDIRECT_OUTPUT_BOTH
+							merged := Token{
+								Type:          WORDBREAK_TOKEN,
+								Value:         mergedVal,
+								RawValue:      mergedRaw,
+								Span:          mergedSpan,
+								State:         tokens[i+3].State,
+								WordbreakType: wbType,
+							}
+							result = append(result, merged)
+							i += 3
+							continue
+						}
+					}
+
+					merged := Token{
+						Type:          WORDBREAK_TOKEN,
+						Value:         mergedVal,
+						RawValue:      mergedRaw,
+						Span:          mergedSpan,
+						State:         next.State,
+						WordbreakType: wbType,
+					}
+					result = append(result, merged)
+					i += 1
+					continue
+				}
+			}
+		}
+
+		result = append(result, t)
+	}
+	return result
+}

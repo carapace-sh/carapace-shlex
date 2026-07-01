@@ -90,3 +90,41 @@ type EscapingQuoteUnescaper interface {
 type PostProcessor interface {
 	PostProcess(tokens TokenSlice) TokenSlice
 }
+
+// LineContinuationEscaper is an optional interface for formats where the
+// escape character followed by a newline (or carriage return) acts as a
+// line continuation — the escape+newline sequence is consumed and discarded,
+// NOT added to the word value. This matches PowerShell's backtick line
+// continuation behavior.
+//
+// Without this interface, the ESCAPING_STATE handler always adds the
+// post-escape rune to the word value, which is correct for POSIX shells
+// where backslash-newline is handled differently.
+type LineContinuationEscaper interface {
+	// IsLineContinuation returns true if the rune following the escape
+	// character should be treated as a line continuation. The parameter
+	// is the rune that follows the escape character (e.g. '\n' or '\r').
+	IsLineContinuation(r rune) bool
+}
+
+// BlockCommenter is an optional interface for formats that support
+// multi-line block comments (e.g. PowerShell's <# ... #>). When the
+// tokenizer encounters the blockCommentOpener runes at a word boundary,
+// it enters a dedicated BLOCK_COMMENT_STATE that scans until the
+// blockCommentCloser runes are found, spanning multiple lines.
+type BlockCommenter interface {
+	BlockCommentOpener() string  // e.g. "<#" for PowerShell
+	BlockCommentCloser() string  // e.g. "#>" for PowerShell
+}
+
+// StopParsingToken is an optional interface for formats that support a
+// stop-parsing token (e.g. PowerShell's --%). When the tokenizer encounters
+// this token as a bare word, it switches to a raw lexing mode for the
+// remainder of the line (until newline or pipeline delimiter), where
+// all characters except the pipeline delimiters are treated as literal
+// word content.
+type StopParsingToken interface {
+	// StopParsingWord returns the literal token that triggers raw mode.
+	// e.g. "--%" for PowerShell.
+	StopParsingWord() string
+}

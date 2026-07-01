@@ -118,6 +118,8 @@ const (
 	QUOTING_TRIPLE_STATE                            // we are within a triple-quoted non-escaping string ('''...''')
 	QUOTING_TRIPLE_ESCAPING_STATE                   // we are within a triple-quoted escaping string ("""...""")
 	COMMENT_STATE                                   // we are within a comment (everything following an unquoted or unescaped #
+	BLOCK_COMMENT_STATE                             // we are within a block comment (e.g. PowerShell <# ... #>)
+	STOP_PARSING_STATE                              // we are in raw mode after a stop-parsing token (e.g. PowerShell --%)
 	WORDBREAK_STATE                                 // we have just consumed a wordbreak rune
 )
 
@@ -131,6 +133,8 @@ var lexerStates = map[LexerState]string{
 	QUOTING_TRIPLE_STATE:          "QUOTING_TRIPLE_STATE",
 	QUOTING_TRIPLE_ESCAPING_STATE: "QUOTING_TRIPLE_ESCAPING_STATE",
 	COMMENT_STATE:                 "COMMENT_STATE",
+	BLOCK_COMMENT_STATE:           "BLOCK_COMMENT_STATE",
+	STOP_PARSING_STATE:            "STOP_PARSING_STATE",
 	WORDBREAK_STATE:               "WORDBREAK_STATE",
 }
 
@@ -207,8 +211,11 @@ type tokenizer struct {
 	format          Format
 	index           int
 	state           LexerState
-	rawQuote        bool // true when current quote was opened with a raw prefix (r/R)
-	tripleQuoteRune rune // the quote char (' or ") that opened a triple-quote
+	rawQuote        bool   // true when current quote was opened with a raw prefix (r/R)
+	tripleQuoteRune rune   // the quote char (' or ") that opened a triple-quote
+	blockCloser     string // the closer string for the current block comment
+	blockCloserIdx  int    // index into blockCloser for match tracking
+	stopParsingDelim string // pipeline delimiter set for stop-parsing mode
 }
 
 func (t *tokenizer) ReadRune() (r rune, size int, err error) {
@@ -329,6 +336,49 @@ func (t *tokenizer) checkTripleClose() (closed bool, r1 rune, r2 rune, consumedR
 	return true, peek1, peek2, 0
 }
 
+// checkBlockCommentOpener checks if the current position matches a block
+// comment opener (e.g. "<#" for PowerShell). The firstRune has already been
+// consumed and added to token.RawValue by the caller. If the remaining runes
+// of the opener match, they are consumed and added to token.RawValue, and
+// the tokenizer enters BLOCK_COMMENT_STATE. Returns true if the opener was
+// matched and consumed. On mismatch, peeked runes are unread.
+func (t *tokenizer) checkBlockCommentOpener(firstRune rune, token *Token) bool {
+	bc, ok := t.format.(BlockCommenter)
+	if !ok {
+		return false
+	}
+	opener := bc.BlockCommentOpener()
+	if len(opener) == 0 || rune(opener[0]) != firstRune {
+		return false
+	}
+	// Try to match remaining runes of the opener (index 1 onward)
+	for i := 1; i < len(opener); i++ {
+		r, _, err := t.ReadRune()
+		if err != nil {
+			// EOF before full match — unread what we consumed
+			for j := 0; j < i-1; j++ {
+				t.UnreadRune()
+			}
+			return false
+		}
+		if rune(opener[i]) != r {
+			// Mismatch — unread this rune and any previously consumed runes
+			t.UnreadRune()
+			for j := 0; j < i-1; j++ {
+				t.UnreadRune()
+			}
+			return false
+		}
+	}
+	// Full match — add remaining opener runes to RawValue
+	for i := 1; i < len(opener); i++ {
+		token.RawValue += string(opener[i])
+	}
+	t.blockCloser = bc.BlockCommentCloser()
+	t.blockCloserIdx = 0
+	return true
+}
+
 // scanStream scans the stream for the next token using the internal state machine.
 // It will panic if it encounters a rune which it does not know how to handle.
 func (t *tokenizer) scanStream() (*Token, error) {
@@ -361,6 +411,12 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			{
 				if nextRuneType != spaceRuneClass {
 					token.Span.Start = t.index - 1
+				}
+				// Check for block comment opener before other classification
+				if t.checkBlockCommentOpener(nextRune, token) {
+					token.Type = COMMENT_TOKEN
+					t.state = BLOCK_COMMENT_STATE
+					continue
 				}
 				switch nextRuneType {
 				case eofRuneClass:
@@ -422,6 +478,35 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				case escapeRuneClass:
 					token.Type = WORD_TOKEN
 					if t.format.EscapeNotBareword() {
+						// Check for line continuation (e.g. PowerShell backtick + newline)
+						if lc, ok := t.format.(LineContinuationEscaper); ok {
+							peekRune, _, peekErr := t.ReadRune()
+							if peekErr != nil {
+								// EOF after escape — enter ESCAPING_STATE to handle
+								t.UnreadRune() // can't unread EOF, but harmless
+								_ = peekRune
+								t.state = ESCAPING_STATE
+								continue
+							}
+							if lc.IsLineContinuation(peekRune) {
+								token.RawValue += string(peekRune)
+								if peekRune == '\r' {
+									// Consume optional \n after \r
+									peek2, _, peek2Err := t.ReadRune()
+									if peek2Err == nil && peek2 == '\n' {
+										token.RawValue += string(peek2)
+									} else if peek2Err == nil {
+										t.UnreadRune()
+									}
+								}
+								// Line continuation: skip escape+newline, stay in START_STATE
+								token.removeLastRaw() // remove the peeked newline
+								token.removeLastRaw() // remove the escape char
+								continue
+							}
+							// Not a line continuation — unread and enter ESCAPING_STATE
+							t.UnreadRune()
+						}
 						t.state = ESCAPING_STATE
 					} else {
 						token.add(nextRune)
@@ -441,6 +526,50 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				}
 			}
 		case WORDBREAK_STATE:
+			// Check for block comment opener: the current wordbreak token
+			// may be the first rune of the opener (e.g. "<" in "<#").
+			// token.RawValue includes nextRune (added at top of loop), so
+			// we check if the RawValue without nextRune matches the opener start.
+			if bc, ok := t.format.(BlockCommenter); ok {
+				opener := bc.BlockCommentOpener()
+				if len(opener) > 0 {
+					// The wordbreak portion is token.Value (without nextRune).
+					// token.RawValue includes nextRune; we need to check if
+					// token.Value (the wordbreak so far) is the opener prefix.
+					wordbreakPart := token.Value
+					if wordbreakPart == string(opener[0]) && len(opener) > 1 {
+						// nextRune should be opener[1]
+						if rune(opener[1]) == nextRune {
+							// Match remaining opener runes from index 2
+							matched := true
+							for i := 2; i < len(opener); i++ {
+								r, _, e := t.ReadRune()
+								if e != nil || rune(opener[i]) != r {
+									if e == nil {
+										t.UnreadRune()
+									}
+									for j := 0; j < i-2; j++ {
+										t.UnreadRune()
+									}
+									matched = false
+									break
+								}
+							}
+							if matched {
+								// Add remaining opener runes to RawValue
+								for i := 2; i < len(opener); i++ {
+									token.RawValue += string(opener[i])
+								}
+								token.Type = COMMENT_TOKEN
+								t.blockCloser = bc.BlockCommentCloser()
+								t.blockCloserIdx = 0
+								t.state = BLOCK_COMMENT_STATE
+								continue
+							}
+						}
+					}
+				}
+			}
 			switch nextRuneType {
 			case wordbreakRuneClass:
 				// token.RawValue already includes nextRune (added at top of loop).
@@ -503,6 +632,34 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				}
 			case escapeRuneClass:
 				if t.format.EscapeNotBareword() {
+					// Check for line continuation (e.g. PowerShell backtick + newline)
+					if lc, ok := t.format.(LineContinuationEscaper); ok {
+						peekRune, _, peekErr := t.ReadRune()
+						if peekErr != nil {
+							// EOF after escape — enter ESCAPING_STATE to handle
+							t.UnreadRune()
+							_ = peekRune
+							t.state = ESCAPING_STATE
+							continue
+						}
+						if lc.IsLineContinuation(peekRune) {
+							token.RawValue += string(peekRune)
+							if peekRune == '\r' {
+								peek2, _, peek2Err := t.ReadRune()
+								if peek2Err == nil && peek2 == '\n' {
+									token.RawValue += string(peek2)
+								} else if peek2Err == nil {
+									t.UnreadRune()
+								}
+							}
+							// Line continuation: skip escape+newline, stay in IN_WORD_STATE
+							token.removeLastRaw() // remove peeked newline
+							token.removeLastRaw() // remove escape char
+							continue
+						}
+						// Not a line continuation — unread and enter ESCAPING_STATE
+						t.UnreadRune()
+					}
 					t.state = ESCAPING_STATE
 				} else {
 					token.add(nextRune) // elvish: \ is a bareword char
@@ -516,6 +673,29 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				token.removeLastRaw()
 				return token, err
 			default:
+				// Check for line continuation (e.g. PowerShell backtick + newline)
+				if lc, ok := t.format.(LineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
+					// Consume optional \n after \r
+					if nextRune == '\r' {
+						peek2, _, peek2Err := t.ReadRune()
+						if peek2Err == nil && peek2 == '\n' {
+							token.RawValue += string(peek2)
+						} else if peek2Err == nil {
+							t.UnreadRune()
+						}
+					}
+					// Line continuation: skip escape+newline
+					token.removeLastRaw() // remove newline
+					token.removeLastRaw() // remove escape char
+					// If we have word content, continue in IN_WORD_STATE;
+					// otherwise go back to START_STATE
+					if len(token.Value) > 0 {
+						t.state = IN_WORD_STATE
+					} else {
+						t.state = START_STATE
+					}
+					continue
+				}
 				t.state = IN_WORD_STATE
 				token.add(nextRune)
 			}
@@ -704,14 +884,153 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			default:
 				token.add(nextRune)
 			}
+		case BLOCK_COMMENT_STATE: // in a block comment (e.g. PowerShell <# ... #>)
+			// Match the closer rune-by-rune. nextRune is already in RawValue.
+			if rune(t.blockCloser[t.blockCloserIdx]) == nextRune {
+				t.blockCloserIdx++
+				if t.blockCloserIdx >= len(t.blockCloser) {
+					// Full closer matched — return the comment token
+					t.blockCloser = ""
+					t.blockCloserIdx = 0
+					t.state = START_STATE
+					return token, err
+				}
+				// Partial match — keep scanning
+			} else {
+				// Reset closer match index
+				t.blockCloserIdx = 0
+				// Check if this rune restarts the closer match
+				if rune(t.blockCloser[t.blockCloserIdx]) == nextRune {
+					t.blockCloserIdx++
+				}
+			}
+			if nextRuneType == eofRuneClass {
+				token.removeLastRaw()
+				return token, err
+			}
 		default:
 			return nil, fmt.Errorf("unexpected state: %v", t.state)
 		}
 	}
 }
 
+// scanStopParsing reads tokens in raw mode after a stop-parsing token (e.g.
+// PowerShell --%). In this mode, everything is literal until newline or
+// a pipeline delimiter (|). Double quotes toggle an "in quotes" state
+// where | is not treated as a delimiter, matching PowerShell's
+// GetVerbatimCommandArgument behavior. Single & is treated as literal
+// (&& is not specially handled due to bufio's single-unread limitation;
+// in practice --% mode passes everything literally to native commands).
+func (t *tokenizer) scanStopParsing() (*Token, error) {
+	token := &Token{}
+	token.Type = WORD_TOKEN
+	t.state = STOP_PARSING_STATE
+	inQuotes := false
+
+	// Skip leading whitespace (matches PowerShell's GetVerbatimCommandArgument
+	// which calls SkipWhiteSpace before collecting the raw argument)
+	for {
+		nextRune, _, err := t.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				// No content after --% — return empty word at cursor
+				token.Span.Start = t.index
+				token.Span.End = t.index
+				t.state = START_STATE
+				return token, nil
+			}
+			return nil, err
+		}
+		if nextRune != ' ' && nextRune != '\t' && nextRune != '\r' && nextRune != '\n' {
+			t.UnreadRune()
+			break
+		}
+		// If we hit a newline, there's no raw content on this line
+		if nextRune == '\r' || nextRune == '\n' {
+			t.UnreadRune()
+			token.Span.Start = t.index
+			token.Span.End = t.index
+			t.state = START_STATE
+			return token, nil
+		}
+	}
+
+	for {
+		nextRune, _, err := t.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				if len(token.RawValue) == 0 {
+					return nil, err
+				}
+				token.Span.End = token.Span.Start + len([]rune(token.RawValue))
+				token.State = IN_WORD_STATE
+				t.state = START_STATE
+				return token, nil
+			}
+			return nil, err
+		}
+
+		// Set span start on first rune
+		if len(token.RawValue) == 0 {
+			token.Span.Start = t.index - 1
+		}
+
+		// Check for end conditions before adding to token
+		if nextRune == '\r' || nextRune == '\n' {
+			t.UnreadRune()
+			if len(token.RawValue) == 0 {
+				token.Span.Start = t.index
+				token.Span.End = t.index
+				t.state = START_STATE
+				return token, nil
+			}
+			token.Span.End = token.Span.Start + len([]rune(token.RawValue))
+			token.State = IN_WORD_STATE
+			t.state = START_STATE
+			return token, nil
+		}
+
+		token.RawValue += string(nextRune)
+
+		if nextRune == '"' {
+			inQuotes = !inQuotes
+			token.add(nextRune)
+			continue
+		}
+
+		if !inQuotes && nextRune == '|' {
+			// Pipeline delimiter — return word before it
+			token.removeLastRaw()
+			t.UnreadRune()
+			if len(token.RawValue) == 0 {
+				token.Span.Start = t.index
+				token.Span.End = t.index
+			} else {
+				token.Span.End = token.Span.Start + len([]rune(token.RawValue))
+			}
+			token.State = IN_WORD_STATE
+			t.state = START_STATE
+			return token, nil
+		}
+
+		token.add(nextRune)
+	}
+}
+
 // Next returns the next token in the stream.
 func (t *tokenizer) Next() (*Token, error) {
+	// If we're in stop-parsing state, scan in raw mode
+	if t.state == STOP_PARSING_STATE {
+		token, err := t.scanStopParsing()
+		if err == nil {
+			token.State = t.state
+			if token.Span.End == 0 && token.Span.Start >= 0 {
+				token.Span.End = token.Span.Start + len([]rune(token.RawValue))
+			}
+		}
+		return token, err
+	}
+
 	token, err := t.scanStream()
 	if err == nil {
 		token.State = t.state // TODO should be done in scanStream
@@ -727,6 +1046,13 @@ func (t *tokenizer) Next() (*Token, error) {
 				if wbType, ok := kwOps[token.RawValue]; ok {
 					token.Type = WORDBREAK_TOKEN
 					token.WordbreakType = wbType
+				}
+			}
+			// Check for stop-parsing token (e.g. PowerShell --%)
+			if sp, ok := t.format.(StopParsingToken); ok {
+				if token.Value == sp.StopParsingWord() && token.Value == token.RawValue {
+					t.state = STOP_PARSING_STATE
+					t.stopParsingDelim = ""
 				}
 			}
 		}
