@@ -35,6 +35,9 @@ const (
 	WORDBREAK_LIST_FALLTHROUGH_RETRY // ;| (zsh case fall-through with retry)
 	WORDBREAK_LIST_CASE_NEXT         // ;;& (case next pattern)
 	WORDBREAK_LIST_ASYNC_ERRCHECK    // &| (zsh background with error check)
+	// tcsh-specific: >! and >>! (noclobber override — tcsh uses ! instead of |)
+	WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG        // >! (tcsh noclobber override)
+	WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG // >>! (tcsh noclobber override for append)
 	// COMP_WORDBREAKS
 	WORDBREAK_CUSTOM
 	// Elvish-specific: output capture delimiters ( and )
@@ -68,6 +71,8 @@ var wordbreakTypes = map[WordbreakType]string{
 	WORDBREAK_LIST_FALLTHROUGH_RETRY:       "WORDBREAK_LIST_FALLTHROUGH_RETRY",
 	WORDBREAK_LIST_CASE_NEXT:               "WORDBREAK_LIST_CASE_NEXT",
 	WORDBREAK_LIST_ASYNC_ERRCHECK:          "WORDBREAK_LIST_ASYNC_ERRCHECK",
+	WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG:        "WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG",
+	WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG: "WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG",
 	WORDBREAK_CUSTOM:                       "WORDBREAK_CUSTOM",
 	WORDBREAK_OUTPUT_CAPTURE:               "WORDBREAK_OUTPUT_CAPTURE",
 	WORDBREAK_BRACKET:                      "WORDBREAK_BRACKET",
@@ -105,6 +110,8 @@ func (w WordbreakType) IsRedirect() bool {
 		WORDBREAK_REDIRECT_OUTPUT_APPEND,
 		WORDBREAK_REDIRECT_OUTPUT_FORCE,
 		WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE,
+		WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG,
+		WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG,
 		WORDBREAK_REDIRECT_OUTPUT_BOTH,
 		WORDBREAK_REDIRECT_OUTPUT_BOTH_APPEND,
 		WORDBREAK_REDIRECT_INPUT_STRING,
@@ -161,6 +168,49 @@ func bashWordbreakType(raw string) WordbreakType {
 		return WORDBREAK_LIST_FALLTHROUGH
 	default:
 		// TODO check COMP_WORDBREAKS -> WORDBREAK_OTHER
+		return WORDBREAK_UNKNOWN
+	}
+}
+
+// tcshWordbreakType maps a wordbreak token's RawValue to a WordbreakType
+// using tcsh's operator grammar. Tcsh differs from bash in:
+//   - >! and >>! for noclobber force override (bash uses >| and >>|)
+//   - >& for combined stdout+stderr redirect (bash uses &>)
+//   - |& for pipe with stderr (same as bash)
+//   - no <<< here-string, no ;; case operators, no &> redirect
+func tcshWordbreakType(raw string) WordbreakType {
+	switch raw {
+	case "<":
+		return WORDBREAK_REDIRECT_INPUT
+	case ">":
+		return WORDBREAK_REDIRECT_OUTPUT
+	case ">>":
+		return WORDBREAK_REDIRECT_OUTPUT_APPEND
+	case ">!":
+		return WORDBREAK_REDIRECT_OUTPUT_FORCE_BANG
+	case ">>!":
+		return WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE_BANG
+	case ">&":
+		return WORDBREAK_REDIRECT_OUTPUT_BOTH
+	case "<<":
+		return WORDBREAK_REDIRECT_HERE_DOC
+	case "<&":
+		return WORDBREAK_REDIRECT_INPUT_DUPLICATE
+	case "<>":
+		return WORDBREAK_REDIRECT_INPUT_OUTPUT
+	case "|":
+		return WORDBREAK_PIPE
+	case "|&":
+		return WORDBREAK_PIPE_WITH_STDERR
+	case "&":
+		return WORDBREAK_LIST_ASYNC
+	case ";":
+		return WORDBREAK_LIST_SEQUENTIAL
+	case "&&":
+		return WORDBREAK_LIST_AND
+	case "||":
+		return WORDBREAK_LIST_OR
+	default:
 		return WORDBREAK_UNKNOWN
 	}
 }
