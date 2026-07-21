@@ -116,6 +116,8 @@ func init() {
 	})
 
 	carapace.Gen(rootCmd).PositionalCompletion(
-		bridge.ActionCarapaceBin().SplitP(),
+		carapace.ActionCallback(func(c carapace.Context) carapace.Action {
+			return bridge.ActionCarapaceBin().SplitP(rootCmd.Flag("format").Value.String())
+		}),
 	)
 }
