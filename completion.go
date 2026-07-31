@@ -39,19 +39,61 @@ type CompletionContext struct {
 	// redirect filtering and word merging). Use this as an escape hatch
 	// for edge cases not covered by the fields above.
 	Pipeline TokenSlice
+
+	// SubstitutionDepth is the number of unclosed substitution scopes at
+	// the cursor position. 0 = cursor at top level. When > 0, all other
+	// fields (Words, CurrentWord, etc.) describe the innermost
+	// substitution's command, not the outer command.
+	SubstitutionDepth int
+
+	// SubstitutionKind indicates what type of substitution the cursor is
+	// inside (command, arithmetic, backtick). Only meaningful when
+	// SubstitutionDepth > 0.
+	SubstitutionKind SubstitutionKind
 }
 
 // SplitForCompletion parses s and returns a CompletionContext describing
 // the completion state at the end of the string, using the given format.
+//
+// When the cursor is inside an unclosed substitution scope (e.g. inside
+// $(...), the returned context describes the innermost substitution's
+// command, not the outer command. SubstitutionDepth indicates how many
+// nesting levels deep the cursor is.
 func SplitForCompletion(s string, format Format) *CompletionContext {
 	tokens, err := SplitWith(s, format)
 	if err != nil || len(tokens) == 0 {
 		return &CompletionContext{QuotingState: START_STATE}
 	}
 
+	// Check for unclosed substitution scopes at cursor
+	scopes := tokens.SubstitutionScopes()
+	innermost := innermostUnclosedScope(scopes)
+
+	if innermost != nil && innermost.Kind != SubstitutionArithmetic && innermost.OpenIndex >= 0 {
+		// Cursor inside a command substitution — build context from inner tokens
+		innerTokens := tokens[innermost.OpenIndex+1:]
+		ctx := buildCompletionContext(innerTokens)
+		ctx.SubstitutionDepth = countUnclosedScopes(scopes)
+		ctx.SubstitutionKind = innermost.Kind
+		return ctx
+	}
+
+	// Cursor at top level (or inside arithmetic/backtick — no inner command)
+	ctx := buildCompletionContext(tokens)
+	if innermost != nil {
+		ctx.SubstitutionDepth = countUnclosedScopes(scopes)
+		ctx.SubstitutionKind = innermost.Kind
+	}
+	return ctx
+}
+
+// buildCompletionContext derives the completion context fields from a
+// token slice. It is called by SplitForCompletion with either the full
+// token slice (top-level) or the inner tokens of an unclosed substitution.
+func buildCompletionContext(tokens TokenSlice) *CompletionContext {
 	pipeline := tokens.CurrentPipeline()
 	filtered := pipeline.FilterRedirects()
-	words := filtered.Words()
+	words := filtered.WordsWithSubstitutions()
 	wordStrings := words.Strings()
 
 	ctx := &CompletionContext{
