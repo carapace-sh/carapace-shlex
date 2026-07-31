@@ -152,3 +152,95 @@ func TestSubstitution_TokenReclassification(t *testing.T) {
 		}
 	}
 }
+
+func TestSubstitution_CompletionSubstitutionDepth(t *testing.T) {
+	ctx := SplitForCompletion("echo $(git ch", BashFormat())
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+
+	ctx = SplitForCompletion("echo $(echo $(git ch", BashFormat())
+	if ctx.SubstitutionDepth != 2 {
+		t.Errorf("SubstitutionDepth = %d, want 2", ctx.SubstitutionDepth)
+	}
+
+	ctx = SplitForCompletion("echo test", BashFormat())
+	if ctx.SubstitutionDepth != 0 {
+		t.Errorf("SubstitutionDepth = %d, want 0", ctx.SubstitutionDepth)
+	}
+
+	ctx = SplitForCompletion("echo $(echo test)", BashFormat())
+	if ctx.SubstitutionDepth != 0 {
+		t.Errorf("SubstitutionDepth = %d, want 0 (closed)", ctx.SubstitutionDepth)
+	}
+}
+
+func TestSubstitution_CompletionRedirectInsideSubstitution(t *testing.T) {
+	ctx := SplitForCompletion("echo $(cat >", BashFormat())
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+	if !ctx.IsRedirect {
+		t.Errorf("IsRedirect = false, want true")
+	}
+}
+
+func TestSubstitution_ZshCommandSubstitution(t *testing.T) {
+	ctx := SplitForCompletion("echo $(git ch", ZshFormat())
+	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
+		t.Errorf("Words = %v, want [git ch]", ctx.Words)
+	}
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+}
+
+func TestSubstitution_FishCommandSubstitution(t *testing.T) {
+	ctx := SplitForCompletion("echo (git ch", FishFormat())
+	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
+		t.Errorf("Words = %v, want [git ch]", ctx.Words)
+	}
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+}
+
+func TestSubstitution_NushellSubexpression(t *testing.T) {
+	ctx := SplitForCompletion("echo (git ch", NushellFormat())
+	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
+		t.Errorf("Words = %v, want [git ch]", ctx.Words)
+	}
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+}
+
+func TestSubstitution_PowerShellSubexpression(t *testing.T) {
+	ctx := SplitForCompletion("echo $(git ch", PowershellFormat())
+	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
+		t.Errorf("Words = %v, want [git ch]", ctx.Words)
+	}
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+}
+
+func TestSubstitution_ProcessSubstitution(t *testing.T) {
+	ctx := SplitForCompletion("echo <(git ch", BashFormat())
+	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
+		t.Errorf("Words = %v, want [git ch]", ctx.Words)
+	}
+	if ctx.SubstitutionDepth != 1 {
+		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
+	}
+}
+
+func TestSubstitution_ClosedSubstitutionDoesNotAffectPrefix(t *testing.T) {
+	ctx := SplitForCompletion("echo $(echo test) foo", BashFormat())
+	if ctx.SubstitutionDepth != 0 {
+		t.Errorf("SubstitutionDepth = %d, want 0", ctx.SubstitutionDepth)
+	}
+	if len(ctx.Words) != 3 || ctx.Words[0] != "echo" || ctx.Words[1] != "$(echo test)" || ctx.Words[2] != "foo" {
+		t.Errorf("Words = %v, want [echo $(echo test) foo]", ctx.Words)
+	}
+}
