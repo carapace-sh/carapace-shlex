@@ -6,18 +6,18 @@ import "encoding/json"
 type SubstitutionKind int
 
 const (
-	// SubstitutionCommand is $(...), (...), or similar command/output capture.
-	SubstitutionCommand SubstitutionKind = iota
-	// SubstitutionArithmetic is $((...)).
-	SubstitutionArithmetic
-	// SubstitutionBacktick is `...` (POSIX backtick command substitution).
-	SubstitutionBacktick
+	// SUBSTITUTION_COMMAND is $(...), (...), or similar command/output capture.
+	SUBSTITUTION_COMMAND SubstitutionKind = iota
+	// SUBSTITUTION_ARITHMETIC is $((...)).
+	SUBSTITUTION_ARITHMETIC
+	// SUBSTITUTION_BACKTICK is `...` (POSIX backtick command substitution).
+	SUBSTITUTION_BACKTICK
 )
 
 var substitutionKinds = map[SubstitutionKind]string{
-	SubstitutionCommand:    "SubstitutionCommand",
-	SubstitutionArithmetic: "SubstitutionArithmetic",
-	SubstitutionBacktick:   "SubstitutionBacktick",
+	SUBSTITUTION_COMMAND:    "SUBSTITUTION_COMMAND",
+	SUBSTITUTION_ARITHMETIC: "SUBSTITUTION_ARITHMETIC",
+	SUBSTITUTION_BACKTICK:   "SUBSTITUTION_BACKTICK",
 }
 
 func (k SubstitutionKind) MarshalJSON() ([]byte, error) {
@@ -45,10 +45,10 @@ func (t TokenSlice) SubstitutionScopes() []SubstitutionScope {
 	for i, token := range t {
 		switch {
 		case token.WordbreakType == WORDBREAK_SUBSTITUTION_OPEN:
-			kind := SubstitutionCommand
+			kind := SUBSTITUTION_COMMAND
 			// Detect arithmetic $(( : the opener RawValue contains two '('
 			if len(token.RawValue) >= 2 && token.RawValue[len(token.RawValue)-2] == '(' {
-				kind = SubstitutionArithmetic
+				kind = SUBSTITUTION_ARITHMETIC
 			}
 			scope := SubstitutionScope{
 				OpenIndex:  i,
@@ -85,7 +85,7 @@ func (t TokenSlice) SubstitutionScopes() []SubstitutionScope {
 // detectBacktickScopes scans WORD_TOKENs for unescaped backticks.
 // An odd count of backticks in a single word's RawValue indicates an
 // unclosed backtick substitution starting at that word. The scope has
-// OpenIndex == -1 (no single opener token) and Kind == SubstitutionBacktick.
+// OpenIndex == -1 (no single opener token) and Kind == SUBSTITUTION_BACKTICK.
 func (t TokenSlice) detectBacktickScopes() []SubstitutionScope {
 	var scopes []SubstitutionScope
 	for i, token := range t {
@@ -97,7 +97,7 @@ func (t TokenSlice) detectBacktickScopes() []SubstitutionScope {
 			scopes = append(scopes, SubstitutionScope{
 				OpenIndex:  -1,
 				CloseIndex: -1,
-				Kind:       SubstitutionBacktick,
+				Kind:       SUBSTITUTION_BACKTICK,
 				Depth:      1,
 			})
 			_ = i // index kept for potential future use

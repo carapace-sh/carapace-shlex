@@ -69,7 +69,7 @@ func SplitForCompletion(s string, format Format) *CompletionContext {
 	scopes := tokens.SubstitutionScopes()
 	innermost := innermostUnclosedScope(scopes)
 
-	if innermost != nil && innermost.Kind != SubstitutionArithmetic && innermost.OpenIndex >= 0 {
+	if innermost != nil && innermost.Kind != SUBSTITUTION_ARITHMETIC && innermost.OpenIndex >= 0 {
 		// Cursor inside a command substitution — build context from inner tokens
 		innerTokens := tokens[innermost.OpenIndex+1:]
 		ctx := buildCompletionContext(innerTokens)

@@ -73,8 +73,8 @@ func TestSubstitution_CompletionInsideSubstitution(t *testing.T) {
 	if ctx.SubstitutionDepth != 1 {
 		t.Errorf("SubstitutionDepth = %v, want 1", ctx.SubstitutionDepth)
 	}
-	if ctx.SubstitutionKind != SubstitutionCommand {
-		t.Errorf("SubstitutionKind = %v, want SubstitutionCommand", ctx.SubstitutionKind)
+	if ctx.SubstitutionKind != SUBSTITUTION_COMMAND {
+		t.Errorf("SubstitutionKind = %v, want SUBSTITUTION_COMMAND", ctx.SubstitutionKind)
 	}
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
@@ -101,8 +101,8 @@ func TestSubstitution_CompletionInsideArithmetic(t *testing.T) {
 	if ctx.SubstitutionDepth != 1 {
 		t.Errorf("SubstitutionDepth = %v, want 1", ctx.SubstitutionDepth)
 	}
-	if ctx.SubstitutionKind != SubstitutionArithmetic {
-		t.Errorf("SubstitutionKind = %v, want SubstitutionArithmetic", ctx.SubstitutionKind)
+	if ctx.SubstitutionKind != SUBSTITUTION_ARITHMETIC {
+		t.Errorf("SubstitutionKind = %v, want SUBSTITUTION_ARITHMETIC", ctx.SubstitutionKind)
 	}
 	// Arithmetic doesn't create an inner command context
 	if len(ctx.Words) != 1 || ctx.Words[0] != "echo" {
@@ -162,8 +162,8 @@ func TestSubstitution_BashUnclosedBacktick(t *testing.T) {
 	if ctx.SubstitutionDepth < 1 {
 		t.Errorf("SubstitutionDepth = %v, want >= 1", ctx.SubstitutionDepth)
 	}
-	if ctx.SubstitutionKind != SubstitutionBacktick {
-		t.Errorf("SubstitutionKind = %v, want SubstitutionBacktick", ctx.SubstitutionKind)
+	if ctx.SubstitutionKind != SUBSTITUTION_BACKTICK {
+		t.Errorf("SubstitutionKind = %v, want SUBSTITUTION_BACKTICK", ctx.SubstitutionKind)
 	}
 }
 
