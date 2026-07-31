@@ -33,7 +33,8 @@ func (nushellFormat) Classifier() tokenClassifier {
 
 	// Nushell operators: |, ;, >, <, >>
 	// No &&, ||, & — no POSIX list operators
-	t.addWordbreaks("|;<>")
+	// ( and ) are subexpression delimiters
+	t.addWordbreaks("|;<>()")
 	return t
 }
 
@@ -171,6 +172,17 @@ func (nushellFormat) PostProcess(tokens TokenSlice) TokenSlice {
 		}
 
 		result = append(result, t)
+	}
+
+	// Reclassify ( and ) as substitution delimiters
+	for i := range result {
+		t := &result[i]
+		if t.Type == WORDBREAK_TOKEN && t.Value == "(" {
+			t.WordbreakType = WORDBREAK_SUBSTITUTION_OPEN
+		}
+		if t.Type == WORDBREAK_TOKEN && t.Value == ")" {
+			t.WordbreakType = WORDBREAK_SUBSTITUTION_CLOSE
+		}
 	}
 	return result
 }

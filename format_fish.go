@@ -18,7 +18,8 @@ func (fishFormat) Classifier() tokenClassifier {
 	// Fish operators: |, ;, <, >, &, ?
 	// & is included for &&, ||, &, |&, &|, &>, &>>, &>?, >&, <>&
 	// ? is part of redirect operators (>? >>? <?) — deprecated glob char
-	t.addWordbreaks("|;<>&?")
+	// ( and ) are command substitution delimiters
+	t.addWordbreaks("|;<>&?()")
 	return t
 }
 
@@ -84,3 +85,20 @@ var fishDoubleQuoteEscapes = map[rune]bool{
 func (fishFormat) QuoteWord(s string) string { return fishQuoteWord(s) }
 func (fishFormat) TripleQuoteSupport() bool  { return false }
 func (fishFormat) RawPrefixSupport() bool    { return false }
+
+// PostProcess reclassifies ( and ) as substitution delimiters for fish
+// command substitution. Fish uses bare () for command substitution
+// (no $ prefix).
+func (fishFormat) PostProcess(tokens TokenSlice) TokenSlice {
+	result := make(TokenSlice, 0, len(tokens))
+	for _, t := range tokens {
+		if t.Type == WORDBREAK_TOKEN && t.Value == "(" {
+			t.WordbreakType = WORDBREAK_SUBSTITUTION_OPEN
+		}
+		if t.Type == WORDBREAK_TOKEN && t.Value == ")" {
+			t.WordbreakType = WORDBREAK_SUBSTITUTION_CLOSE
+		}
+		result = append(result, t)
+	}
+	return result
+}

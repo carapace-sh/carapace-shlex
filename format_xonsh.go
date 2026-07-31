@@ -22,7 +22,8 @@ func XonshFormat() Format { return xonshFormat{} }
 func (xonshFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)
 	// Xonsh operators: |, >, >>, <, ;, &&, ||, &
-	t.addWordbreaks("|<>&;")
+	// ( and ) are subprocess/eval delimiters
+	t.addWordbreaks("|<>&;()")
 	return t
 }
 
@@ -111,5 +112,37 @@ func (xonshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 
 		result = append(result, t)
 	}
-	return result
+
+	// Second pass: merge $/@ + ( into substitution opener and reclassify ) as closer
+	final := make(TokenSlice, 0, len(result))
+	for i := 0; i < len(result); i++ {
+		t := result[i]
+		// Detect $ + ( or @ + ( adjacency → merge into WORDBREAK_SUBSTITUTION_OPEN
+		if t.Type == WORD_TOKEN && (t.Value == "$" || t.Value == "@") && i+1 < len(result) {
+			next := result[i+1]
+			if next.Type == WORDBREAK_TOKEN && next.Value == "(" && t.adjoins(next) {
+				merged := Token{
+					Type:          WORDBREAK_TOKEN,
+					Value:         t.Value + "(",
+					RawValue:      t.RawValue + next.RawValue,
+					Span:          Span{Start: t.Span.Start, End: next.Span.End},
+					State:         next.State,
+					WordbreakType: WORDBREAK_SUBSTITUTION_OPEN,
+				}
+				final = append(final, merged)
+				i++
+				continue
+			}
+		}
+		// Reclassify standalone ( as substitution opener
+		if t.Type == WORDBREAK_TOKEN && t.Value == "(" {
+			t.WordbreakType = WORDBREAK_SUBSTITUTION_OPEN
+		}
+		// Reclassify ) as substitution closer
+		if t.Type == WORDBREAK_TOKEN && t.Value == ")" {
+			t.WordbreakType = WORDBREAK_SUBSTITUTION_CLOSE
+		}
+		final = append(final, t)
+	}
+	return final
 }
