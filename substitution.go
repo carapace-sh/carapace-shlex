@@ -15,10 +15,10 @@ const (
 // SubstitutionScope describes a single substitution nesting level in the
 // token stream.
 type SubstitutionScope struct {
-	OpenIndex  int              // TokenSlice index of the opener token
-	CloseIndex int              // TokenSlice index of the closer token, or -1 if unclosed
+	OpenIndex  int // TokenSlice index of the opener token
+	CloseIndex int // TokenSlice index of the closer token, or -1 if unclosed
 	Kind       SubstitutionKind
-	Depth      int              // nesting depth at this scope (1 = outermost)
+	Depth      int // nesting depth at this scope (1 = outermost)
 }
 
 // SubstitutionScopes returns all substitution scopes in the token slice,
@@ -39,10 +39,10 @@ func (t TokenSlice) SubstitutionScopes() []SubstitutionScope {
 				kind = SubstitutionArithmetic
 			}
 			scope := SubstitutionScope{
-				OpenIndex: i,
+				OpenIndex:  i,
 				CloseIndex: -1,
-				Kind:      kind,
-				Depth:     len(stack) + 1,
+				Kind:       kind,
+				Depth:      len(stack) + 1,
 			}
 			stack = append(stack, scope)
 
