@@ -63,8 +63,28 @@ func posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice {
 			}
 		}
 
+		// Detect process substitution: <( or >( — merge redirect operator + ( into opener
+		if t.Type == WORDBREAK_TOKEN && t.WordbreakType.IsRedirect() &&
+			(t.Value == "<" || t.Value == ">") && i+1 < len(tokens) {
+			next := tokens[i+1]
+			if next.Type == WORDBREAK_TOKEN && next.Value == "(" && t.adjoins(next) {
+				merged := Token{
+					Type:          WORDBREAK_TOKEN,
+					Value:         t.Value + "(",
+					RawValue:      t.RawValue + next.RawValue,
+					Span:          Span{Start: t.Span.Start, End: next.Span.End},
+					State:         next.State,
+					WordbreakType: WORDBREAK_SUBSTITUTION_OPEN,
+				}
+				result = append(result, merged)
+				depth++
+				i += 2
+				continue
+			}
+		}
+
 		// Reclassify standalone ( as WORDBREAK_SUBSTITUTION_OPEN
-		// (for process substitution <( >, and bare () in csh)
+		// (for bare () in csh)
 		if t.Type == WORDBREAK_TOKEN && t.Value == "(" {
 			merged := Token{
 				Type:          t.Type,

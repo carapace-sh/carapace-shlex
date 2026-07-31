@@ -116,6 +116,10 @@ func (t TokenSlice) WordsWithSubstitutions() TokenSlice {
 			}
 			depth++
 			if sub != nil {
+				if sub.Span.End != token.Span.Start && sub.RawValue != "" {
+					sub.RawValue += " "
+					sub.Value += " "
+				}
 				sub.RawValue += token.RawValue
 				sub.Value += token.RawValue
 				sub.Span.End = token.Span.End
@@ -125,6 +129,10 @@ func (t TokenSlice) WordsWithSubstitutions() TokenSlice {
 		case token.WordbreakType == WORDBREAK_SUBSTITUTION_CLOSE:
 			if depth > 0 {
 				if sub != nil {
+					if sub.Span.End != token.Span.Start && sub.RawValue != "" {
+						sub.RawValue += " "
+						sub.Value += " "
+					}
 					sub.RawValue += token.RawValue
 					sub.Value += token.RawValue
 					sub.Span.End = token.Span.End
