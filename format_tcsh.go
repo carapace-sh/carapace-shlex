@@ -52,3 +52,9 @@ func (tcshFormat) EscapingQuoteEscapeChars() map[rune]bool {
 func (tcshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (tcshFormat) TripleQuoteSupport() bool  { return false }
 func (tcshFormat) RawPrefixSupport() bool    { return false }
+
+// PostProcess reclassifies ( and ) as substitution delimiters and merges
+// $ + ( into a single opener token for POSIX command substitution.
+func (tcshFormat) PostProcess(tokens TokenSlice) TokenSlice {
+	return posixSubstitutionPostProcess(tokens)
+}

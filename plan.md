@@ -639,3 +639,403 @@ func TestElvishFormat_CompletionInLambdaBody(t *testing.T) {
 5. **Other shells**: This post-pass is elvish-specific. Other shells don't use `|` as a parameter delimiter inside braces. The `PostProcessor` optional interface ensures no other format is affected.
 
 6. **Elvish's old lambda syntax**: `[args]{...}` uses `[...]` for parameters. This is a separate syntax from `{|...|...}`. The `[` and `]` are not wordbreaks in the current elvish format, so `[args]` would be a single word. This syntax is not handled by the post-pass. It's less common and could be added later if needed.
+
+---
+
+# Subshell / Subexpression Support — Implementation Plan
+
+## Problem
+
+The flat state machine has no nesting awareness for `$(...)`, `` `...` ``, `$((...))`, or `(...)` command substitutions. This breaks two things:
+
+1. **Word splitting**: `echo $(echo test)` produces `["echo", "$(echo", "test)"]` — three words instead of two. The `(` and `)` are in `BASH_WORDBREAKS` but classified as `WORDBREAK_UNKNOWN`. They break the word but carry no nesting context. After `Words()` merges by `Span` adjacency, the space inside `$(echo test)` prevents merging — the substitution is split across two words.
+
+2. **Pipeline splitting**: `echo foo $(bar | grep x) baz` splits at the inner `|` because `Pipelines()` sees `WORDBREAK_PIPE` and doesn't know it's inside a substitution. The outer command is broken into two pipelines, both wrong.
+
+3. **No inner completion**: When the cursor is inside `echo $(git ch` there is no way for a completion caller to get the inner command's words (`["git", "ch"]`). The context always describes the outer level.
+
+### Current behavior (confirmed by testing)
+
+```
+echo $(echo test)        → Words: ["echo", "$(echo", "test)"]     ← broken: 3 words, should be 2
+echo `echo test`         → Words: ["echo", "`echo test`"]        ← accidental: 2 words, backtick not tracked
+echo $((1+2))            → Words: ["echo", "$((1+2))"]           ← accidental: works when no spaces inside
+echo foo $(bar | grep x) baz → pipeline splits at inner |       ← broken
+echo $(echo $(echo test)) → Words: ["echo", "$(echo", "$(echo", "test))"]  ← broken
+```
+
+### Consumer context
+
+The carapace `origin/shlex-v2` branch is the WIP migration that uses `SplitForCompletion`. It calls `SplitForCompletion` at four sites:
+
+| File | Fields consumed |
+|------|-----------------|
+| `internal/shell/bash/patch.go` | `ctx.Words`, `ctx.Prefix`, `ctx.IsRedirect`, `ctx.CurrentWord` |
+| `internal/shell/cmd_clink/patch.go` | `ctx.Words` |
+| `internal/shell/zsh/action.go` | `ctx.QuotingState`, `ctx.RawCurrentWord` |
+| `action.go` (`Action.Split`/`SplitP`) | `ctx.Words`, `ctx.IsRedirect`, `ctx.CurrentWord`, `ctx.QuotingState`, `ctx.Prefix` |
+
+All use `shlex.SplitForCompletion(compline, format)` and consume `CompletionContext` fields directly. The `origin/shlex-v2` branch's `action.go` also uses `Span.Start` from pipeline tokens for prefix calculation:
+
+```go
+prefix := originalValue[:pipelineTokens.Words().CurrentToken().Span.Start]
+```
+
+This means inner tokens must retain their original `Span` offsets relative to the full input string, even when extracted as the inner context.
+
+## Scope — per-shell substitution forms
+
+| Shell | Form | Opener | Closer | Notes |
+|-------|------|--------|--------|-------|
+| bash/zsh/oil | `$(...)` | `$` + `(` | `)` | `$` is a WORD_TOKEN, `(` is a WORDBREAK_TOKEN — adjacency-detected |
+| bash/zsh/oil/tcsh | `` `...` `` | `` ` `` | `` ` `` | backtick is NOT a wordbreak — passes as word char, detect-only |
+| bash/zsh/oil | `$((...))` | `$` + `((` | `))` | arithmetic; not a command context |
+| bash/zsh/oil | `<(...)` / `>(...)` | `<(`/`>(` | `)` | process substitution; same paren tracking |
+| fish | `(...)` | `(` | `)` | command substitution (bare parens, no `$` prefix) |
+| elvish | `(...)` | `(` | `)` | output capture (already `WORDBREAK_OUTPUT_CAPTURE`) |
+| nushell | `(...)` | `(` | `)` | subexpression |
+| powershell | `$(...)` | `$` + `(` | `)` | subexpression |
+| xonsh | `$(...)` / `@(...)` | `$`+`(` or `@`+`(` | `)` | subprocess / Python eval |
+| cmd | — | — | — | no subshell |
+
+**Common thread**: `(` and `)` delimit nesting in every shell except cmd. POSIX adds `$(` and backtick as distinct openers. The tokens are already in the stream — we need a post-pass to track nesting.
+
+## Design
+
+### Principle: inner-first context
+
+When the cursor is inside an unclosed substitution scope, `SplitForCompletion` returns a `CompletionContext` where **all fields describe the inner command**, not the outer. The caller gets the inner words, inner current word, inner quoting state — everything needed to complete the inner command as if it were standalone. `SubstitutionDepth` tells the caller how deep it is.
+
+This is the simplest API for carapace: no code changes needed beyond checking `SubstitutionDepth > 0` (and even that is optional — the fields are already correct for completion).
+
+### Step 1: `WordbreakType` for substitution delimiters
+
+`wordbreak.go`:
+
+```go
+WORDBREAK_SUBSTITUTION_OPEN   // ( that opens a command/arithmetic/subexpression scope
+WORDBREAK_SUBSTITUTION_CLOSE  // ) that closes such a scope
+```
+
+Both: `IsPipelineDelimiter() == false`, `IsRedirect() == false`. This ensures `Pipelines()` doesn't treat the delimiters themselves as pipeline breaks.
+
+### Step 2: `SubstitutionScope` and `SubstitutionScopes()`
+
+New file `substitution.go`:
+
+```go
+type SubstitutionKind int
+
+const (
+    SubstitutionCommand    SubstitutionKind = iota // $(...) or bare (...) 
+    SubstitutionArithmetic                          // $((...))
+    SubstitutionBacktick                            // `...`
+)
+
+type SubstitutionScope struct {
+    OpenIndex  int              // TokenSlice index of opener (-1 for backtick-in-word)
+    CloseIndex int              // TokenSlice index of closer (-1 if unclosed)
+    Kind       SubstitutionKind
+    Depth      int              // nesting depth at this scope
+}
+
+// SubstitutionScopes returns all substitution scopes in the token slice,
+// ordered by open position. Unclosed scopes have CloseIndex == -1.
+func (t TokenSlice) SubstitutionScopes() []SubstitutionScope
+```
+
+The scanner tracks a stack of open scopes. On `WORDBREAK_SUBSTITUTION_OPEN`, push. On `WORDBREAK_SUBSTITUTION_CLOSE`, pop. Backtick scopes are detected by scanning WORD_TOKEN `RawValue` for unescaped backticks — these get `OpenIndex == -1` (no single opener token) and are detect-only (can't split inner words since the backtick content is already merged into one word token).
+
+### Step 3: Shared POSIX `PostProcess`
+
+New shared function used by bash/zsh/oil/tcsh formats:
+
+```go
+// posixSubstitutionPostProcess reclassifies ( and ) as substitution
+// delimiters, merging $ + ( adjacency into a single opener token.
+// Does NOT reclassify inner pipeline operators — that's handled by
+// Pipelines() respecting substitution depth.
+func posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice {
+    // 1. Merge $ + ( adjacency into WORDBREAK_SUBSTITUTION_OPEN
+    //    Detect $(( for arithmetic (second ( after $()
+    // 2. Reclassify standalone ( as WORDBREAK_SUBSTITUTION_OPEN
+    //    (for process substitution <(, >( — the < or > is already
+    //    classified as redirect, the ( is the substitution opener)
+    // 3. Reclassify ) as WORDBREAK_SUBSTITUTION_CLOSE
+    //    (matching depth: arithmetic closes on ))
+    // 4. Scan WORD_TOKEN RawValue for unescaped backticks,
+    //    flag unclosed backtick scopes
+}
+```
+
+bash/zsh/oil call this directly. tcsh calls it with backtick awareness (tcsh backtick command substitution is common).
+
+### Step 4: Non-POSIX `PostProcess` extensions
+
+- **fish**: Add `(` `)` to classifier as wordbreaks, classify as `WORDBREAK_SUBSTITUTION_OPEN/CLOSE`. Fish uses bare `()` for command substitution (no `$` prefix).
+- **elvish**: Already classifies `(` `)` as `WORDBREAK_OUTPUT_CAPTURE`. Extend `PostProcess` to track paren nesting depth so `Pipelines()` can respect it. Reclassify `WORDBREAK_OUTPUT_CAPTURE` as `WORDBREAK_SUBSTITUTION_OPEN/CLOSE` (or teach `Pipelines()` about `WORDBREAK_OUTPUT_CAPTURE`).
+- **nushell**: Add `(` `)` to classifier, classify as substitution delimiters.
+- **PowerShell**: `$` + `(` → `$(`. Add `(` `)` to wordbreaks, detect `$(` adjacency in `PostProcess`.
+- **xonsh**: `$` + `(` or `@` + `(` → `$(` / `@(`. Same pattern as PowerShell.
+
+### Step 5: `Pipelines()` — respect substitution depth
+
+The critical pipeline fix. Modify `Pipelines()` to track substitution scope depth: when inside a substitution scope (depth > 0), don't split on pipeline delimiters.
+
+```go
+func (t TokenSlice) Pipelines() []TokenSlice {
+    pipelines := make([]TokenSlice, 0)
+    pipeline := make(TokenSlice, 0)
+    depth := 0
+
+    for _, token := range t {
+        switch {
+        case token.WordbreakType == WORDBREAK_SUBSTITUTION_OPEN:
+            depth++
+            pipeline = append(pipeline, token)
+        case token.WordbreakType == WORDBREAK_SUBSTITUTION_CLOSE:
+            depth--
+            pipeline = append(pipeline, token)
+        case depth == 0 && token.Type == WORDBREAK_TOKEN &&
+            token.WordbreakType.IsPipelineDelimiter():
+            pipelines = append(pipelines, pipeline)
+            pipeline = make(TokenSlice, 0)
+        default:
+            pipeline = append(pipeline, token)
+        }
+    }
+    return append(pipelines, pipeline)
+}
+```
+
+This way, inner `|` retains its `WORDBREAK_PIPE` classification. When `Pipelines()` runs on the full token slice, it skips the inner pipe because depth > 0. When we extract the inner tokens and call `Pipelines()` on them, the inner pipe correctly splits the inner pipeline.
+
+`CurrentPipeline()` on the full slice returns the outer pipeline. When we extract inner tokens and call `CurrentPipeline()` on them, it returns the inner pipeline (the one after the inner `|`). No reclassification needed — the `PostProcess` only merges `$` + `(` and reclassifies `)`.
+
+### Step 6: `WordsWithSubstitutions()`
+
+New method on `TokenSlice`, used by `SplitForCompletion` for the **outer** context (when cursor is NOT inside a substitution). Merges substitution content into single words:
+
+```go
+// WordsWithSubstitutions merges tokens, treating substitution scopes
+// as single words. When a WORDBREAK_SUBSTITUTION_OPEN is encountered,
+// all tokens until the matching WORDBREAK_SUBSTITUTION_CLOSE (or end
+// of slice if unclosed) are merged into one word.
+//
+// For unclosed scopes (cursor inside), the inner tokens are NOT merged
+// into the outer word — they're left as separate tokens so the inner
+// context can be built separately.
+func (t TokenSlice) WordsWithSubstitutions() TokenSlice {
+    words := make(TokenSlice, 0)
+    depth := 0
+    current := &Token{}
+
+    for index, token := range t {
+        switch {
+        case token.WordbreakType == WORDBREAK_SUBSTITUTION_OPEN:
+            if depth == 0 {
+                // Start new word that will absorb the substitution
+                current = &Token{
+                    Type: WORD_TOKEN,
+                    Span: token.Span,
+                }
+            }
+            depth++
+            current.RawValue += token.RawValue
+            current.Value += token.Value
+            current.Span.End = token.Span.End
+            current.State = token.State
+        case token.WordbreakType == WORDBREAK_SUBSTITUTION_CLOSE:
+            current.RawValue += token.RawValue
+            current.Value += token.Value
+            current.Span.End = token.Span.End
+            current.State = token.State
+            depth--
+            if depth == 0 {
+                words = append(words, *current)
+            }
+        case depth > 0:
+            // Inside substitution — absorb everything
+            current.RawValue += token.RawValue
+            current.Value += token.Value
+            current.Span.End = token.Span.End
+            current.State = token.State
+        default:
+            // Normal Words() logic
+            if index == 0 {
+                words = append(words, token)
+            } else if t[index-1].adjoins(token) {
+                words[len(words)-1].Value += token.Value
+                words[len(words)-1].RawValue += token.RawValue
+                words[len(words)-1].Span.End = token.Span.End
+                words[len(words)-1].State = token.State
+            } else {
+                words = append(words, token)
+            }
+        }
+    }
+    // Unclosed substitution at end — the current word includes
+    // everything up to cursor. Don't append it; the inner context
+    // will be built separately.
+    return words
+}
+```
+
+When cursor is inside a substitution (unclosed), `SplitForCompletion` uses the inner tokens with regular `Words()` — the inner pipeline/word logic works as-is.
+
+### Step 7: `CompletionContext` changes
+
+```go
+type CompletionContext struct {
+    // ... existing fields unchanged ...
+
+    // SubstitutionDepth is the number of unclosed substitution scopes
+    // at the cursor position. 0 = cursor at top level.
+    // When > 0, all other fields (Words, CurrentWord, etc.) describe
+    // the innermost substitution's command, not the outer command.
+    SubstitutionDepth int
+
+    // SubstitutionKind indicates what type of substitution the cursor
+    // is inside (command, arithmetic, backtick). Only meaningful when
+    // SubstitutionDepth > 0.
+    SubstitutionKind SubstitutionKind
+}
+```
+
+No `InnerCompletion` pointer — the top-level fields ARE the inner context. Simpler API, less allocation. When `SubstitutionDepth > 0`:
+- `Words` = inner command words (e.g. `["git", "ch"]` for `echo $(git ch`)
+- `CurrentWord` = inner current word (e.g. `"ch"`)
+- `QuotingState` = inner quoting state
+- `Pipeline` = inner pipeline tokens (with original spans)
+- `Prefix` = inner wordbreak prefix
+- `IsRedirect` = inner redirect detection
+
+### Step 8: `SplitForCompletion` changes
+
+Extract the existing pipeline/redirect/word logic into `buildCompletionContext` helper that operates on any token slice. Then add substitution detection:
+
+```go
+func SplitForCompletion(s string, format Format) *CompletionContext {
+    tokens, err := SplitWith(s, format)
+    if err != nil || len(tokens) == 0 {
+        return &CompletionContext{QuotingState: START_STATE}
+    }
+
+    // Check for unclosed substitution scopes at cursor
+    scopes := tokens.SubstitutionScopes()
+    innermost := innermostUnclosedScope(scopes)
+
+    if innermost != nil && innermost.Kind != SubstitutionArithmetic {
+        // Cursor inside a command substitution — build context from inner tokens
+        innerTokens := tokens[innermost.OpenIndex+1:]
+        ctx := buildCompletionContext(innerTokens, format)
+        ctx.SubstitutionDepth = countUnclosedScopes(scopes)
+        ctx.SubstitutionKind = innermost.Kind
+        return ctx
+    }
+
+    // Cursor at top level (or inside arithmetic — no inner command)
+    return buildCompletionContext(tokens, format)
+}
+
+func buildCompletionContext(tokens TokenSlice, format Format) *CompletionContext {
+    pipeline := tokens.CurrentPipeline()
+    filtered := pipeline.FilterRedirects()
+    words := filtered.WordsWithSubstitutions()
+    wordStrings := words.Strings()
+
+    ctx := &CompletionContext{
+        Words:    wordStrings,
+        Pipeline: pipeline,
+    }
+
+    // ... existing redirect / current word / prefix / lambda detection logic ...
+    return ctx
+}
+```
+
+For backtick substitution: `innermost.Kind == SubstitutionBacktick` with `OpenIndex == -1`. The inner tokens can't be extracted (backtick content is merged into one word token). Set `SubstitutionDepth` and `SubstitutionKind` but leave `Words`/`CurrentWord` as the outer context. Document as a limitation.
+
+### Step 9: Backtick handling
+
+Backticks are the hardest case because the tokenizer doesn't emit them as wordbreaks — they're embedded in `RawValue` of word tokens. Two approaches:
+
+**A. Post-processor scan (implemented)**: The POSIX `PostProcess` scans WORD_TOKEN `RawValue` for unescaped backticks. When it finds an odd count, the word is inside an unclosed backtick substitution. This is enough for completion (detect "cursor inside backtick") but can't split the inner command into words (the backtick content is already merged into one word token).
+
+**B. State machine change (deferred)**: Add backtick as a wordbreak for POSIX formats and track it in the state machine. This would let `Words()` split `` `echo test` `` into inner words, but changes core lexing behavior and risks breaking existing tests.
+
+Decision: Start with approach A. Backtick command substitution inside completion input is rare. The `$()` form is the modern equivalent and will be fully supported. Document backtick as a known limitation (detect but don't split inner words).
+
+## Implementation Steps
+
+### 1. `wordbreak.go` — new constants
+
+```go
+WORDBREAK_SUBSTITUTION_OPEN   // ( or $( that opens a substitution scope
+WORDBREAK_SUBSTITUTION_CLOSE  // ) that closes a substitution scope
+```
+
+Add to `wordbreakTypes` map. Do NOT add to `IsPipelineDelimiter()` or `IsRedirect()`.
+
+### 2. `substitution.go` (new file)
+
+- `SubstitutionKind` type and constants
+- `SubstitutionScope` struct
+- `SubstitutionScopes()` method on `TokenSlice`
+- `innermostUnclosedScope()` helper
+- `countUnclosedScopes()` helper
+
+### 3. `tokenslice.go` — modify `Pipelines()`
+
+Add substitution depth tracking: don't split on pipeline delimiters when inside a substitution scope (depth > 0).
+
+### 4. `tokenslice.go` — add `WordsWithSubstitutions()`
+
+New method that merges substitution content into single words for the outer context.
+
+### 5. POSIX shared `PostProcess`
+
+New shared function `posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice`:
+- Merge `$` WORD_TOKEN + `(` WORDBREAK_TOKEN adjacency into `WORDBREAK_SUBSTITUTION_OPEN`
+- Detect `$((` for arithmetic
+- Reclassify `)` as `WORDBREAK_SUBSTITUTION_CLOSE`
+- Scan for unclosed backticks in WORD_TOKEN `RawValue`
+
+bash/zsh/oil: `PostProcess` calls this directly.
+tcsh: wraps it with backtick awareness.
+
+### 6. Per-format `PostProcess` extensions
+
+- **fish**: Add `(` `)` to classifier, classify as substitution delimiters in `PostProcess`
+- **elvish**: Extend existing `PostProcess` — track paren nesting alongside brace nesting, reclassify `WORDBREAK_OUTPUT_CAPTURE` as `WORDBREAK_SUBSTITUTION_OPEN/CLOSE`
+- **nushell**: Add `(` `)` to classifier, classify as substitution delimiters
+- **PowerShell**: Add `(` `)` to wordbreaks, detect `$(` adjacency in `PostProcess`
+- **xonsh**: Add `(` `)` to wordbreaks, detect `$(` and `@(` adjacency in `PostProcess`
+
+### 7. `completion.go` — new fields and `SplitForCompletion` changes
+
+- Add `SubstitutionDepth` and `SubstitutionKind` to `CompletionContext`
+- Extract `buildCompletionContext` helper from existing `SplitForCompletion` logic
+- Add substitution scope detection: find innermost unclosed scope, extract inner tokens, build inner context
+- Set `SubstitutionDepth`/`SubstitutionKind` on the returned context
+
+### 8. Tests
+
+```
+$(echo test)              → one word at outer level: ["echo", "$(echo test)"]
+echo $(git ch             → InnerCompletion: Words=["git","ch"], SubstitutionDepth=1
+echo foo $(bar | grep x) baz → one pipeline at outer level, inner pipe not split
+$((1+2))                  → one word, no inner command context (arithmetic)
+echo $(echo $(git ch))    → SubstitutionDepth=2, Words=["git","ch"]
+echo $(git ch             → unclosed: SubstitutionDepth=1, Words=["git","ch"]
+echo `echo test`          → one word (limitation: no inner context)
+echo `git ch              → SubstitutionDepth=1 (detect, no inner words)
+```
+
+## Known limitations
+
+1. **Backtick**: detected (odd count in `RawValue`) but inner words not split — `$()` is the modern equivalent, fully supported
+2. **Arithmetic `$((...))`**: not a command context — `SubstitutionDepth` is set but no inner `Words` (arithmetic isn't a command to complete)
+3. **Process substitution `<(cmd)` / `>(cmd)` (bash/zsh)**: handled by the same `(`/`)` tracking with `<` / `>` prefix detection in the shared `PostProcess`
+4. **Brace expansion `{a,b}`**: not substitution (no nested command), out of scope
+5. **Heredoc `<<EOF...EOF`**: multi-line, not relevant for single-line completion input

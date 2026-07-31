@@ -61,14 +61,22 @@ const (
 )
 
 // PostProcess reclassifies WORDBREAK_PIPE tokens that are inside elvish
-// lambda parameter lists as WORDBREAK_LAMBDA_PIPE. This is needed because
-// the flat tokenizer cannot distinguish | as pipe vs | as lambda parameter
-// delimiter — that distinction is contextual in elvish's grammar.
+// lambda parameter lists as WORDBREAK_LAMBDA_PIPE, and reclassifies
+// output-capture delimiters ( and ) as substitution delimiters.
 func (elvishFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	var stack []braceState
 
 	for i := range tokens {
 		t := &tokens[i]
+
+		// Reclassify output-capture delimiters as substitution delimiters
+		if t.Type == WORDBREAK_TOKEN && t.WordbreakType == WORDBREAK_OUTPUT_CAPTURE {
+			if t.Value == "(" {
+				t.WordbreakType = WORDBREAK_SUBSTITUTION_OPEN
+			} else if t.Value == ")" {
+				t.WordbreakType = WORDBREAK_SUBSTITUTION_CLOSE
+			}
+		}
 
 		if t.Type == WORD_TOKEN && t.Value == "{" {
 			isLambda := false

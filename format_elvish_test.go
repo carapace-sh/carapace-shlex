@@ -302,24 +302,29 @@ func TestElvishFormat_OutputCaptureWordbreakType(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tok := range tokens {
-		if tok.Type == WORDBREAK_TOKEN && (tok.Value == "(" || tok.Value == ")") {
-			if tok.WordbreakType != WORDBREAK_OUTPUT_CAPTURE {
-				t.Errorf("elvish output capture: WordbreakType = %v for %q, want WORDBREAK_OUTPUT_CAPTURE", tok.WordbreakType, tok.Value)
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "(" {
+			if tok.WordbreakType != WORDBREAK_SUBSTITUTION_OPEN {
+				t.Errorf("elvish output capture: WordbreakType = %v for %q, want WORDBREAK_SUBSTITUTION_OPEN", tok.WordbreakType, tok.Value)
+			}
+		}
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == ")" {
+			if tok.WordbreakType != WORDBREAK_SUBSTITUTION_CLOSE {
+				t.Errorf("elvish output capture: WordbreakType = %v for %q, want WORDBREAK_SUBSTITUTION_CLOSE", tok.WordbreakType, tok.Value)
 			}
 		}
 	}
 }
 
 func TestElvishFormat_OutputCaptureDoesNotSplitPipeline(t *testing.T) {
-	// ( and ) are not pipeline delimiters
+	// ( and ) create a substitution scope — | inside does not split the outer pipeline
 	tokens, err := SplitWith("echo (ls | grep foo)", ElvishFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
 	pipelines := tokens.Pipelines()
-	// The | inside (...) is a real pipe, so we should get 2 pipelines
-	if len(pipelines) != 2 {
-		t.Errorf("elvish output capture pipeline: %d pipelines, want 2 (pipe inside parens)", len(pipelines))
+	// The | inside (...) is within a substitution scope, so we get 1 pipeline
+	if len(pipelines) != 1 {
+		t.Errorf("elvish output capture pipeline: %d pipelines, want 1 (pipe inside substitution scope)", len(pipelines))
 	}
 }
 

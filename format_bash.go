@@ -45,3 +45,9 @@ func (bashFormat) EscapingQuoteEscapeChars() map[rune]bool {
 func (bashFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (bashFormat) TripleQuoteSupport() bool  { return false }
 func (bashFormat) RawPrefixSupport() bool    { return false }
+
+// PostProcess reclassifies ( and ) as substitution delimiters and merges
+// $ + ( into a single opener token for POSIX command substitution.
+func (bashFormat) PostProcess(tokens TokenSlice) TokenSlice {
+	return posixSubstitutionPostProcess(tokens)
+}
