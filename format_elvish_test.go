@@ -409,9 +409,6 @@ func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
 	// Cursor inside output capture: echo (ls
 	// The ( opens a substitution scope, so the inner context is "ls"
 	ctx := SplitForCompletion("echo (ls", ElvishFormat())
-	if ctx.SubstitutionDepth != 1 {
-		t.Errorf("elvish output capture completion: SubstitutionDepth = %v, want 1", ctx.SubstitutionDepth)
-	}
 	if len(ctx.Words) != 1 || ctx.Words[0] != "ls" {
 		t.Errorf("elvish output capture completion: Words = %v, want [ls]", ctx.Words)
 	}

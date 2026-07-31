@@ -5,8 +5,8 @@ package shlex
 // tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken() chains.
 type CompletionContext struct {
 	// Words are the dequoted word values in the current pipeline
-	// (redirects filtered). Equivalent to:
-	//   tokens.CurrentPipeline().FilterRedirects().Words().Strings()
+	// (redirects filtered). When the cursor is inside a substitution
+	// scope (e.g. $(...), these are the inner command's words.
 	Words []string
 
 	// CurrentWord is the word at the cursor position (dequoted Value).
@@ -17,13 +17,11 @@ type CompletionContext struct {
 	RawCurrentWord string
 
 	// Prefix is the wordbreak prefix up to the cursor.
-	// Equivalent to tokens.CurrentPipeline().WordbreakPrefix().
 	Prefix string
 
 	// QuotingState is the lexer state of the current word.
 	// IN_WORD_STATE, QUOTING_STATE, QUOTING_ESCAPING_STATE, QUOTING_TRIPLE_STATE,
 	// QUOTING_TRIPLE_ESCAPING_STATE, or ESCAPING_STATE.
-	// Replaces the regex-based quoting detection in carapace's zsh action.
 	QuotingState LexerState
 
 	// IsRedirect is true when the cursor is completing a redirect target
@@ -39,57 +37,31 @@ type CompletionContext struct {
 	// redirect filtering and word merging). Use this as an escape hatch
 	// for edge cases not covered by the fields above.
 	Pipeline TokenSlice
-
-	// SubstitutionDepth is the number of unclosed substitution scopes at
-	// the cursor position. 0 = cursor at top level. When > 0, all other
-	// fields (Words, CurrentWord, etc.) describe the innermost
-	// substitution's command, not the outer command.
-	SubstitutionDepth int
-
-	// SubstitutionKind indicates what type of substitution the cursor is
-	// inside (command, arithmetic, backtick). Only meaningful when
-	// SubstitutionDepth > 0.
-	SubstitutionKind SubstitutionKind
 }
 
 // SplitForCompletion parses s and returns a CompletionContext describing
 // the completion state at the end of the string, using the given format.
 //
 // When the cursor is inside an unclosed substitution scope (e.g. inside
-// $(...), the returned context describes the innermost substitution's
-// command, not the outer command. SubstitutionDepth indicates how many
-// nesting levels deep the cursor is.
+// $(...), the context describes the innermost substitution's command,
+// not the outer command.
 func SplitForCompletion(s string, format Format) *CompletionContext {
 	tokens, err := SplitWith(s, format)
 	if err != nil || len(tokens) == 0 {
 		return &CompletionContext{QuotingState: START_STATE}
 	}
 
-	// Check for unclosed substitution scopes at cursor
-	scopes := tokens.SubstitutionScopes()
-	innermost := innermostUnclosedScope(scopes)
-
-	if innermost != nil && innermost.Kind != SUBSTITUTION_ARITHMETIC && innermost.OpenIndex >= 0 {
-		// Cursor inside a command substitution — build context from inner tokens
-		innerTokens := tokens[innermost.OpenIndex+1:]
-		ctx := buildCompletionContext(innerTokens)
-		ctx.SubstitutionDepth = countUnclosedScopes(scopes)
-		ctx.SubstitutionKind = innermost.Kind
-		return ctx
+	// If cursor is inside an unclosed command substitution, build the
+	// context from the inner tokens.
+	if scope := innermostUnclosedCommandScope(tokens); scope >= 0 {
+		return buildCompletionContext(tokens[scope+1:])
 	}
 
-	// Cursor at top level (or inside arithmetic/backtick — no inner command)
-	ctx := buildCompletionContext(tokens)
-	if innermost != nil {
-		ctx.SubstitutionDepth = countUnclosedScopes(scopes)
-		ctx.SubstitutionKind = innermost.Kind
-	}
-	return ctx
+	return buildCompletionContext(tokens)
 }
 
 // buildCompletionContext derives the completion context fields from a
-// token slice. It is called by SplitForCompletion with either the full
-// token slice (top-level) or the inner tokens of an unclosed substitution.
+// token slice.
 func buildCompletionContext(tokens TokenSlice) *CompletionContext {
 	pipeline := tokens.CurrentPipeline()
 	filtered := pipeline.FilterRedirects()
@@ -101,8 +73,6 @@ func buildCompletionContext(tokens TokenSlice) *CompletionContext {
 		Pipeline: pipeline,
 	}
 
-	// Detect redirect: if the second-to-last token in the pipeline is a redirect
-	// wordbreak, the current word is a redirect target.
 	if len(pipeline) >= 2 {
 		prev := pipeline[len(pipeline)-2]
 		if prev.WordbreakType.IsRedirect() {
@@ -111,8 +81,6 @@ func buildCompletionContext(tokens TokenSlice) *CompletionContext {
 	}
 
 	if ctx.IsRedirect {
-		// For redirects, the current word is the redirect target which was
-		// filtered out of the words list. Get it from the raw pipeline.
 		current := pipeline[len(pipeline)-1]
 		ctx.CurrentWord = current.Value
 		ctx.RawCurrentWord = current.RawValue
@@ -126,8 +94,6 @@ func buildCompletionContext(tokens TokenSlice) *CompletionContext {
 
 	ctx.Prefix = pipeline.WordbreakPrefix()
 
-	// Detect lambda parameter context: an odd number of WORDBREAK_LAMBDA_PIPE
-	// tokens in the current pipeline means we're inside an unclosed {|...| parameter list.
 	lambdaPipeCount := 0
 	for _, t := range pipeline {
 		if t.Type == WORDBREAK_TOKEN && t.WordbreakType == WORDBREAK_LAMBDA_PIPE {
