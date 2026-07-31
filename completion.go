@@ -37,6 +37,12 @@ type CompletionContext struct {
 	// redirect filtering and word merging). Use this as an escape hatch
 	// for edge cases not covered by the fields above.
 	Pipeline TokenSlice
+
+	// SubstitutionDepth is the number of unclosed substitution scopes
+	// at the cursor position. 0 = cursor at top level. When > 0, all
+	// other fields (Words, CurrentWord, etc.) describe the innermost
+	// substitution's command, not the outer command.
+	SubstitutionDepth int
 }
 
 // SplitForCompletion parses s and returns a CompletionContext describing
@@ -54,7 +60,9 @@ func SplitForCompletion(s string, format Format) *CompletionContext {
 	// If cursor is inside an unclosed command substitution, build the
 	// context from the inner tokens.
 	if scope := innermostUnclosedCommandScope(tokens); scope >= 0 {
-		return buildCompletionContext(tokens[scope+1:])
+		ctx := buildCompletionContext(tokens[scope+1:])
+		ctx.SubstitutionDepth = countUnclosedCommandScopes(tokens)
+		return ctx
 	}
 
 	return buildCompletionContext(tokens)
