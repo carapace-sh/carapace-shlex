@@ -1,7 +1,5 @@
-github.com/carapace-sh/carapace v1.13.1-0.20260722151529-c59659f563b6 h1:8xej0uU5stWGci7LIzKMBd/HwaUePLEXKM2nJulp7TY=
-github.com/carapace-sh/carapace v1.13.1-0.20260722151529-c59659f563b6/go.mod h1:aLpmxr0egL384tZsvprW6AgR+PAxfm7jnybdtIy72pg=
+github.com/carapace-sh/carapace v1.13.1-0.20260731192344-c8f45afe0dd5/go.mod h1:MnrIYoCFm9whXHfFhfHbpL5lpd3zEDXNu/piTLsmPjY=
+github.com/carapace-sh/carapace-shlex v1.1.2-0.20260701213017-3985f5788c03/go.mod h1:8UHbArnBDXsfFE/1psvlEcFYsZq0nFfJTR6XJ+1duNQ=
 github.com/cpuguy83/go-md2man/v2 v2.0.3 h1:qMCsGGgs+MAzDFyp9LpAe1Lqy/fY/qCovCm0qnXZOBM=
 github.com/cpuguy83/go-md2man/v2 v2.0.6 h1:XJtiaUW6dEEqVuZiMTn1ldk455QWwEIsMIJlo5vtkx0=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
-github.com/spf13/pflag v1.0.10 h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=
-github.com/spf13/pflag v1.0.10/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
