@@ -1,5 +1,7 @@
 package shlex
 
+import "encoding/json"
+
 // SubstitutionKind classifies the type of substitution scope.
 type SubstitutionKind int
 
@@ -11,6 +13,16 @@ const (
 	// SubstitutionBacktick is `...` (POSIX backtick command substitution).
 	SubstitutionBacktick
 )
+
+var substitutionKinds = map[SubstitutionKind]string{
+	SubstitutionCommand:    "SubstitutionCommand",
+	SubstitutionArithmetic: "SubstitutionArithmetic",
+	SubstitutionBacktick:   "SubstitutionBacktick",
+}
+
+func (k SubstitutionKind) MarshalJSON() ([]byte, error) {
+	return json.Marshal(substitutionKinds[k])
+}
 
 // SubstitutionScope describes a single substitution nesting level in the
 // token stream.
