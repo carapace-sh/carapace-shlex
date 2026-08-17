@@ -80,27 +80,52 @@ func (elvishFormat) PostProcess(tokens TokenSlice) TokenSlice {
 
 		if t.Type == WORD_TOKEN && t.Value == "{" {
 			isLambda := false
+			isLambdaBody := false
 			if i+1 < len(tokens) {
 				next := tokens[i+1]
 				if next.Type == WORDBREAK_TOKEN && next.Value == "|" {
 					isLambda = true
 				} else if !t.adjoins(next) {
-					isLambda = true
+					// { followed by space then a non-| token: lambda with
+					// no params, body starts immediately. Any | inside is
+					// a real pipeline pipe, not a param delimiter.
+					isLambdaBody = true
 				}
+			} else {
+				// { at EOF: incomplete lambda, treat as lambda open
+				isLambda = true
 			}
 			if isLambda {
 				stack = append(stack, braceLambdaOpen)
+			} else if isLambdaBody {
+				stack = append(stack, braceLambdaBody)
 			} else {
 				stack = append(stack, braceBraced)
 			}
 			continue
 		}
 
-		if t.Type == WORD_TOKEN && t.Value == "}" {
-			if len(stack) > 0 {
-				stack = stack[:len(stack)-1]
+		if t.Type == WORD_TOKEN {
+			// Count { and } in non-standalone words to maintain brace stack.
+			// This handles cases like $a} where } is embedded in a word
+			// and doesn't match the standalone t.Value == "}" check above.
+			if t.Value != "{" && t.Value != "}" {
+				for _, r := range t.Value {
+					switch r {
+					case '{':
+						stack = append(stack, braceBraced)
+					case '}':
+						if len(stack) > 0 {
+							stack = stack[:len(stack)-1]
+						}
+					}
+				}
+			} else if t.Value == "}" {
+				if len(stack) > 0 {
+					stack = stack[:len(stack)-1]
+				}
+				continue
 			}
-			continue
 		}
 
 		if t.Type == WORDBREAK_TOKEN && t.Value == "|" && len(stack) > 0 {

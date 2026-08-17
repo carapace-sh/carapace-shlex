@@ -413,3 +413,116 @@ func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
 		t.Errorf("elvish output capture completion: Words = %v, want [ls]", ctx.Words)
 	}
 }
+
+func TestElvishFormat_ClosedLambdaThenPipe(t *testing.T) {
+	// {|a| echo $a} | grep foo — } is embedded in "$a}" word.
+	// The | after } should be WORDBREAK_PIPE, not WORDBREAK_LAMBDA_PIPE.
+	tokens, err := SplitWith("{|a| echo $a} | grep foo", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 2 {
+		t.Errorf("closed lambda then pipe: %d lambda pipes, want 2", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("closed lambda then pipe: %d real pipes, want 1", realPipes)
+	}
+}
+
+func TestElvishFormat_LambdaNoParamsBodyPipe(t *testing.T) {
+	// { echo foo | grep bar } — lambda with no params, body has a pipe.
+	// The | should be WORDBREAK_PIPE, not WORDBREAK_LAMBDA_PIPE.
+	tokens, err := SplitWith("{ echo foo | grep bar }", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 0 {
+		t.Errorf("lambda no params body pipe: %d lambda pipes, want 0", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("lambda no params body pipe: %d real pipes, want 1", realPipes)
+	}
+}
+
+func TestElvishFormat_MultipleLambdasWithPipeBetween(t *testing.T) {
+	// {|a| echo $a} | {|b| echo $b} — pipe between two closed lambdas
+	tokens, err := SplitWith("{|a| echo $a} | {|b| echo $b}", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 4 {
+		t.Errorf("multiple lambdas: %d lambda pipes, want 4 (2 per lambda)", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("multiple lambdas: %d real pipes, want 1 (between lambdas)", realPipes)
+	}
+}
+
+func TestElvishFormat_NestedLambdaThenPipeInBody(t *testing.T) {
+	// {|a| {|b| echo $b} | grep foo} — inner lambda closed, then real pipe in outer body
+	tokens, err := SplitWith("{|a| {|b| echo $b} | grep foo}", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 4 {
+		t.Errorf("nested lambda then pipe: %d lambda pipes, want 4 (2 per lambda)", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("nested lambda then pipe: %d real pipes, want 1 (in outer body)", realPipes)
+	}
+}
+
+func TestElvishFormat_ClosedLambdaCompletion(t *testing.T) {
+	// {|a| echo $a} | grep foo — cursor at end, lambda is closed
+	ctx := SplitForCompletion("{|a| echo $a} | grep foo", ElvishFormat())
+	if ctx.InLambdaParams {
+		t.Errorf("closed lambda completion: InLambdaParams = true, want false")
+	}
+	if ctx.CurrentWord != "foo" {
+		t.Errorf("closed lambda completion: CurrentWord = %q, want %q", ctx.CurrentWord, "foo")
+	}
+}
