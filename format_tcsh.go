@@ -53,6 +53,12 @@ func (tcshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (tcshFormat) TripleQuoteSupport() bool  { return false }
 func (tcshFormat) RawPrefixSupport() bool    { return false }
 
+// IsLineContinuation implements LineContinuationEscaper. Tcsh treats
+// backslash followed by \n or \r as a line continuation.
+func (tcshFormat) IsLineContinuation(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
 // PostProcess reclassifies ( and ) as substitution delimiters and merges
 // $ + ( into a single opener token for POSIX command substitution.
 func (tcshFormat) PostProcess(tokens TokenSlice) TokenSlice {

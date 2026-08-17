@@ -47,6 +47,12 @@ func (zshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (zshFormat) TripleQuoteSupport() bool  { return false }
 func (zshFormat) RawPrefixSupport() bool    { return false }
 
+// IsLineContinuation implements LineContinuationEscaper. Zsh (like bash)
+// treats backslash followed by \n or \r as a line continuation.
+func (zshFormat) IsLineContinuation(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
 // PostProcess reclassifies ( and ) as substitution delimiters and merges
 // $ + ( into a single opener token for POSIX command substitution.
 func (zshFormat) PostProcess(tokens TokenSlice) TokenSlice {

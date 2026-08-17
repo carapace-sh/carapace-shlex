@@ -432,3 +432,16 @@ func TestXonshFormat_QuotedStreamRedirectNotMerged(t *testing.T) {
 		}
 	}
 }
+
+func TestXonshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// xonsh (Python): \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := SplitWith(input, XonshFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("xonsh line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}

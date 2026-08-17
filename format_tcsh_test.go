@@ -295,3 +295,29 @@ func TestTcshFormat_NoBashBothRedirect(t *testing.T) {
 		t.Errorf("tcsh &>: should not be classified as REDIRECT_OUTPUT_BOTH (tcsh uses >&)")
 	}
 }
+
+func TestTcshFormat_LineContinuationOutsideQuotes(t *testing.T) {
+	// tcsh: \<newline> outside quotes is a line continuation — both consumed.
+	input := "echo foo" + "\\" + "\n" + "bar"
+	tokens, err := SplitWith(input, TcshFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("tcsh line continuation outside: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestTcshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// tcsh: \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := SplitWith(input, TcshFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("tcsh line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}

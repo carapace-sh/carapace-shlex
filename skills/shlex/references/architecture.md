@@ -290,7 +290,17 @@ In real shells, `\` inside double quotes is only special before specific charact
 - **nushell**: `"`, `\` — `\$` should be literal
 - **PowerShell**: backtick (not `\`) — `\` is always literal
 
-This is a known limitation of the lexer. For completion purposes it doesn't affect word splitting or quote-state tracking — the `Value` field may differ from the shell's actual dequoting, but the `State` and word boundaries are correct. A future improvement could add a format-specific "valid double-quote escape chars" set.
+This is a known limitation of the lexer. For completion purposes it doesn't affect word splitting or quote-state tracking — the `Value` field may differ from the shell's actual dequoting, but the `State` and word boundaries are correct. The `EscapingQuoteEscapeChars` and `EscapingQuoteUnescaper` interfaces narrow this behavior for formats that need it.
+
+### Line continuation (`\<newline>`)
+
+POSIX shells (bash, zsh, tcsh, oil), fish, and xonsh implement `LineContinuationEscaper`. When the escape character (backslash) is followed by `\n` or `\r`, both the escape char and the newline are consumed — they are not added to the token's `Value` or `RawValue`. This applies:
+- Outside quotes (`ESCAPING_STATE`): the word continues on the next line
+- Inside double quotes (`ESCAPING_QUOTED_STATE`): the string continues on the next line
+
+For CRLF input, the `\r` is consumed and an optional following `\n` is also consumed.
+
+PowerShell and cmd implement the same interface for their escape characters (backtick and caret respectively).
 
 ### EscapeNotBareword (`\` as bareword)
 

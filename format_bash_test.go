@@ -367,3 +367,56 @@ func TestBashFormat_OperatorSequencePipeSemicolon(t *testing.T) {
 		t.Errorf("bash |;: second wordbreak = %q, want ;", wordbreaks[1].RawValue)
 	}
 }
+
+func TestBashFormat_LineContinuationOutsideQuotes(t *testing.T) {
+	// bash: \<newline> outside quotes is a line continuation — both consumed.
+	// Build input with explicit concatenation to ensure a real newline.
+	input := "echo foo" + "\\" + "\n" + "bar"
+	tokens, err := SplitWith(input, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("bash line continuation outside: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestBashFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// bash: \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := SplitWith(input, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("bash line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}
+
+func TestBashFormat_LineContinuationCRLFInDoubleQuotes(t *testing.T) {
+	// bash: \<CR><LF> inside "..." is a line continuation — all three consumed.
+	input := "echo \"line1" + "\\" + "\r\n" + "line2\""
+	tokens, err := SplitWith(input, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("bash line continuation CRLF in double: Words = %v, want [echo line1line2]", words)
+	}
+}
+
+func TestBashFormat_LineContinuationAtWordStart(t *testing.T) {
+	// bash: \<newline> at start of word — word starts on next line.
+	input := "echo " + "\\" + "\n" + "bar"
+	tokens, err := SplitWith(input, BashFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "bar" {
+		t.Errorf("bash line continuation at word start: Words = %v, want [echo bar]", words)
+	}
+}

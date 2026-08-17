@@ -123,3 +123,29 @@ func TestZshFormat_FallthroughIsPipelineDelimiter(t *testing.T) {
 		t.Errorf("zsh ;&: Pipelines = %d, want 2", len(pipelines))
 	}
 }
+
+func TestZshFormat_LineContinuationOutsideQuotes(t *testing.T) {
+	// zsh: \<newline> outside quotes is a line continuation — both consumed.
+	input := "echo foo" + "\\" + "\n" + "bar"
+	tokens, err := SplitWith(input, ZshFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("zsh line continuation outside: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestZshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// zsh: \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := SplitWith(input, ZshFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("zsh line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}

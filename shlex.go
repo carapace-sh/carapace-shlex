@@ -704,6 +704,24 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				token.removeLastRaw()
 				return token, err
 			default:
+				// Check for line continuation (e.g. bash/fish \+newline inside "...")
+				if lc, ok := t.format.(LineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
+					// Consume optional \n after \r (without adding to RawValue)
+					if nextRune == '\r' {
+						peek2, _, peek2Err := t.ReadRune()
+						if peek2Err == nil && peek2 == '\n' {
+							// CRLF consumed
+						} else if peek2Err == nil {
+							t.UnreadRune()
+						}
+					}
+					// Line continuation: remove newline and escape char from RawValue
+					token.removeLastRaw() // remove newline (\n or \r)
+					token.removeLastRaw() // remove escape char
+					// Return to the normal double-quote state
+					t.state = QUOTING_ESCAPING_STATE
+					continue
+				}
 				t.state = QUOTING_ESCAPING_STATE
 				if unescaper, ok := t.format.(EscapingQuoteUnescaper); ok {
 					if replacement, handled := unescaper.EscapingQuoteUnescape(nextRune); handled {

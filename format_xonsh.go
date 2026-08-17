@@ -47,6 +47,13 @@ func (xonshFormat) QuoteWord(s string) string               { return xonshQuoteW
 func (xonshFormat) TripleQuoteSupport() bool                { return true }
 func (xonshFormat) RawPrefixSupport() bool                  { return true }
 
+// IsLineContinuation implements LineContinuationEscaper. Xonsh (Python)
+// treats backslash followed by \n or \r as a line continuation inside
+// string literals and outside quotes.
+func (xonshFormat) IsLineContinuation(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
 // xonshStreamRedirects maps the word portion of xonsh stream-redirect
 // operators (the part before > or <) to their WordbreakType. The PostProcess
 // step merges these with a following > or < wordbreak token.

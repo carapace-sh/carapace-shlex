@@ -103,12 +103,11 @@ type PostProcessor interface {
 // LineContinuationEscaper is an optional interface for formats where the
 // escape character followed by a newline (or carriage return) acts as a
 // line continuation — the escape+newline sequence is consumed and discarded,
-// NOT added to the word value. This matches PowerShell's backtick line
-// continuation behavior.
+// NOT added to the word value. This applies both outside quotes (ESCAPING_STATE)
+// and inside double quotes (ESCAPING_QUOTED_STATE).
 //
-// Without this interface, the ESCAPING_STATE handler always adds the
-// post-escape rune to the word value, which is correct for POSIX shells
-// where backslash-newline is handled differently.
+// Supported by: bash, zsh, tcsh, fish, xonsh (backslash+newline),
+// PowerShell (backtick+newline), cmd (caret+newline).
 type LineContinuationEscaper interface {
 	// IsLineContinuation returns true if the rune following the escape
 	// character should be treated as a line continuation. The parameter

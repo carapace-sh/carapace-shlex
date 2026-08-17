@@ -46,6 +46,13 @@ func (bashFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (bashFormat) TripleQuoteSupport() bool  { return false }
 func (bashFormat) RawPrefixSupport() bool    { return false }
 
+// IsLineContinuation implements LineContinuationEscaper. In POSIX shells,
+// backslash followed by \n or \r is a line continuation — both the backslash
+// and the newline are consumed (removed from the token value).
+func (bashFormat) IsLineContinuation(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
 // PostProcess reclassifies ( and ) as substitution delimiters and merges
 // $ + ( into a single opener token for POSIX command substitution.
 func (bashFormat) PostProcess(tokens TokenSlice) TokenSlice {

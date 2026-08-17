@@ -109,7 +109,7 @@ Zsh also shares `>|` (force output redirect) and `;;` (case terminator) with bas
 - **`FULL_QUOTING_*_STATE` quirk**: when a word both starts and ends with the same quote, zsh places the trailing space *inside* the quote. Carapace forces nospace in these states.
 - **`=(...)` process substitution**: `=` is a wordbreak (in `BASH_WORDBREAKS`) but classified as `WORDBREAK_UNKNOWN`, not a redirect.
 - **Glob qualifiers** `(...)` after a path: these are word breaks but not operators in the pipeline sense.
-- **Backslash-newline line continuation**: zsh consumes `\` + newline entirely (no character added). The lexer's `ESCAPING_STATE` adds the newline as a literal. Rare in single-line completion input.
+- **Backslash-newline line continuation**: zsh consumes `\` + newline entirely (no character added). The lexer handles this via `LineContinuationEscaper` — both the backslash and the newline are removed from the token value and RawValue. Applies both outside quotes and inside double quotes.
 - **`INTERACTIVECOMMENTS`**: `#` is only a comment in interactive mode when this option is set (on by default in modern zsh). The lexer always treats `#` as a comment.
 - **`CSHJUNKIEQUOTES`**: with this tcsh-compatibility option, newlines inside single quotes close the quote. Very niche, not handled.
 

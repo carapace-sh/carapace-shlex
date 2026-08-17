@@ -382,14 +382,15 @@ func TestFishFormat_DoubleQuoteNonEscapeBackslashOther(t *testing.T) {
 }
 
 func TestFishFormat_DoubleQuoteEscapedNewline(t *testing.T) {
-	// \<newline> is a line continuation escape inside fish double quotes
+	// \<newline> is a line continuation escape inside fish double quotes.
+	// Both the backslash and the newline are consumed (removed).
 	tokens, err := SplitWith("echo \"hello\\\nworld\"", FishFormat())
 	if err != nil {
 		t.Fatal(err)
 	}
 	words := tokens.Words().Strings()
-	if len(words) != 2 || words[1] != "hello\nworld" {
-		t.Errorf("fish \\<newline> in double: Words = %v, want [echo hello\\nworld]", words)
+	if len(words) != 2 || words[1] != "helloworld" {
+		t.Errorf("fish \\<newline> in double: Words = %v, want [echo helloworld]", words)
 	}
 }
 
@@ -432,5 +433,44 @@ func TestFishFormat_CompletionBackground(t *testing.T) {
 	}
 	if len(ctx.Words) != 3 {
 		t.Errorf("fish & completion: Words = %v, want 3 (echo bar hel)", ctx.Words)
+	}
+}
+
+func TestFishFormat_LineContinuationOutsideQuotes(t *testing.T) {
+	// fish: \<newline> outside quotes is a line continuation — both consumed.
+	input := "echo foo" + "\\" + "\n" + "bar"
+	tokens, err := SplitWith(input, FishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("fish line continuation outside: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestFishFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// fish: \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := SplitWith(input, FishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("fish line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}
+
+func TestFishFormat_LineContinuationCRLFInDoubleQuotes(t *testing.T) {
+	// fish: \<CR><LF> inside "..." is a line continuation — all three consumed.
+	input := "echo \"line1" + "\\" + "\r\n" + "line2\""
+	tokens, err := SplitWith(input, FishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("fish line continuation CRLF in double: Words = %v, want [echo line1line2]", words)
 	}
 }
