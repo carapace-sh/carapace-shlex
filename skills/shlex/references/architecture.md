@@ -302,6 +302,12 @@ For CRLF input, the `\r` is consumed and an optional following `\n` is also cons
 
 PowerShell and cmd implement the same interface for their escape characters (backtick and caret respectively).
 
+### Line continuation whitespace (`^<newline>` in elvish)
+
+Elvish uses `^` (not `\`) followed by newline as a line continuation. Unlike `LineContinuationEscaper` (which concatenates the word across lines), elvish's `^<newline>` acts as **whitespace** — it ends the current word and the next word starts on the next line. The `LineContinuationWhitespace` interface handles this: when the line-continuation char is seen in `IN_WORD_STATE` or `START_STATE`, the tokenizer peeks ahead. If the next rune is `\n` or `\r`, both the char and newline are consumed and the current word ends (like a space). `^` without a following newline is a regular bareword character.
+
+Supported by: elvish only.
+
 ### EscapeNotBareword (`\` as bareword)
 
 When `EscapeNotBareword()` returns false, the `START_STATE` and `IN_WORD_STATE` handlers treat `\` as a regular word character instead of entering `ESCAPING_STATE`. The `\` still works as an escape inside double quotes (`QUOTING_ESCAPING_STATE`).

@@ -115,6 +115,23 @@ type LineContinuationEscaper interface {
 	IsLineContinuation(r rune) bool
 }
 
+// LineContinuationWhitespace is an optional interface for formats where
+// a specific non-escape character followed by a newline acts as whitespace
+// (a word break) rather than a concatenation. This differs from
+// LineContinuationEscaper: that interface consumes escape+newline and
+// concatenates the word; this interface consumes char+newline and breaks
+// the word (like a space).
+//
+// Supported by: elvish (^+newline).
+type LineContinuationWhitespace interface {
+	// LineContinuationChar returns the rune that, when followed by \n or \r,
+	// acts as whitespace. Returns 0 if not supported.
+	LineContinuationChar() rune
+	// IsLineContinuationWhitespace returns true if the rune following the
+	// line-continuation character should be treated as whitespace.
+	IsLineContinuationWhitespace(r rune) bool
+}
+
 // BlockCommenter is an optional interface for formats that support
 // multi-line block comments (e.g. PowerShell's <# ... #>). When the
 // tokenizer encounters the blockCommentOpener runes at a word boundary,

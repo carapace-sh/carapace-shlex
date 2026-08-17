@@ -168,7 +168,7 @@ Notably, elvish's own `completeCommand` completer (line 68-73 of `completers.go`
 - **No `COMP_WORDBREAKS`**: elvish has no equivalent env var.
 - **QuoteWord**: elvish uses single-quote wrapping with `''` for literal `'` in `JoinWith`.
 - **Brace/lambda context**: `{` and `}` are not wordbreak runes. `|` inside braces is a lambda parameter delimiter, not a pipe. The `PostProcess` post-pass reclassifies these — see [Lambdas and Brace Context](#lambdas-and-brace-context) above.
-- **`^` line continuation**: elvish uses `^` followed by newline as line continuation (like `\` + newline in bash). The lexer currently treats `^` as a regular word character. This only affects multi-line input; single-line completion input is unaffected. Not yet handled.
+- **`^` line continuation**: elvish uses `^` followed by newline as line continuation. Unlike bash's `\<newline>` which concatenates, elvish's `^<newline>` acts as **whitespace** (a word break) — `foo^\nbar` produces two words `foo` and `bar`, not one word `foobar`. The lexer handles this via the `LineContinuationWhitespace` interface: when `^` is followed by `\n` or `\r\n`, both the `^` and newline are consumed and the current word ends (like a space). `^` without a following newline is a regular bareword character.
 - **Metacharacters not in wordbreaks**: `$`, `*`, `?`, `~`, `&`, `=`, `,` are metacharacters in elvish's grammar but are correctly treated as word characters by the lexer (they compound with adjacent text without breaking words). `$` starts a variable use, `*`/`?` are wildcards, `~` is tilde expansion, `&` introduces map pairs/options, `=` terminates map keys, `,` separates braced list elements — none of these cause word breaks in practice.
 
 ## References

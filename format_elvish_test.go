@@ -526,3 +526,55 @@ func TestElvishFormat_ClosedLambdaCompletion(t *testing.T) {
 		t.Errorf("closed lambda completion: CurrentWord = %q, want %q", ctx.CurrentWord, "foo")
 	}
 }
+
+func TestElvishFormat_CaretLineContinuation(t *testing.T) {
+	// elvish: ^<newline> is whitespace (word break) — like a space.
+	// foo^\nbar → foo bar (two words)
+	input := "echo foo" + "^" + "\n" + "bar"
+	tokens, err := SplitWith(input, ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "echo" || words[1] != "foo" || words[2] != "bar" {
+		t.Errorf("elvish ^<newline>: Words = %v, want [echo foo bar]", words)
+	}
+}
+
+func TestElvishFormat_CaretLineContinuationCRLF(t *testing.T) {
+	// elvish: ^<CR><LF> is whitespace (word break)
+	input := "echo foo" + "^" + "\r\n" + "bar"
+	tokens, err := SplitWith(input, ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "echo" || words[1] != "foo" || words[2] != "bar" {
+		t.Errorf("elvish ^<CRLF>: Words = %v, want [echo foo bar]", words)
+	}
+}
+
+func TestElvishFormat_CaretAloneIsBareword(t *testing.T) {
+	// elvish: ^ without a following newline is a regular bareword character
+	tokens, err := SplitWith("echo foo^bar", ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foo^bar" {
+		t.Errorf("elvish ^ bareword: Words = %v, want [echo foo^bar]", words)
+	}
+}
+
+func TestElvishFormat_CaretNewlineAtWordStart(t *testing.T) {
+	// elvish: ^<newline> at start of word — pure whitespace
+	input := "echo " + "^" + "\n" + "bar"
+	tokens, err := SplitWith(input, ElvishFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "bar" {
+		t.Errorf("elvish ^<newline> at word start: Words = %v, want [echo bar]", words)
+	}
+}

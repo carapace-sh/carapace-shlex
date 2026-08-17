@@ -519,6 +519,26 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					token.add(nextRune)
 					t.state = WORDBREAK_STATE
 				default:
+					// Check for line-continuation whitespace (e.g. elvish ^+newline)
+					if lcw, ok := t.format.(LineContinuationWhitespace); ok && nextRune == lcw.LineContinuationChar() {
+						peekRune, _, peekErr := t.ReadRune()
+						if peekErr == nil && lcw.IsLineContinuationWhitespace(peekRune) {
+							if peekRune == '\r' {
+								peek2, _, peek2Err := t.ReadRune()
+								if peek2Err == nil && peek2 == '\n' {
+									// CRLF consumed
+								} else if peek2Err == nil {
+									t.UnreadRune()
+								}
+							}
+							// ^+newline at word start: pure whitespace, stay in START_STATE
+							token.removeLastRaw() // remove the ^ char
+							continue
+						}
+						if peekErr == nil {
+							t.UnreadRune()
+						}
+					}
 					token.Type = WORD_TOKEN
 					token.add(nextRune)
 					t.state = IN_WORD_STATE
@@ -664,6 +684,28 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					token.add(nextRune) // elvish: \ is a bareword char
 				}
 			default:
+				// Check for line-continuation whitespace (e.g. elvish ^+newline)
+				if lcw, ok := t.format.(LineContinuationWhitespace); ok && nextRune == lcw.LineContinuationChar() {
+					peekRune, _, peekErr := t.ReadRune()
+					if peekErr == nil && lcw.IsLineContinuationWhitespace(peekRune) {
+						// Consume optional \n after \r
+						if peekRune == '\r' {
+							peek2, _, peek2Err := t.ReadRune()
+							if peek2Err == nil && peek2 == '\n' {
+								// CRLF consumed
+							} else if peek2Err == nil {
+								t.UnreadRune()
+							}
+						}
+						// ^+newline acts as whitespace: end the current word
+						token.removeLastRaw() // remove the ^ char
+						t.UnreadRune()
+						return token, err
+					}
+					if peekErr == nil {
+						t.UnreadRune()
+					}
+				}
 				token.add(nextRune)
 			}
 		case ESCAPING_STATE: // the rune after an escape character
