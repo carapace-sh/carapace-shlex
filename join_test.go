@@ -41,9 +41,24 @@ func TestJoinWith_Fish(t *testing.T) {
 
 func TestJoinWith_Elvish(t *testing.T) {
 	tests := map[string][]string{
+		`echo ''`:            {"echo", ""},
 		`echo hello`:         {"echo", "hello"},
 		`echo 'hello world'`: {"echo", "hello world"},
 		`echo 'it''s'`:       {"echo", "it's"},
+		`echo C:\path`:       {"echo", `C:\path`},
+		`echo 'say "hi"'`:    {"echo", `say "hi"`},
+		`echo '$var'`:        {"echo", "$var"},
+		`echo '*glob'`:       {"echo", "*glob"},
+		`echo '|pipe'`:       {"echo", "|pipe"},
+		`echo ';semi'`:       {"echo", ";semi"},
+		`echo '(cap'`:        {"echo", "(cap"},
+		`echo '[list'`:       {"echo", "[list"},
+		`echo '{brace'`:      {"echo", "{brace"},
+		`echo '&amp'`:        {"echo", "&amp"},
+		`echo '#comment'`:    {"echo", "#comment"},
+		`echo 'a=b'`:         {"echo", "a=b"},
+		`echo 'a,b'`:         {"echo", "a,b"},
+		`echo a~b`:           {"echo", "a~b"},
 	}
 	for expected, words := range tests {
 		if actual := JoinWith(words, ElvishFormat()); actual != expected {

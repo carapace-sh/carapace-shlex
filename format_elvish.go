@@ -12,8 +12,8 @@ func ElvishFormat() Format { return elvishFormat{} }
 
 func (elvishFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)
-	// Elvish operators: |, >, <, >>, >>?, <>>, ;
-	// No &, &&, || — & is for map literals
+	// Elvish operators: |, >, <, >>, <>, ;
+	// No &, &&, || — & is for map literals and background pipelines
 	// ( and ) are output-capture delimiters (always word breaks)
 	// [ and ] are list-literal/indexing delimiters (word break at word start,
 	// but not when following a word char for indexing — handled in PostProcess)
@@ -25,7 +25,7 @@ func (elvishFormat) ClassifyOperator(raw string) WordbreakType {
 	switch raw {
 	case "|":
 		return WORDBREAK_PIPE
-	case ">", ">>", ">>?", "<>", "<":
+	case ">", ">>", "<>", "<":
 		return WORDBREAK_REDIRECT_OUTPUT // simplified; elvish redirects
 	case ";":
 		return WORDBREAK_LIST_SEQUENTIAL

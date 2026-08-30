@@ -1,6 +1,9 @@
 package shlex
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // posixQuoteWord quotes a word for POSIX shells (bash, zsh, oil, tcsh).
 // Uses double-quote wrapping with escape sequences for $, `, ", \, and
@@ -68,12 +71,14 @@ func fishQuoteWord(s string) string {
 }
 
 // elvishQuoteWord quotes a word for elvish.
-// Elvish single quotes: ” → literal '. No escapes inside single quotes.
+// Elvish barewords allow: letters, digits, -_:~./\@%+! and non-ASCII printable.
+// Single quotes: two consecutive single-quote chars produce one literal quote.
+// Empty string uses single-quoted empty (matching elvish Quote).
 func elvishQuoteWord(s string) string {
 	if s == "" {
-		return `""`
+		return `''`
 	}
-	if !strings.ContainsAny(s, "'\" \t\r\n") {
+	if isElvishBareword(s) {
 		return s
 	}
 	var b strings.Builder
@@ -87,6 +92,39 @@ func elvishQuoteWord(s string) string {
 	}
 	b.WriteByte('\'')
 	return b.String()
+}
+
+// isElvishBareword reports whether s is a valid elvish bareword (strict context).
+// Matches elvish's allowedInBareword with strictExpr context: = and , are
+// not allowed, and <>*^ are not allowed (those are CmdExpr-only).
+func isElvishBareword(s string) bool {
+	if s[0] == '~' {
+		return false
+	}
+	for _, r := range s {
+		if !isElvishBarewordRune(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// isElvishBarewordRune reports whether r is allowed in an elvish bareword
+// in strict expression context.
+func isElvishBarewordRune(r rune) bool {
+	return isElvishVariableNameRune(r) ||
+		r == '.' || r == '/' || r == '\\' || r == '@' ||
+		r == '%' || r == '+' || r == '!'
+}
+
+// isElvishVariableNameRune reports whether r is allowed in an elvish
+// variable name (also the base for bareword characters).
+func isElvishVariableNameRune(r rune) bool {
+	return r >= 0x80 && unicode.IsPrint(r) ||
+		'0' <= r && r <= '9' ||
+		'a' <= r && r <= 'z' ||
+		'A' <= r && r <= 'Z' ||
+		r == '-' || r == '_' || r == ':' || r == '~'
 }
 
 // nushellQuoteWord quotes a word for nushell.
