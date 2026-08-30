@@ -39,8 +39,10 @@ func (fishFormat) ClassifyOperator(raw string) WordbreakType {
 		return WORDBREAK_LIST_OR
 	case "&":
 		return WORDBREAK_LIST_ASYNC
-	case ">", ">>", ">>?", ">?":
+	case ">", ">?":
 		return WORDBREAK_REDIRECT_OUTPUT
+	case ">>", ">>?":
+		return WORDBREAK_REDIRECT_OUTPUT_APPEND
 	case "&>", "&>?":
 		return WORDBREAK_REDIRECT_OUTPUT_BOTH
 	case "&>>", "&>>?":
