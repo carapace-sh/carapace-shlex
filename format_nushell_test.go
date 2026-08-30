@@ -360,3 +360,167 @@ func TestNushellFormat_QuotedStreamWordNotMerged(t *testing.T) {
 		})
 	}
 }
+
+// --- Backslash outside quotes (bareword) tests ---
+
+func TestNushellFormat_BackslashBareword(t *testing.T) {
+	// Nushell: backslash outside quotes is a regular word character, not an escape.
+	// foo\bar should be a single word.
+	tokens, err := SplitWith(`echo foo\bar`, NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != `foo\bar` {
+		t.Errorf("nushell backslash bareword: Words = %v, want [echo foo\\bar]", words)
+	}
+}
+
+func TestNushellFormat_BackslashSpaceNotEscape(t *testing.T) {
+	// foo\ bar should be two words: foo\ and bar (backslash doesn't escape space)
+	tokens, err := SplitWith(`echo foo\ bar`, NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "echo" || words[1] != `foo\` || words[2] != "bar" {
+		t.Errorf("nushell backslash-space: Words = %v, want [echo foo\\ bar]", words)
+	}
+}
+
+// --- < not a wordbreak test ---
+
+func TestNushellFormat_LessThanNotWordbreak(t *testing.T) {
+	// Nushell does not support input redirection with <.
+	// foo<bar should be a single word (comparison operator context).
+	tokens, err := SplitWith("echo foo<bar", NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "foo<bar" {
+		t.Errorf("nushell < not wordbreak: Words = %v, want [echo foo<bar]", words)
+	}
+}
+
+// --- Additional stream redirect alias tests ---
+
+func TestNushellFormat_StreamRedirect_ErrOut(t *testing.T) {
+	tokens, err := SplitWith("cat foo err+out> bar", NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	filtered := tokens.CurrentPipeline().FilterRedirects()
+	words := filtered.Words().Strings()
+	if len(words) != 2 || words[0] != "cat" || words[1] != "foo" {
+		t.Errorf("nushell err+out>: Words = %v, want [cat foo]", words)
+	}
+}
+
+func TestNushellFormat_StreamRedirect_EO(t *testing.T) {
+	tokens, err := SplitWith("cat foo e+o> bar", NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	filtered := tokens.CurrentPipeline().FilterRedirects()
+	words := filtered.Words().Strings()
+	if len(words) != 2 || words[0] != "cat" || words[1] != "foo" {
+		t.Errorf("nushell e+o>: Words = %v, want [cat foo]", words)
+	}
+}
+
+// --- Append redirect classification tests ---
+
+func TestNushellFormat_AppendRedirect(t *testing.T) {
+	// >> alone should be WORDBREAK_REDIRECT_OUTPUT_APPEND
+	tokens, err := SplitWith("echo foo >> bar", NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	filtered := tokens.CurrentPipeline().FilterRedirects()
+	words := filtered.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "foo" {
+		t.Errorf("nushell >>: Words = %v, want [echo foo]", words)
+	}
+}
+
+func TestNushellFormat_StreamRedirectAppendBoth(t *testing.T) {
+	// out+err>> and o+e>> should be append-both redirects
+	for _, input := range []string{
+		"cat foo out+err>> bar",
+		"cat foo o+e>> bar",
+		"cat foo err+out>> bar",
+		"cat foo e+o>> bar",
+	} {
+		t.Run(input, func(t *testing.T) {
+			tokens, err := SplitWith(input, NushellFormat())
+			if err != nil {
+				t.Fatal(err)
+			}
+			filtered := tokens.CurrentPipeline().FilterRedirects()
+			words := filtered.Words().Strings()
+			if len(words) != 2 || words[0] != "cat" || words[1] != "foo" {
+				t.Errorf("Words = %v, want [cat foo]", words)
+			}
+		})
+	}
+}
+
+// --- Pipe variant classification tests ---
+
+func TestNushellFormat_StreamPipe_OutPipeIsPlainPipe(t *testing.T) {
+	// out>| in nushell is a plain Pipe (stdout to pipe = normal piping)
+	tokens, err := SplitWith("echo foo out>| bar", NushellFormat())
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.Pipelines()
+	if len(pipelines) != 2 {
+		t.Errorf("nushell out>|: %d pipelines, want 2", len(pipelines))
+	}
+}
+
+func TestNushellFormat_StreamPipe_AllPipeVariants(t *testing.T) {
+	// All pipe variants should split into 2 pipelines
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"err_pipe", "cat foo err>| bar"},
+		{"e_pipe", "cat foo e>| bar"},
+		{"oe_pipe", "cat foo o+e>| bar"},
+		{"eo_pipe", "cat foo e+o>| bar"},
+		{"errout_pipe", "cat foo err+out>| bar"},
+		{"outerr_pipe", "cat foo out+err>| bar"},
+		{"out_pipe", "cat foo out>| bar"},
+		{"o_pipe", "cat foo o>| bar"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tokens, err := SplitWith(tc.input, NushellFormat())
+			if err != nil {
+				t.Fatal(err)
+			}
+			pipelines := tokens.Pipelines()
+			if len(pipelines) != 2 {
+				t.Errorf("%s: %d pipelines, want 2", tc.name, len(pipelines))
+			}
+		})
+	}
+}
+
+// --- Completion context redirect detection ---
+
+func TestNushellFormat_CompletionRedirectAfterErr(t *testing.T) {
+	ctx := SplitForCompletion("cat foo err> ", NushellFormat())
+	if !ctx.IsRedirect {
+		t.Errorf("nushell err> completion: IsRedirect = false, want true")
+	}
+}
+
+func TestNushellFormat_CompletionRedirectAfterOutAppend(t *testing.T) {
+	ctx := SplitForCompletion("cat foo out>> ", NushellFormat())
+	if !ctx.IsRedirect {
+		t.Errorf("nushell out>> completion: IsRedirect = false, want true")
+	}
+}
