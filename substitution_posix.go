@@ -63,9 +63,11 @@ func posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice {
 			}
 		}
 
-		// Detect process substitution: <( or >( — merge redirect operator + ( into opener
+		// Detect process substitution: <(, >(, or >>( — merge redirect
+		// operator + ( into opener. Only single-char redirect values
+		// (<, >) or append (>>) qualify for process substitution.
 		if t.Type == WORDBREAK_TOKEN && t.WordbreakType.IsRedirect() &&
-			(t.Value == "<" || t.Value == ">") && i+1 < len(tokens) {
+			(t.Value == "<" || t.Value == ">" || t.Value == ">>") && i+1 < len(tokens) {
 			next := tokens[i+1]
 			if next.Type == WORDBREAK_TOKEN && next.Value == "(" && t.adjoins(next) {
 				merged := Token{
@@ -102,13 +104,15 @@ func posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice {
 
 		// Reclassify ) as WORDBREAK_SUBSTITUTION_CLOSE
 		if t.Type == WORDBREAK_TOKEN && t.Value == ")" {
-			if arithmeticDepth > 0 && depth == arithmeticDepth {
-				// This ) closes the arithmetic part of $((
-				// but we need two ) to fully close $((...))
-				// Check if the next token is also )
+			// When arithmetic is open, try to merge two adjacent ) into ))
+			// to close the arithmetic scope $((...)). We don't require
+			// depth == arithmeticDepth because a command substitution
+			// like $(echo $((1+2)) has depth=2 but arith=1 at the ),
+			// and the two ) are still adjacent.
+			if arithmeticDepth > 0 {
 				if i+1 < len(tokens) && tokens[i+1].Type == WORDBREAK_TOKEN &&
 					tokens[i+1].Value == ")" && t.adjoins(tokens[i+1]) {
-					// Merge both ) into a single closer
+					// Merge both ) into a single closer for arithmetic
 					merged := Token{
 						Type:          WORDBREAK_TOKEN,
 						Value:         "))",
@@ -123,21 +127,8 @@ func posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice {
 					i += 2
 					continue
 				}
-				// Single ) when arithmetic expected — treat as close
-				merged := Token{
-					Type:          t.Type,
-					Value:         t.Value,
-					RawValue:      t.RawValue,
-					Span:          t.Span,
-					State:         t.State,
-					WordbreakType: WORDBREAK_SUBSTITUTION_CLOSE,
-				}
-				result = append(result, merged)
-				depth--
-				arithmeticDepth--
-				i++
-				continue
 			}
+			// Regular close — decrement depth only (clamped at 0)
 			merged := Token{
 				Type:          t.Type,
 				Value:         t.Value,
@@ -147,7 +138,9 @@ func posixSubstitutionPostProcess(tokens TokenSlice) TokenSlice {
 				WordbreakType: WORDBREAK_SUBSTITUTION_CLOSE,
 			}
 			result = append(result, merged)
-			depth--
+			if depth > 0 {
+				depth--
+			}
 			i++
 			continue
 		}

@@ -25,7 +25,9 @@ func (t TokenSlice) Pipelines() []TokenSlice {
 			depth++
 			pipeline = append(pipeline, token)
 		case token.WordbreakType == WORDBREAK_SUBSTITUTION_CLOSE:
-			depth--
+			if depth > 0 {
+				depth--
+			}
 			pipeline = append(pipeline, token)
 		case depth > 0:
 			pipeline = append(pipeline, token)
@@ -215,13 +217,14 @@ func (t TokenSlice) WordbreakPrefix() string {
 
 		if !found && token.Type == WORDBREAK_TOKEN {
 			found = true
-			if token.Value == "@" {
-				// Seems although `@` is a wordbreak, it weirdly is not part of the prefix.
-				continue
-			}
 		}
 
 		if found {
+			if token.Type == WORDBREAK_TOKEN && token.Value == "@" {
+				// @ is a wordbreak but is not part of the prefix
+				// (matches bash readline behavior)
+				continue
+			}
 			prefix = token.Value + prefix
 		}
 	}
