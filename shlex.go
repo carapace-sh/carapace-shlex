@@ -286,15 +286,21 @@ func (t *tokenizer) checkRawPrefix(token *Token) bool {
 	if len(val) == 0 {
 		return false
 	}
-	// Check that all chars in Value are valid string prefix chars
+	// Check that all chars are valid string prefix chars with no duplicates
+	// (case-insensitive). Python allows at most one of each prefix type.
+	seen := make(map[byte]bool)
 	for i := 0; i < len(val); i++ {
+		c := lowerByte(val[i])
 		if !isStringPrefixChar(val[i]) {
 			return false
 		}
+		if seen[c] {
+			return false
+		}
+		seen[c] = true
 	}
-	// Must end with r or R
-	last := val[len(val)-1]
-	return last == 'r' || last == 'R'
+	// Must contain r or R (can be anywhere in the prefix, e.g. rb, rf)
+	return containsRawChar(val)
 }
 
 // isStringPrefixChar returns true for characters valid in Python string
@@ -303,6 +309,22 @@ func isStringPrefixChar(c byte) bool {
 	switch c {
 	case 'b', 'B', 'p', 'P', 'r', 'R', 'u', 'U', 'f', 'F':
 		return true
+	}
+	return false
+}
+
+func lowerByte(c byte) byte {
+	if c >= 'A' && c <= 'Z' {
+		return c + 32
+	}
+	return c
+}
+
+func containsRawChar(val string) bool {
+	for i := 0; i < len(val); i++ {
+		if val[i] == 'r' || val[i] == 'R' {
+			return true
+		}
 	}
 	return false
 }

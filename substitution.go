@@ -6,7 +6,7 @@ package shlex
 // command scopes — they don't produce an inner completion context.
 func innermostUnclosedCommandScope(tokens TokenSlice) int {
 	depth := 0
-	lastOpen := -1
+	var openStack []int
 
 	for i, t := range tokens {
 		switch t.WordbreakType {
@@ -15,20 +15,20 @@ func innermostUnclosedCommandScope(tokens TokenSlice) int {
 				continue
 			}
 			depth++
-			lastOpen = i
+			openStack = append(openStack, i)
 		case WORDBREAK_SUBSTITUTION_CLOSE:
 			if isArithmeticCloser(t) {
 				continue
 			}
-			depth--
-			if depth == 0 {
-				lastOpen = -1
+			if depth > 0 {
+				depth--
+				openStack = openStack[:len(openStack)-1]
 			}
 		}
 	}
 
-	if depth > 0 {
-		return lastOpen
+	if depth > 0 && len(openStack) > 0 {
+		return openStack[len(openStack)-1]
 	}
 	return -1
 }
@@ -56,7 +56,9 @@ func countUnclosedCommandScopes(tokens TokenSlice) int {
 			if isArithmeticCloser(t) {
 				continue
 			}
-			depth--
+			if depth > 0 {
+				depth--
+			}
 		}
 	}
 	if depth > 0 {
