@@ -217,14 +217,14 @@ func (t TokenSlice) WordbreakPrefix() string {
 
 		if !found && token.Type == WORDBREAK_TOKEN {
 			found = true
-		}
-
-		if found {
-			if token.Type == WORDBREAK_TOKEN && token.Value == "@" {
+			if token.Value == "@" {
 				// @ is a wordbreak but is not part of the prefix
 				// (matches bash readline behavior)
 				continue
 			}
+		}
+
+		if found {
 			prefix = token.Value + prefix
 		}
 	}
