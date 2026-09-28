@@ -40,32 +40,61 @@ type NaiveWordSplitter interface {
 // posixVariableRef detects a variable reference ending the given word using
 // POSIX expansion rules: `$name` and `${name`, backslash escapes, and no
 // expansion inside single quotes.
+// posixVariableRef detects a variable reference ending the given word using
+// POSIX expansion rules: `$name` and `${name`, backslash escapes, and no
+// expansion inside single quotes.
+//
+// The word is parsed left to right so a `$` consumed as the special
+// character of a preceding parameter is not mistaken for an opener
+// (`$$` is the PID parameter, while `$$$HO` still opens `$HO`).
 func posixVariableRef(word Token) (VariableRef, bool) {
 	if word.State == QUOTING_STATE { // single quotes: `$` is literal
 		return VariableRef{}, false
 	}
 
 	runes := []rune(word.RawValue)
-	i := -1
-	for j := len(runes) - 1; j >= 0; j-- {
-		if runes[j] == '$' {
-			i = j
+	opener := -1
+	for i := 0; i < len(runes); i++ {
+		if runes[i] != '$' {
+			continue
+		}
+		escaped := false
+		for k := i; k > 0 && runes[k-1] == '\\'; k-- {
+			escaped = !escaped
+		}
+		if escaped {
+			continue
+		}
+		if i == len(runes)-1 { // trailing sigil
+			opener = i
 			break
 		}
+		switch next := runes[i+1]; {
+		case next == '{':
+			if end := closedBraceEnd(runes, i+1); end >= 0 {
+				i = end
+				continue
+			}
+			opener = i // unclosed brace: the rest is the name region
+			i = len(runes)
+		case isPosixNameRune(next):
+			j := i + 1
+			for j < len(runes) && isPosixNameRune(runes[j]) {
+				j++
+			}
+			if j == len(runes) { // name runs to the end: trailing opener
+				opener = i
+			}
+			i = j - 1
+		default:
+			i++ // special parameter: consume `$` and its character
+		}
 	}
-	if i < 0 {
+	if opener < 0 {
 		return VariableRef{}, false
 	}
 
-	escaped := false
-	for k := i; k > 0 && runes[k-1] == '\\'; k-- {
-		escaped = !escaped
-	}
-	if escaped {
-		return VariableRef{}, false
-	}
-
-	rest := runes[i+1:]
+	rest := runes[opener+1:]
 	brace := len(rest) > 0 && rest[0] == '{'
 	if brace {
 		rest = rest[1:]
@@ -77,7 +106,7 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 	}
 
 	span := word.Span
-	start := span.Start + i
+	start := span.Start + opener
 	end := start + 1
 	if brace {
 		end++
@@ -87,6 +116,17 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 		Brace: brace,
 		Span:  Span{Start: start, End: end},
 	}, true
+}
+
+// closedBraceEnd returns the index of the `}` closing the brace expansion
+// whose `{` is at index start, or -1 when unclosed.
+func closedBraceEnd(runes []rune, start int) int {
+	for i := start + 1; i < len(runes); i++ {
+		if runes[i] == '}' {
+			return i
+		}
+	}
+	return -1
 }
 
 func isPosixNameRune(r rune) bool {

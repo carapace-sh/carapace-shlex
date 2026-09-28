@@ -133,6 +133,8 @@ echo "a$          → Name=""            (empty name prefix is valid)
 echo \$HO         → not a ref          (escaped)
 echo "\\$HO"      → Name=HO            (escaped backslash, real ref)
 echo $(           → not a ref          (command substitution)
+echo $$           → not a ref          (PID parameter, trailing `$` is not an opener)
+echo $$$HO        → Name=HO            (`$$` consumed, then a real reference)
 echo a$-x         → not a ref          (invalid name char)
 fish: echo ${     → not a ref          (fish has no brace form)
 ```
@@ -170,6 +172,13 @@ Implemented on `feat/variable-ref-completion`:
 - `CompletionContext` gains `VariableRef *VariableRef` and
   `RawReplacementWord string`, both resolved in
   `buildCompletionContext(tokens, format)`.
+- Opener detection parses the word left to right instead of just taking the
+  last `$`: a `$` consumed as the special character of a preceding parameter
+  must not open a new reference (`echo $$` is the PID parameter, not a
+  completion point), while `echo $$$HO` still opens `$HO` after the `$$`.
+  Bare names running to the end of the word and unclosed `${` count as
+  trailing openers; closed expansions (`${HOME}`) and `$<special-char>`
+  pairs do not.
 
 Decisions on the open questions above:
 
@@ -178,9 +187,10 @@ Decisions on the open questions above:
    plain struct with no format plumbing.
 2. **Layer 2 is a field**, filled via the `NaiveWordSplitter` optional
    interface (`bashFormat.NaiveSplitWord` splits on the classifier's
-   space/wordbreak/quote/comment classes, escape character excluded,
-   honoring `COMP_WORDBREAKS`); formats without a naive word interface
-   keep the whole `RawCurrentWord`.
+   space/wordbreak/quote classes, escape and comment characters excluded
+   (the classifier marks `#` unconditionally, but bash only starts a
+   comment at a word boundary), honoring `COMP_WORDBREAKS`); formats
+   without a naive word interface keep the whole `RawCurrentWord`.
 3. **tcsh deferred**, as planned.
 
 Consumer composition for bash-style insertion: strip `VariableRef.Name`

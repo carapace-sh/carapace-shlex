@@ -81,6 +81,22 @@ func TestVariableRef(t *testing.T) {
 			name: "hash mid-word", input: "echo a#c$HO",
 			format: BashFormat(), wantName: "HO", wantRef: true,
 		},
+		{
+			name: "pid parameter is not a reference", input: "echo $$",
+			format: BashFormat(),
+		},
+		{
+			name: "pid parameter mid-word is not a reference", input: "echo a$$",
+			format: BashFormat(),
+		},
+		{
+			name: "pid parameter then reference", input: "echo $$$HO",
+			format: BashFormat(), wantName: "HO", wantRef: true,
+		},
+		{
+			name: "closed brace then reference", input: `echo ${HO}x$NE`,
+			format: BashFormat(), wantName: "NE", wantRef: true,
+		},
 	}
 
 	for _, tt := range tests {
