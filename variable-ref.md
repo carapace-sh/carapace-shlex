@@ -155,3 +155,34 @@ bash insertion prefix from `RawReplacementWord()`.
    per-format difference from consumers.
 3. tcsh: `COMMAND_LINE`-based interface — naive-split rules differ again;
    defer until a tcsh consumer needs it.
+
+## Implementation notes
+
+Implemented on `feat/variable-ref-completion`:
+
+- `variable.go` — `VariableRef` (`Name`, `Brace`, `Span`), the optional
+  `VariableExpander` and `NaiveWordSplitter` format interfaces, and the
+  shared `posixVariableRef` / `naiveSplitWord` helpers.
+- `bashFormat` implements both; `zshFormat` implements `VariableExpander`
+  only. fish, nushell, elvish, xonsh, oil, tcsh, cmd, powershell do not
+  implement the interfaces yet (their expansion rules need per-format
+  name-character and sigil decisions).
+- `CompletionContext` gains `VariableRef *VariableRef` and
+  `RawReplacementWord string`, both resolved in
+  `buildCompletionContext(tokens, format)`.
+
+Decisions on the open questions above:
+
+1. **Field, not method.** `VariableRef` and `RawReplacementWord` are
+   resolved once during `buildCompletionContext`; the context stays a
+   plain struct with no format plumbing.
+2. **Layer 2 is a field**, filled via the `NaiveWordSplitter` optional
+   interface (`bashFormat.NaiveSplitWord` splits on the classifier's
+   space/wordbreak/quote/comment classes, escape character excluded,
+   honoring `COMP_WORDBREAKS`); formats without a naive word interface
+   keep the whole `RawCurrentWord`.
+3. **tcsh deferred**, as planned.
+
+Consumer composition for bash-style insertion: strip `VariableRef.Name`
+from the end of `RawReplacementWord` and append the completed name
+(`"text$HO` → `text$` + `HOME`).
