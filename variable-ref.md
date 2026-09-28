@@ -136,6 +136,8 @@ echo $(           → not a ref          (command substitution)
 echo $$           → not a ref          (PID parameter, trailing `$` is not an opener)
 echo $$$HO        → Name=HO            (`$$` consumed, then a real reference)
 echo a$-x         → not a ref          (invalid name char)
+echo $1           → not a ref          (positional parameter: names cannot start with a digit)
+echo $9x          → not a ref          (`$9` positional plus literal `x`)
 fish: echo ${     → not a ref          (fish has no brace form)
 ```
 
@@ -178,7 +180,9 @@ Implemented on `feat/variable-ref-completion`:
   completion point), while `echo $$$HO` still opens `$HO` after the `$$`.
   Bare names running to the end of the word and unclosed `${` count as
   trailing openers; closed expansions (`${HOME}`) and `$<special-char>`
-  pairs do not.
+  pairs do not. Digit-leading names are rejected the same way (`$1x` is
+  the positional parameter `$1` plus a literal `x`): POSIX names cannot
+  start with a digit.
 
 Decisions on the open questions above:
 

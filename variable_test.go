@@ -10,16 +10,19 @@ func TestVariableRef(t *testing.T) {
 		wantName  string
 		wantBrace bool
 		wantRef   bool
+		wantSpan  bool
+		wantStart int // rune offset of the opener in the input
+		wantEnd   int
 	}{
 		{name: "empty input", input: "", format: BashFormat()},
 		{name: "no dollar", input: "echo text", format: BashFormat()},
 		{name: "dollar only", input: "echo $", format: BashFormat(), wantName: "", wantRef: true},
-		{name: "dollar with name", input: "echo $HO", format: BashFormat(), wantName: "HO", wantRef: true},
+		{name: "dollar with name", input: "echo $HO", format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 6},
 		{name: "brace only", input: "echo ${", format: BashFormat(), wantName: "", wantBrace: true, wantRef: true},
-		{name: "brace with name", input: "echo ${HO", format: BashFormat(), wantName: "HO", wantBrace: true, wantRef: true},
+		{name: "brace with name", input: "echo ${HO", format: BashFormat(), wantName: "HO", wantBrace: true, wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 7},
 		{
 			name: "quoted text then dollar", input: `echo "text$HO`,
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 10, wantEnd: 11,
 		},
 		{
 			name: "quoted text then brace", input: `echo "test${`,
@@ -73,7 +76,31 @@ func TestVariableRef(t *testing.T) {
 		},
 		{
 			name: "redirect target", input: "echo >$HO",
+			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 6, wantEnd: 7,
+		},
+		{
+			name: "pid parameter then reference", input: "echo $$$HO",
+			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 7, wantEnd: 8,
+		},
+		{
+			name: "positional parameter", input: "echo $1",
+			format: BashFormat(),
+		},
+		{
+			name: "positional parameter plus literal", input: "echo $9x",
+			format: BashFormat(),
+		},
+		{
+			name: "brace positional parameter", input: "echo ${1",
+			format: BashFormat(),
+		},
+		{
+			name: "positional parameter then reference", input: "echo $1x$HO",
 			format: BashFormat(), wantName: "HO", wantRef: true,
+		},
+		{
+			name: "inside substitution uses absolute span", input: "echo $(echo $HO",
+			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 12, wantEnd: 13,
 		},
 		{
 			// `#` mid-word is not a bash wordbreak; the reference is
@@ -109,6 +136,12 @@ func TestVariableRef(t *testing.T) {
 				if ctx.VariableRef.Name != tt.wantName || ctx.VariableRef.Brace != tt.wantBrace {
 					t.Errorf("VariableRef = %+v, want Name=%q Brace=%v", *ctx.VariableRef, tt.wantName, tt.wantBrace)
 				}
+				if tt.wantSpan {
+					span := ctx.VariableRef.Span
+					if span.Start != tt.wantStart || span.End != tt.wantEnd {
+						t.Errorf("VariableRef.Span = %+v, want {%d %d}", span, tt.wantStart, tt.wantEnd)
+					}
+				}
 				return
 			}
 			if ctx.VariableRef != nil {
@@ -133,6 +166,7 @@ func TestRawReplacementWord(t *testing.T) {
 		{name: "single quoted word", input: `echo 'text$HO`, want: "text$HO"},
 		{name: "hash mid-word is not a wordbreak", input: "echo a#c$HO", want: "a#c$HO"},
 		{name: "redirect target", input: "echo >$HO", want: "$HO"},
+		{name: "wordbreak suffix is empty", input: "echo $@", want: ""},
 	}
 
 	for _, tt := range tests {

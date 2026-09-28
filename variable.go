@@ -16,10 +16,10 @@ type VariableRef struct {
 // VariableExpander is implemented by formats whose variable references can
 // be detected lexically. The detection runs on the lexer's final word, so
 // quote and escape state are authoritative: a `$` inside single quotes is
-// literal, an escaped `$` is literal, and the text following the last
-// unescaped `$` must be a valid variable-name prefix for the reference to
-// be detected (which keeps closed expansions like `${HOME}` and command
-// substitutions like `$(...)` out of variable completion).
+// literal, an escaped `$` is literal, and a reference ends the word only
+// when the expansion containing the last `$` is still open at the end of
+// the word (closed expansions like `${HOME}`, special parameters like
+// `$$`, and positional parameters like `$1x` do not count).
 //
 // Formats without variable expansion (or with forms this detection does not
 // cover) simply do not implement the interface.
@@ -37,9 +37,6 @@ type NaiveWordSplitter interface {
 	NaiveSplitWord(raw string) string
 }
 
-// posixVariableRef detects a variable reference ending the given word using
-// POSIX expansion rules: `$name` and `${name`, backslash escapes, and no
-// expansion inside single quotes.
 // posixVariableRef detects a variable reference ending the given word using
 // POSIX expansion rules: `$name` and `${name`, backslash escapes, and no
 // expansion inside single quotes.
@@ -99,6 +96,11 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 	if brace {
 		rest = rest[1:]
 	}
+	if len(rest) > 0 && !isPosixNameStart(rest[0]) {
+		// `$1x` is the positional parameter `$1` plus a literal `x`;
+		// POSIX names cannot start with a digit
+		return VariableRef{}, false
+	}
 	for _, r := range rest {
 		if !isPosixNameRune(r) {
 			return VariableRef{}, false
@@ -127,6 +129,15 @@ func closedBraceEnd(runes []rune, start int) int {
 		}
 	}
 	return -1
+}
+
+func isPosixNameStart(r rune) bool {
+	switch {
+	case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r == '_':
+		return true
+	default:
+		return false
+	}
 }
 
 func isPosixNameRune(r rune) bool {
