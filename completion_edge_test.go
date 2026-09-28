@@ -178,3 +178,27 @@ func TestCompletion_BarePipe(t *testing.T) {
 		t.Errorf("CurrentWord = %q, want empty", ctx.CurrentWord)
 	}
 }
+
+func TestCompletion_AtBetweenWordsThenWordbreak(t *testing.T) {
+	// user@host:bar — @ between two WORD tokens should be in prefix
+	ctx := SplitForCompletion("echo user@host:bar", BashFormat())
+	if ctx.Prefix != "user@host:" {
+		t.Errorf("Prefix = %q, want user@host: (@ between words preserved)", ctx.Prefix)
+	}
+}
+
+func TestCompletion_AtAfterWordbreakThenWord(t *testing.T) {
+	// foo:@bar — @ adjacent to : wordbreak should be skipped
+	ctx := SplitForCompletion("echo foo:@bar", BashFormat())
+	if ctx.Prefix != "foo:" {
+		t.Errorf("Prefix = %q, want foo: (@ adjacent to : skipped)", ctx.Prefix)
+	}
+}
+
+func TestCompletion_AtBetweenWordbreakAndWord(t *testing.T) {
+	// :@bar — @ adjacent to : (wordbreak side) should be skipped
+	ctx := SplitForCompletion("echo foo:=@bar", BashFormat())
+	if ctx.Prefix != "foo:=" {
+		t.Errorf("Prefix = %q, want foo:= (@ adjacent to = skipped)", ctx.Prefix)
+	}
+}

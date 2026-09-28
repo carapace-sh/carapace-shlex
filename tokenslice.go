@@ -215,13 +215,23 @@ func (t TokenSlice) WordbreakPrefix() string {
 			break
 		}
 
-		if !found && token.Type == WORDBREAK_TOKEN {
-			found = true
-			if token.Value == "@" {
-				// @ is a wordbreak but is not part of the prefix
-				// (matches bash readline behavior)
+		if token.Type == WORDBREAK_TOKEN && token.Value == "@" {
+			if !found {
+				// @ at the boundary is always skipped
+				found = true
 				continue
 			}
+			// @ after boundary: skip if adjacent to another wordbreak,
+			// include if between two WORD tokens (e.g. user@host)
+			prevIsWB := i > 0 && t[i-1].Type == WORDBREAK_TOKEN
+			nextIsWB := i+1 < len(t) && t[i+1].Type == WORDBREAK_TOKEN
+			if prevIsWB || nextIsWB {
+				continue
+			}
+		}
+
+		if !found && token.Type == WORDBREAK_TOKEN {
+			found = true
 		}
 
 		if found {
