@@ -100,14 +100,16 @@ func isPosixNameRune(r rune) bool {
 
 // naiveSplitWord returns the raw text of raw after its last delimiter
 // character, where delimiters are every rune the classifier treats as
-// space, wordbreak, quote, or comment. The escape character is not a
-// delimiter, matching bash's COMP_WORDS splitting.
+// space, wordbreak, or quote. The escape character is not a delimiter,
+// matching bash's COMP_WORDS splitting; a mid-word comment rune is not
+// either (the classifier marks `#` unconditionally, but bash only starts
+// a comment at a word boundary).
 func naiveSplitWord(classifier tokenClassifier, raw string) string {
 	runes := []rune(raw)
 	for i := len(runes) - 1; i >= 0; i-- {
 		switch classifier.ClassifyRune(runes[i]) {
 		case spaceRuneClass, wordbreakRuneClass,
-			escapingQuoteRuneClass, nonEscapingQuoteRuneClass, commentRuneClass:
+			escapingQuoteRuneClass, nonEscapingQuoteRuneClass:
 			return string(runes[i+1:])
 		}
 	}

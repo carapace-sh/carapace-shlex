@@ -71,6 +71,16 @@ func TestVariableRef(t *testing.T) {
 			name: "zsh quoted", input: `echo "text$HO`,
 			format: ZshFormat(), wantName: "HO", wantRef: true,
 		},
+		{
+			name: "redirect target", input: "echo >$HO",
+			format: BashFormat(), wantName: "HO", wantRef: true,
+		},
+		{
+			// `#` mid-word is not a bash wordbreak; the reference is
+			// still detected and the whole word is replaced
+			name: "hash mid-word", input: "echo a#c$HO",
+			format: BashFormat(), wantName: "HO", wantRef: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -105,6 +115,8 @@ func TestRawReplacementWord(t *testing.T) {
 		{name: "plain word", input: "echo $HO", want: "$HO"},
 		{name: "brace form", input: `echo "test${HO`, want: "test${HO"},
 		{name: "single quoted word", input: `echo 'text$HO`, want: "text$HO"},
+		{name: "hash mid-word is not a wordbreak", input: "echo a#c$HO", want: "a#c$HO"},
+		{name: "redirect target", input: "echo >$HO", want: "$HO"},
 	}
 
 	for _, tt := range tests {

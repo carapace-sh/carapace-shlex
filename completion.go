@@ -106,19 +106,19 @@ func buildCompletionContext(tokens TokenSlice, format Format) *CompletionContext
 		}
 	}
 
+	var current *Token
 	if ctx.IsRedirect {
-		current := pipeline[len(pipeline)-1]
-		ctx.CurrentWord = current.Value
-		ctx.RawCurrentWord = current.RawValue
-		ctx.QuotingState = current.State
+		current = &pipeline[len(pipeline)-1]
 	} else if len(words) > 0 {
-		current := words[len(words)-1]
+		current = &words[len(words)-1]
+	}
+	if current != nil {
 		ctx.CurrentWord = current.Value
 		ctx.RawCurrentWord = current.RawValue
 		ctx.QuotingState = current.State
 
 		if expander, ok := format.(VariableExpander); ok {
-			if ref, ok := expander.VariableRef(current); ok {
+			if ref, ok := expander.VariableRef(*current); ok {
 				ctx.VariableRef = &ref
 			}
 		}
