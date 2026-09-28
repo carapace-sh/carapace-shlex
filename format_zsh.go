@@ -58,3 +58,10 @@ func (zshFormat) IsLineContinuation(r rune) bool {
 func (zshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return posixSubstitutionPostProcess(tokens)
 }
+
+// VariableRef implements VariableExpander. Zsh expands `$name` and `${name`;
+// `$` is literal inside single quotes and when escaped. Quote stripping at
+// insertion time is compsys's job (IPREFIX), not detection's.
+func (zshFormat) VariableRef(word Token) (VariableRef, bool) {
+	return posixVariableRef(word)
+}
