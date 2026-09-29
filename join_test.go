@@ -19,7 +19,7 @@ func TestJoinWith_Posix(t *testing.T) {
 		`ls /tmp | xargs -n 1 echo`:     {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, BashFormat()); actual != expected {
+		if actual := JoinWith(words, Bash); actual != expected {
 			t.Errorf("JoinWith(bash)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
@@ -33,7 +33,7 @@ func TestJoinWith_Fish(t *testing.T) {
 		`echo "cost \$5"`:      {"echo", "cost $5"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, FishFormat()); actual != expected {
+		if actual := JoinWith(words, Fish); actual != expected {
 			t.Errorf("JoinWith(fish)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
@@ -61,7 +61,7 @@ func TestJoinWith_Elvish(t *testing.T) {
 		`echo a~b`:           {"echo", "a~b"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, ElvishFormat()); actual != expected {
+		if actual := JoinWith(words, Elvish); actual != expected {
 			t.Errorf("JoinWith(elvish)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
@@ -74,7 +74,7 @@ func TestJoinWith_PowerShell(t *testing.T) {
 		`echo 'don''t'`:      {"echo", "don't"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, PowershellFormat()); actual != expected {
+		if actual := JoinWith(words, Powershell); actual != expected {
 			t.Errorf("JoinWith(powershell)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
@@ -87,7 +87,7 @@ func TestJoinWith_Nushell(t *testing.T) {
 		`echo "say \"hello\""`: {"echo", `say "hello"`},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, NushellFormat()); actual != expected {
+		if actual := JoinWith(words, Nushell); actual != expected {
 			t.Errorf("JoinWith(nushell)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
@@ -100,7 +100,7 @@ func TestJoinWith_Cmd(t *testing.T) {
 		`echo "say "^"hello"^""`: {"echo", `say "hello"`},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, CmdFormat()); actual != expected {
+		if actual := JoinWith(words, Cmd); actual != expected {
 			t.Errorf("JoinWith(cmd)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
@@ -113,7 +113,7 @@ func TestJoinWith_Xonsh(t *testing.T) {
 		`echo 'it\'s'`:       {"echo", "it's"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, XonshFormat()); actual != expected {
+		if actual := JoinWith(words, Xonsh); actual != expected {
 			t.Errorf("JoinWith(xonsh)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}

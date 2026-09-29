@@ -7,7 +7,7 @@ func TestSubstitution_NestedScopeLastOpenTracking(t *testing.T) {
 	// then ) closes (depth=0). But the $(( arithmetic is still open.
 	// Since arithmetic is not a command scope, innermostUnclosedCommandScope
 	// should return -1 (no unclosed command scope).
-	tokens, err := SplitWith("echo $(( (foo) bar", BashFormat())
+	tokens, err := SplitWith("echo $(( (foo) bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -21,7 +21,7 @@ func TestSubstitution_NestedCommandSubLastOpenTracking(t *testing.T) {
 	// $( (test) foo — $( opens (depth=1), ( opens (depth=2), ) closes
 	// (depth=1). $(( is still unclosed. innermostUnclosedCommandScope
 	// should return the index of $(, not the already-closed (.
-	tokens, err := SplitWith("echo $( (test) foo", BashFormat())
+	tokens, err := SplitWith("echo $( (test) foo", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestSubstitution_NestedCommandSubLastOpenTracking(t *testing.T) {
 func TestSubstitution_StrayCloseDoesNotMaskOpen(t *testing.T) {
 	// ) $(git ch — stray ) should not make depth negative,
 	// so the unclosed $( should be detected.
-	tokens, err := SplitWith("echo ) $(git ch", BashFormat())
+	tokens, err := SplitWith("echo ) $(git ch", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestSubstitution_ArithmeticInsideCommandSub(t *testing.T) {
 	// (depth=2, arith=1), )) closes arithmetic (depth=1, arith=0).
 	// $( is still unclosed. innermostUnclosedCommandScope should
 	// detect the unclosed $().
-	tokens, err := SplitWith("echo $(echo $((1+2))", BashFormat())
+	tokens, err := SplitWith("echo $(echo $((1+2))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestSubstitution_ArithmeticInsideCommandSub(t *testing.T) {
 
 func TestSubstitution_ArithmeticClosed(t *testing.T) {
 	// $((1+2)) should fully close — depth 0, no unclosed scope.
-	tokens, err := SplitWith("echo $((1+2))", BashFormat())
+	tokens, err := SplitWith("echo $((1+2))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestSubstitution_ArithmeticClosed(t *testing.T) {
 
 func TestSubstitution_NestedArithmetic(t *testing.T) {
 	// $(( $((1+2)) + 3 )) — nested arithmetic should fully close.
-	tokens, err := SplitWith("echo $(( $((1+2)) + 3 ))", BashFormat())
+	tokens, err := SplitWith("echo $(( $((1+2)) + 3 ))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestSubstitution_NestedArithmetic(t *testing.T) {
 
 func TestSubstitution_EmptyClosed(t *testing.T) {
 	// $() — empty but closed.
-	tokens, err := SplitWith("echo $()", BashFormat())
+	tokens, err := SplitWith("echo $()", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestSubstitution_EmptyClosed(t *testing.T) {
 
 func TestSubstitution_OpenAtEOF(t *testing.T) {
 	// $( at EOF — open with no content.
-	tokens, err := SplitWith("echo $(", BashFormat())
+	tokens, err := SplitWith("echo $(", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestSubstitution_OpenAtEOF(t *testing.T) {
 	if scope < 0 {
 		t.Error("innermostUnclosedCommandScope = -1, want >= 0 (unclosed $( at EOF)")
 	}
-	ctx := SplitForCompletion("echo $(", BashFormat())
+	ctx := SplitForCompletion("echo $(", Bash)
 	if ctx.SubstitutionDepth != 1 {
 		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
 	}
@@ -134,7 +134,7 @@ func TestSubstitution_OpenAtEOF(t *testing.T) {
 func TestSubstitution_StrayClosePipeline(t *testing.T) {
 	// ) echo | test — stray ) should not cause depth to go negative
 	// and mask the pipe in Pipelines().
-	tokens, err := SplitWith("echo ) | grep foo", BashFormat())
+	tokens, err := SplitWith("echo ) | grep foo", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestSubstitution_CommandSubInArithmeticAtEOF(t *testing.T) {
 	// $(( $(echo test) — arithmetic open, command sub closed.
 	// innermostUnclosedCommandScope should return -1 (arithmetic
 	// is not a command scope, and the command sub is closed).
-	tokens, err := SplitWith("echo $(( $(echo test)", BashFormat())
+	tokens, err := SplitWith("echo $(( $(echo test)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestSubstitution_CommandSubInArithmeticAtEOF(t *testing.T) {
 
 func TestSubstitution_NestedCommandSubWithArithmetic(t *testing.T) {
 	// $( $((1+2)) ) — command sub containing arithmetic, both closed.
-	tokens, err := SplitWith("echo $( $((1+2)) )", BashFormat())
+	tokens, err := SplitWith("echo $( $((1+2)) )", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestSubstitution_NestedCommandSubWithArithmetic(t *testing.T) {
 func TestSubstitution_AppendProcessSubstitution(t *testing.T) {
 	// >>(cmd) — append process substitution. The >> redirect operator
 	// followed by ( should be detected as process substitution.
-	tokens, err := SplitWith("echo >>(grep foo)", BashFormat())
+	tokens, err := SplitWith("echo >>(grep foo)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}

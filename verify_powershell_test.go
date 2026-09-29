@@ -32,7 +32,7 @@ func TestVerify_PowershellForceStartNewToken(t *testing.T) {
 	const psWordBreakOps = "|;&><()"
 	const psSpaceChars = " \t\r\n"
 
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 
 	for _, r := range psWordBreakOps {
 		got := classifier.ClassifyRune(r)
@@ -54,7 +54,7 @@ func TestVerify_PowershellForceStartNewToken(t *testing.T) {
 // characters. This is intentional — they are not pipeline delimiters or
 // redirect operators, so they don't need to break words for completion.
 func TestVerify_PowershellNonOperatorTokenSeparators(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 	// , { } are ForceStartNewToken in PowerShell but not wordbreaks in shlex
 	nonWordbreakSeps := ",{}"
 	for _, r := range nonWordbreakSeps {
@@ -67,7 +67,7 @@ func TestVerify_PowershellNonOperatorTokenSeparators(t *testing.T) {
 
 // Regular characters should not be wordbreaks.
 func TestVerify_PowershellStringCharacters(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 	regularChars := "abcXYZ012_-.@/%+"
 	for _, r := range regularChars {
 		got := classifier.ClassifyRune(r)
@@ -81,7 +81,7 @@ func TestVerify_PowershellStringCharacters(t *testing.T) {
 // IsSingleQuote: ' (plus Unicode smart quotes, not tracked by shlex)
 // IsDoubleQuote: " (plus Unicode smart quotes, not tracked by shlex)
 func TestVerify_PowershellQuoteChars(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 
 	// " is the escaping quote (double quote) — variable expansion, escapes
 	if got := classifier.ClassifyRune('"'); got != escapingQuoteRuneClass {
@@ -97,7 +97,7 @@ func TestVerify_PowershellQuoteChars(t *testing.T) {
 // From tokenizer.cs: Backtick() method handles escape sequences.
 // From CharTraits.cs: backtick is not ForceStartNewToken (it's part of tokens).
 func TestVerify_PowershellEscapeChar(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 	if got := classifier.ClassifyRune('`'); got != escapeRuneClass {
 		t.Errorf("` classifier=%v, want escapeRuneClass", got)
 	}
@@ -107,7 +107,7 @@ func TestVerify_PowershellEscapeChar(t *testing.T) {
 // From CharTraits.cs: \ is a regular character (not ForceStartNewToken).
 // shlex should classify \ as a regular word character, not escape.
 func TestVerify_PowershellBackslashNotEscape(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 	if got := classifier.ClassifyRune('\\'); got == escapeRuneClass {
 		t.Errorf("\\ classifier=escapeRuneClass, want non-escape (backtick is the escape in PowerShell)")
 	}
@@ -119,7 +119,7 @@ func TestVerify_PowershellBackslashNotEscape(t *testing.T) {
 // Comment character: # starts a line comment.
 // From tokenizer.cs: # at token start begins a comment.
 func TestVerify_PowershellCommentChar(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 	if got := classifier.ClassifyRune('#'); got != commentRuneClass {
 		t.Errorf("# classifier=%v, want commentRuneClass", got)
 	}
@@ -162,7 +162,7 @@ func TestVerify_PowershellOperatorGrammar(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := PowershellFormat().ClassifyOperator(tc.input)
+		got := powershellFormat{}.ClassifyOperator(tc.input)
 		if got != tc.opType {
 			t.Errorf("ClassifyOperator(%q) = %v, want %v", tc.input, got, tc.opType)
 			continue
@@ -183,7 +183,7 @@ func TestVerify_PowershellOperatorGrammar(t *testing.T) {
 func TestVerify_PowershellPipelineDelimiters(t *testing.T) {
 	pipelineOps := []string{"|", "||", "&&", ";"}
 	for _, op := range pipelineOps {
-		wbType := PowershellFormat().ClassifyOperator(op)
+		wbType := powershellFormat{}.ClassifyOperator(op)
 		if !wbType.IsPipelineDelimiter() {
 			t.Errorf("ClassifyOperator(%q).IsPipelineDelimiter() = false, want true", op)
 		}
@@ -195,7 +195,7 @@ func TestVerify_PowershellPipelineDelimiters(t *testing.T) {
 func TestVerify_PowershellRedirectOperators(t *testing.T) {
 	redirectOps := []string{">", ">>", "<"}
 	for _, op := range redirectOps {
-		wbType := PowershellFormat().ClassifyOperator(op)
+		wbType := powershellFormat{}.ClassifyOperator(op)
 		if !wbType.IsRedirect() {
 			t.Errorf("ClassifyOperator(%q).IsRedirect() = false, want true", op)
 		}
@@ -207,7 +207,7 @@ func TestVerify_PowershellRedirectOperators(t *testing.T) {
 // In PowerShell, & invokes a command, script, or function — it does NOT
 // run in the background. This differs from bash where & is async/background.
 func TestVerify_PowershellCallOperatorNotPipelineDelimiter(t *testing.T) {
-	wbType := PowershellFormat().ClassifyOperator("&")
+	wbType := powershellFormat{}.ClassifyOperator("&")
 	if wbType.IsPipelineDelimiter() {
 		t.Error("& IsPipelineDelimiter() = true, want false (call operator, not background)")
 	}
@@ -223,7 +223,7 @@ func TestVerify_PowershellCallOperatorNotPipelineDelimiter(t *testing.T) {
 // NonEscapingQuoteBackslashEscapes() = false (no \ escapes in single quotes).
 func TestVerify_PowershellSingleQuoteNoEscape(t *testing.T) {
 	// \ is literal inside single quotes
-	tokens, err := SplitWith(`echo 'hello\nworld'`, PowershellFormat())
+	tokens, err := SplitWith(`echo 'hello\nworld'`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestVerify_PowershellSingleQuoteNoEscape(t *testing.T) {
 	}
 
 	// $ is literal inside single quotes
-	tokens, err = SplitWith(`echo '$HOME'`, PowershellFormat())
+	tokens, err = SplitWith(`echo '$HOME'`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestVerify_PowershellSingleQuoteNoEscape(t *testing.T) {
 	}
 
 	// backtick is literal inside single quotes
-	tokens, err = SplitWith("echo '`hello'", PowershellFormat())
+	tokens, err = SplitWith("echo '`hello'", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestVerify_PowershellSingleQuoteNoEscape(t *testing.T) {
 // Single quote doubled quote — from tokenizer.cs ScanStringLiteral:
 // ” inside single quotes → literal ' (the first quote "escapes" the second).
 func TestVerify_PowershellSingleQuoteDoubled(t *testing.T) {
-	tokens, err := SplitWith("echo 'don''t'", PowershellFormat())
+	tokens, err := SplitWith("echo 'don''t'", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestVerify_PowershellSingleQuoteDoubled(t *testing.T) {
 // Double quote doubled quote — from tokenizer.cs ScanStringExpandable:
 // "" inside double quotes → literal " (the first quote "escapes" the second).
 func TestVerify_PowershellDoubleQuoteDoubled(t *testing.T) {
-	tokens, err := SplitWith(`echo "say ""hello"""`, PowershellFormat())
+	tokens, err := SplitWith(`echo "say ""hello"""`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestVerify_PowershellDoubleQuoteDoubled(t *testing.T) {
 // shlex returns nil for EscapingQuoteEscapeChars, meaning backtick escapes
 // any character inside double quotes — matching PowerShell's behavior.
 func TestVerify_PowershellEscapingQuoteEscapeChars(t *testing.T) {
-	got := PowershellFormat().EscapingQuoteEscapeChars()
+	got := powershellFormat{}.EscapingQuoteEscapeChars()
 	// nil means backtick escapes any character inside double quotes
 	if got != nil {
 		t.Errorf("EscapingQuoteEscapeChars() = %v, want nil (backtick escapes any char)", got)
@@ -301,7 +301,7 @@ func TestVerify_PowershellEscapingQuoteEscapeChars(t *testing.T) {
 // (it drops the backtick and keeps the next char as-is).
 func TestVerify_PowershellBacktickInDoubleQuotes(t *testing.T) {
 	// `" inside double quotes → literal "
-	tokens, err := SplitWith("echo \"say `\"hello`\"\"", PowershellFormat())
+	tokens, err := SplitWith("echo \"say `\"hello`\"\"", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,7 +311,7 @@ func TestVerify_PowershellBacktickInDoubleQuotes(t *testing.T) {
 	}
 
 	// `$ inside double quotes → literal $
-	tokens, err = SplitWith("echo \"cost: `$5\"", PowershellFormat())
+	tokens, err = SplitWith("echo \"cost: `$5\"", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestVerify_PowershellBacktickInDoubleQuotes(t *testing.T) {
 // next char kept). This matches the EscapeNotBareword() = true behavior.
 func TestVerify_PowershellBacktickEscapeOutside(t *testing.T) {
 	// `$ outside quotes → literal $ (part of word)
-	tokens, err := SplitWith("echo `$HOME", PowershellFormat())
+	tokens, err := SplitWith("echo `$HOME", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +336,7 @@ func TestVerify_PowershellBacktickEscapeOutside(t *testing.T) {
 	}
 
 	// `| outside quotes → literal | (not a pipeline delimiter)
-	tokens, err = SplitWith("echo foo`|bar", PowershellFormat())
+	tokens, err = SplitWith("echo foo`|bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +350,7 @@ func TestVerify_PowershellBacktickEscapeOutside(t *testing.T) {
 // Backtick IS an escape character in barewords (it escapes the next char).
 // EscapeNotBareword() = true means the escape char acts as escape in barewords.
 func TestVerify_PowershellEscapeNotBareword(t *testing.T) {
-	if !PowershellFormat().EscapeNotBareword() {
+	if !(powershellFormat{}).EscapeNotBareword() {
 		t.Error("EscapeNotBareword() = false, want true (backtick is escape in barewords)")
 	}
 }
@@ -358,7 +358,7 @@ func TestVerify_PowershellEscapeNotBareword(t *testing.T) {
 // NonEscapingQuoteEscapes — from tokenizer.cs ScanStringLiteral:
 // Single quotes support ” (doubled quote) as an escape for literal '.
 func TestVerify_PowershellNonEscapingQuoteEscapes(t *testing.T) {
-	if !PowershellFormat().NonEscapingQuoteEscapes() {
+	if !(powershellFormat{}).NonEscapingQuoteEscapes() {
 		t.Error("NonEscapingQuoteEscapes() = false, want true ('' → literal ')")
 	}
 }
@@ -366,7 +366,7 @@ func TestVerify_PowershellNonEscapingQuoteEscapes(t *testing.T) {
 // NonEscapingQuoteBackslashEscapes — PowerShell single quotes do NOT
 // support backslash escapes. Only ” is recognized.
 func TestVerify_PowershellNonEscapingQuoteBackslashEscapes(t *testing.T) {
-	if PowershellFormat().NonEscapingQuoteBackslashEscapes() {
+	if (powershellFormat{}).NonEscapingQuoteBackslashEscapes() {
 		t.Error("NonEscapingQuoteBackslashEscapes() = true, want false (no \\ escapes in single quotes)")
 	}
 }
@@ -376,7 +376,7 @@ func TestVerify_PowershellNonEscapingQuoteBackslashEscapes(t *testing.T) {
 // Backtick() processing). EscapeNotInEscapingQuote() = false means
 // the escape char acts as escape inside double quotes.
 func TestVerify_PowershellEscapeNotInEscapingQuote(t *testing.T) {
-	if PowershellFormat().EscapeNotInEscapingQuote() {
+	if (powershellFormat{}).EscapeNotInEscapingQuote() {
 		t.Error("EscapeNotInEscapingQuote() = true, want false (backtick is escape inside double quotes)")
 	}
 }
@@ -386,7 +386,7 @@ func TestVerify_PowershellEscapeNotInEscapingQuote(t *testing.T) {
 // consumed and the word continues on the next line.
 func TestVerify_PowershellLineContinuation(t *testing.T) {
 	// Outside quotes: ` + \n → consumed (word continues)
-	tokens, err := SplitWith("echo foo`\nbar", PowershellFormat())
+	tokens, err := SplitWith("echo foo`\nbar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,7 +396,7 @@ func TestVerify_PowershellLineContinuation(t *testing.T) {
 	}
 
 	// CRLF variant: ` + \r\n → consumed
-	tokens, err = SplitWith("echo foo`\r\nbar", PowershellFormat())
+	tokens, err = SplitWith("echo foo`\r\nbar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,7 +406,7 @@ func TestVerify_PowershellLineContinuation(t *testing.T) {
 	}
 
 	// At start of word: ` + \n → consumed, word starts on next line
-	tokens, err = SplitWith("echo `\nbar", PowershellFormat())
+	tokens, err = SplitWith("echo `\nbar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -419,7 +419,7 @@ func TestVerify_PowershellLineContinuation(t *testing.T) {
 // Block comments — from tokenizer.cs ScanBlockComment:
 // <# starts a block comment, #> ends it. Can span multiple lines.
 func TestVerify_PowershellBlockComment(t *testing.T) {
-	tokens, err := SplitWith("echo <# multi\nline\ncomment #> foo", PowershellFormat())
+	tokens, err := SplitWith("echo <# multi\nline\ncomment #> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +431,7 @@ func TestVerify_PowershellBlockComment(t *testing.T) {
 
 // Block comment single line.
 func TestVerify_PowershellBlockCommentSingleLine(t *testing.T) {
-	tokens, err := SplitWith("echo <# inline comment #> foo", PowershellFormat())
+	tokens, err := SplitWith("echo <# inline comment #> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -444,10 +444,7 @@ func TestVerify_PowershellBlockCommentSingleLine(t *testing.T) {
 // Block comment delimiters — from tokenizer.cs:
 // BlockCommentOpener: <#    BlockCommentCloser: #>
 func TestVerify_PowershellBlockCommentDelimiters(t *testing.T) {
-	bc, ok := PowershellFormat().(BlockCommenter)
-	if !ok {
-		t.Fatal("PowershellFormat() does not implement BlockCommenter")
-	}
+	bc := powershellFormat{}
 	if bc.BlockCommentOpener() != "<#" {
 		t.Errorf("BlockCommentOpener() = %q, want <#", bc.BlockCommentOpener())
 	}
@@ -460,10 +457,7 @@ func TestVerify_PowershellBlockCommentDelimiters(t *testing.T) {
 // From tokenizer.cs GetVerbatimCommandArgument: after --%, content is
 // read literally until newline or | (or &&).
 func TestVerify_PowershellStopParsingToken(t *testing.T) {
-	sp, ok := PowershellFormat().(StopParsingToken)
-	if !ok {
-		t.Fatal("PowershellFormat() does not implement StopParsingToken")
-	}
+	sp := powershellFormat{}
 	if sp.StopParsingWord() != "--%" {
 		t.Errorf("StopParsingWord() = %q, want --%%", sp.StopParsingWord())
 	}
@@ -474,7 +468,7 @@ func TestVerify_PowershellStopParsingToken(t *testing.T) {
 // literal, not token separators. Double quotes toggle quoting state but
 // | and && still act as delimiters.
 func TestVerify_PowershellStopParsingRawContent(t *testing.T) {
-	tokens, err := SplitWith("icacls X: --% /grant Dom\\HVAdmin:(CI)(OI)F", PowershellFormat())
+	tokens, err := SplitWith("icacls X: --% /grant Dom\\HVAdmin:(CI)(OI)F", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -494,7 +488,7 @@ func TestVerify_PowershellStopParsingRawContent(t *testing.T) {
 // Stop-parsing pipe delimiter — from tokenizer.cs GetVerbatimCommandArgument:
 // After --%, | is still a pipeline delimiter (raw mode stops at |).
 func TestVerify_PowershellStopParsingPipeDelim(t *testing.T) {
-	tokens, err := SplitWith("echo --% foo | Select-String bar", PowershellFormat())
+	tokens, err := SplitWith("echo --% foo | Select-String bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -529,7 +523,7 @@ func TestVerify_PowershellStreamRedirect(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tokens, err := SplitWith(tc.input, PowershellFormat())
+		tokens, err := SplitWith(tc.input, Powershell)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", tc.input, err)
 		}
@@ -555,7 +549,7 @@ func TestVerify_PowershellStreamRedirect(t *testing.T) {
 // shlex merges $ + ( into WORDBREAK_SUBSTITUTION_OPEN in PostProcess
 // and reclassifies standalone ( and ) as WORDBREAK_SUBSTITUTION_OPEN/CLOSE.
 func TestVerify_PowershellSubexpression(t *testing.T) {
-	tokens, err := SplitWith("echo $(ls)", PowershellFormat())
+	tokens, err := SplitWith("echo $(ls)", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -612,7 +606,7 @@ func TestVerify_PowershellQuoteWord(t *testing.T) {
 // No keyword operators — PowerShell has no bare-word operators like
 // fish's "and"/"or". Pipeline delimiters are all symbolic operators.
 func TestVerify_PowershellNoKeywordOperators(t *testing.T) {
-	kwOps := PowershellFormat().KeywordOperators()
+	kwOps := powershellFormat{}.KeywordOperators()
 	if kwOps != nil {
 		t.Errorf("KeywordOperators() = %v, want nil (PowerShell has no keyword operators)", kwOps)
 	}
@@ -620,14 +614,14 @@ func TestVerify_PowershellNoKeywordOperators(t *testing.T) {
 
 // No triple quote support — PowerShell does not have triple-quoted strings.
 func TestVerify_PowershellNoTripleQuote(t *testing.T) {
-	if PowershellFormat().TripleQuoteSupport() {
+	if (powershellFormat{}).TripleQuoteSupport() {
 		t.Error("TripleQuoteSupport() = true, want false (PowerShell has no triple quotes)")
 	}
 }
 
 // No raw prefix support — PowerShell does not have r'...' raw strings.
 func TestVerify_PowershellNoRawPrefix(t *testing.T) {
-	if PowershellFormat().RawPrefixSupport() {
+	if (powershellFormat{}).RawPrefixSupport() {
 		t.Error("RawPrefixSupport() = true, want false (PowerShell has no raw string prefixes)")
 	}
 }
@@ -637,7 +631,7 @@ func TestVerify_PowershellCommandSeparators(t *testing.T) {
 	separators := []string{"|", ";", "&&", "||"}
 	for _, sep := range separators {
 		input := "echo foo" + sep + " echo bar"
-		tokens, err := SplitWith(input, PowershellFormat())
+		tokens, err := SplitWith(input, Powershell)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", input, err)
 		}
@@ -653,7 +647,7 @@ func TestVerify_PowershellCommandSeparators(t *testing.T) {
 // An unclosed double quote should leave it in QUOTING_ESCAPING_STATE.
 func TestVerify_PowershellOpenQuoteState(t *testing.T) {
 	// Open single quote
-	tokens, err := SplitWith("echo 'hel", PowershellFormat())
+	tokens, err := SplitWith("echo 'hel", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -663,7 +657,7 @@ func TestVerify_PowershellOpenQuoteState(t *testing.T) {
 	}
 
 	// Open double quote
-	tokens, err = SplitWith(`echo "hel`, PowershellFormat())
+	tokens, err = SplitWith(`echo "hel`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -676,7 +670,7 @@ func TestVerify_PowershellOpenQuoteState(t *testing.T) {
 // No COMP_WORDBREAKS dependency — PowerShell does not use COMP_WORDBREAKS.
 // The classifier should be static and not depend on environment variables.
 func TestVerify_PowershellNoEnvVarDependency(t *testing.T) {
-	classifier := PowershellFormat().Classifier()
+	classifier := powershellFormat{}.Classifier()
 	for _, r := range "|;&><()" {
 		got := classifier.ClassifyRune(r)
 		if got != wordbreakRuneClass {
@@ -689,7 +683,7 @@ func TestVerify_PowershellNoEnvVarDependency(t *testing.T) {
 // From CharTraits.cs: \ is not ForceStartNewToken, not a quote, not an escape.
 // shlex should treat \ as a regular word character.
 func TestVerify_PowershellBackslashLiteral(t *testing.T) {
-	tokens, err := SplitWith(`echo C:\path\to\file`, PowershellFormat())
+	tokens, err := SplitWith(`echo C:\path\to\file`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}

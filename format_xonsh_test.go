@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestXonshFormat_SingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hello world'", XonshFormat())
+	tokens, err := SplitWith("echo 'hello world'", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -16,7 +16,7 @@ func TestXonshFormat_SingleQuote(t *testing.T) {
 func TestXonshFormat_RawString(t *testing.T) {
 	// r'...' — r prefix + single quote, Words() merges
 	// \ inside single quotes is literal (NonEscapingQuoteEscapes is false)
-	tokens, err := SplitWith(`echo r'C:\path'`, XonshFormat())
+	tokens, err := SplitWith(`echo r'C:\path'`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestXonshFormat_RawString(t *testing.T) {
 func TestXonshFormat_RawDoubleQuoted(t *testing.T) {
 	// r"..." — r prefix merges with double-quoted segment.
 	// With raw prefix support, \ inside double quotes is literal (raw string semantics).
-	tokens, err := SplitWith(`echo r"C:\path"`, XonshFormat())
+	tokens, err := SplitWith(`echo r"C:\path"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestXonshFormat_RawDoubleQuoted(t *testing.T) {
 }
 
 func TestXonshFormat_DoubleQuoteEscape(t *testing.T) {
-	tokens, err := SplitWith(`echo "say \"hello\""`, XonshFormat())
+	tokens, err := SplitWith(`echo "say \"hello\""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestXonshFormat_DoubleQuoteEscape(t *testing.T) {
 }
 
 func TestXonshFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", XonshFormat())
+	tokens, err := SplitWith("echo foo | grep bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestXonshFormat_Pipe(t *testing.T) {
 
 func TestXonshFormat_Background(t *testing.T) {
 	// Xonsh uses & for background (POSIX-like)
-	tokens, err := SplitWith("echo foo &", XonshFormat())
+	tokens, err := SplitWith("echo foo &", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestXonshFormat_Background(t *testing.T) {
 }
 
 func TestXonshFormat_DoubleAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo && echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo && echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestXonshFormat_DoubleAnd(t *testing.T) {
 }
 
 func TestXonshFormat_DoubleOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo || echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo || echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestXonshFormat_DoubleOr(t *testing.T) {
 }
 
 func TestXonshFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo ; echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestXonshFormat_Semicolon(t *testing.T) {
 }
 
 func TestXonshFormat_OpenSingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", XonshFormat())
+	tokens, err := SplitWith("echo 'hel", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestXonshFormat_OpenSingleQuote(t *testing.T) {
 }
 
 func TestXonshFormat_KeywordAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo and echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo and echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestXonshFormat_KeywordAnd(t *testing.T) {
 }
 
 func TestXonshFormat_KeywordOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo or echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo or echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestXonshFormat_KeywordOr(t *testing.T) {
 }
 
 func TestXonshFormat_StreamRedirectStderr(t *testing.T) {
-	tokens, err := SplitWith("echo foo e> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo e> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestXonshFormat_StreamRedirectStderr(t *testing.T) {
 }
 
 func TestXonshFormat_StreamRedirectStdout(t *testing.T) {
-	tokens, err := SplitWith("echo foo o> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo o> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestXonshFormat_StreamRedirectStdout(t *testing.T) {
 }
 
 func TestXonshFormat_StreamRedirectAll(t *testing.T) {
-	tokens, err := SplitWith("echo foo a> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo a> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func TestXonshFormat_StreamRedirectAll(t *testing.T) {
 }
 
 func TestXonshFormat_StreamRedirectStderrAppend(t *testing.T) {
-	tokens, err := SplitWith("echo foo e>> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo e>> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +218,7 @@ func TestXonshFormat_StreamRedirectStderrAppend(t *testing.T) {
 }
 
 func TestXonshFormat_StreamRedirectLongForm(t *testing.T) {
-	tokens, err := SplitWith("echo foo err> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo err> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestXonshFormat_StreamRedirectLongForm(t *testing.T) {
 }
 
 func TestXonshFormat_StreamRedirectPipeChannel(t *testing.T) {
-	tokens, err := SplitWith("echo foo e>p bar", XonshFormat())
+	tokens, err := SplitWith("echo foo e>p bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestXonshFormat_StreamRedirectPipeChannel(t *testing.T) {
 }
 
 func TestXonshFormat_TripleSingleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo '''hello world'''`, XonshFormat())
+	tokens, err := SplitWith(`echo '''hello world'''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func TestXonshFormat_TripleSingleQuote(t *testing.T) {
 }
 
 func TestXonshFormat_TripleDoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo """hello world"""`, XonshFormat())
+	tokens, err := SplitWith(`echo """hello world"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,7 +275,7 @@ func TestXonshFormat_TripleDoubleQuote(t *testing.T) {
 }
 
 func TestXonshFormat_TripleDoubleQuoteEscape(t *testing.T) {
-	tokens, err := SplitWith(`echo """say \"hello\""""`, XonshFormat())
+	tokens, err := SplitWith(`echo """say \"hello\""""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestXonshFormat_TripleDoubleQuoteEscape(t *testing.T) {
 }
 
 func TestXonshFormat_TripleSingleQuoteWithEmbeddedQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo '''he said "hi"'''`, XonshFormat())
+	tokens, err := SplitWith(`echo '''he said "hi"'''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +298,7 @@ func TestXonshFormat_TripleSingleQuoteWithEmbeddedQuotes(t *testing.T) {
 }
 
 func TestXonshFormat_TripleQuoteUnclosed(t *testing.T) {
-	tokens, err := SplitWith("echo '''unclosed", XonshFormat())
+	tokens, err := SplitWith("echo '''unclosed", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestXonshFormat_TripleQuoteUnclosed(t *testing.T) {
 }
 
 func TestXonshFormat_RawTripleDoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo r"""C:\new\path"""`, XonshFormat())
+	tokens, err := SplitWith(`echo r"""C:\new\path"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +327,7 @@ func TestXonshFormat_RawDoubleQuotedWithEscapedQuote(t *testing.T) {
 	// same type — it would close the string. This is a known Python limitation.
 	// For the lexer, the " in r"...\..." closes the string (since rawQuote only
 	// affects backslash, not quote matching).
-	tokens, err := SplitWith(`echo r"C:\path"`, XonshFormat())
+	tokens, err := SplitWith(`echo r"C:\path"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +339,7 @@ func TestXonshFormat_RawDoubleQuotedWithEscapedQuote(t *testing.T) {
 
 func TestXonshFormat_TwoQuotesInsideTriple(t *testing.T) {
 	// '' inside '''...''' — two single quotes should NOT close triple-single
-	tokens, err := SplitWith(`echo '''hello''there'''`, XonshFormat())
+	tokens, err := SplitWith(`echo '''hello''there'''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +351,7 @@ func TestXonshFormat_TwoQuotesInsideTriple(t *testing.T) {
 
 func TestXonshFormat_TwoDoubleQuotesInsideTripleDouble(t *testing.T) {
 	// "" inside """...""" — two double quotes should NOT close triple-double
-	tokens, err := SplitWith(`echo """hello""there"""`, XonshFormat())
+	tokens, err := SplitWith(`echo """hello""there"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,7 +362,7 @@ func TestXonshFormat_TwoDoubleQuotesInsideTripleDouble(t *testing.T) {
 }
 
 func TestXonshFormat_TripleQuoteThenMore(t *testing.T) {
-	tokens, err := SplitWith(`echo """hello""" world`, XonshFormat())
+	tokens, err := SplitWith(`echo """hello""" world`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +373,7 @@ func TestXonshFormat_TripleQuoteThenMore(t *testing.T) {
 }
 
 func TestXonshFormat_TripleQuoteAdjacentWord(t *testing.T) {
-	tokens, err := SplitWith(`echo foo"""bar"""`, XonshFormat())
+	tokens, err := SplitWith(`echo foo"""bar"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +385,7 @@ func TestXonshFormat_TripleQuoteAdjacentWord(t *testing.T) {
 
 func TestXonshFormat_RawPrefixFalsePositive(t *testing.T) {
 	// xr"hello\nworld" — 'x' is not a valid prefix char, so raw prefix should NOT trigger
-	tokens, err := SplitWith(`echo xr"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo xr"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestXonshFormat_RawPrefixFalsePositive(t *testing.T) {
 
 func TestXonshFormat_ValidBrPrefix(t *testing.T) {
 	// br"hello\nworld" — 'br' is a valid Python raw prefix
-	tokens, err := SplitWith(`echo br"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo br"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +411,7 @@ func TestXonshFormat_ValidBrPrefix(t *testing.T) {
 
 func TestXonshFormat_KeywordAndInsideWord(t *testing.T) {
 	// 'fooand' should NOT be a keyword operator — only exact match counts
-	tokens, err := SplitWith("echo fooand bar", XonshFormat())
+	tokens, err := SplitWith("echo fooand bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestXonshFormat_KeywordAndInsideWord(t *testing.T) {
 
 func TestXonshFormat_QuotedStreamRedirectNotMerged(t *testing.T) {
 	// 'e'> bar — quoted 'e' should NOT be merged with > as stream redirect
-	tokens, err := SplitWith("echo foo 'e'> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo 'e'> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +436,7 @@ func TestXonshFormat_QuotedStreamRedirectNotMerged(t *testing.T) {
 func TestXonshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 	// xonsh (Python): \<newline> inside "..." is a line continuation — both consumed.
 	input := "echo \"line1" + "\\" + "\n" + "line2\""
-	tokens, err := SplitWith(input, XonshFormat())
+	tokens, err := SplitWith(input, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}

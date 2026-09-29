@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestCmdFormat_CaretEscapeParen(t *testing.T) {
-	tokens, err := SplitWith("echo foo^(", CmdFormat())
+	tokens, err := SplitWith("echo foo^(", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestCmdFormat_CaretEscapeParen(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapeCloseParen(t *testing.T) {
-	tokens, err := SplitWith("echo foo^)", CmdFormat())
+	tokens, err := SplitWith("echo foo^)", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestCmdFormat_CaretEscapeCloseParen(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapeRedirect(t *testing.T) {
-	tokens, err := SplitWith("echo ^>foo", CmdFormat())
+	tokens, err := SplitWith("echo ^>foo", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestCmdFormat_CaretEscapeRedirect(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapeQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo ^"`, CmdFormat())
+	tokens, err := SplitWith(`echo ^"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestCmdFormat_CaretEscapeQuote(t *testing.T) {
 }
 
 func TestCmdFormat_DoubleCaretOutsideQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo ^^& echo bar", CmdFormat())
+	tokens, err := SplitWith("echo ^^& echo bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestCmdFormat_DoubleCaretOutsideQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_PercentAtEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo%", CmdFormat())
+	tokens, err := SplitWith("echo foo%", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestCmdFormat_PercentAtEOF(t *testing.T) {
 }
 
 func TestCmdFormat_PercentInDoubleQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo "hello%world%"`, CmdFormat())
+	tokens, err := SplitWith(`echo "hello%world%"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestCmdFormat_PercentInDoubleQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_PercentFollowedByRedirect(t *testing.T) {
-	tokens, err := SplitWith("echo %> foo", CmdFormat())
+	tokens, err := SplitWith("echo %> foo", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestCmdFormat_PercentFollowedByRedirect(t *testing.T) {
 }
 
 func TestCmdFormat_NestedParens(t *testing.T) {
-	tokens, err := SplitWith("echo ((a) b)", CmdFormat())
+	tokens, err := SplitWith("echo ((a) b)", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,21 +109,21 @@ func TestCmdFormat_NestedParens(t *testing.T) {
 }
 
 func TestCmdFormat_UnclosedParen(t *testing.T) {
-	_, err := SplitWith("echo (foo", CmdFormat())
+	_, err := SplitWith("echo (foo", Cmd)
 	if err != nil {
 		t.Fatalf("Unclosed paren should not error: %v", err)
 	}
 }
 
 func TestCmdFormat_EmptyParens(t *testing.T) {
-	_, err := SplitWith("echo ()", CmdFormat())
+	_, err := SplitWith("echo ()", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestCmdFormat_ParensInQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo "(foo)"`, CmdFormat())
+	tokens, err := SplitWith(`echo "(foo)"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,14 +134,14 @@ func TestCmdFormat_ParensInQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_CommaAtEOF(t *testing.T) {
-	ctx := SplitForCompletion("echo foo,", CmdFormat())
+	ctx := SplitForCompletion("echo foo,", Cmd)
 	if ctx.CurrentWord != "" {
 		t.Errorf("CurrentWord = %q, want empty (comma at EOF)", ctx.CurrentWord)
 	}
 }
 
 func TestCmdFormat_MultipleCommas(t *testing.T) {
-	tokens, err := SplitWith("echo a,,b", CmdFormat())
+	tokens, err := SplitWith("echo a,,b", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestCmdFormat_FdDuplicationAtEOF(t *testing.T) {
 	// 2>&1 is a single merged WORDBREAK_TOKEN at EOF with no
 	// trailing empty word. The completion context recognizes the
 	// redirect from the raw pipeline.
-	ctx := SplitForCompletion("echo foo 2>&1", CmdFormat())
+	ctx := SplitForCompletion("echo foo 2>&1", Cmd)
 	// IsRedirect checks pipeline[len-2]. Here pipeline = [echo, foo, 2>&1],
 	// so pipeline[1] = "foo" which is not a redirect. The 2>&1 is the
 	// last token itself — this is a known edge case where the redirect
@@ -167,14 +167,14 @@ func TestCmdFormat_FdDuplicationAtEOF(t *testing.T) {
 }
 
 func TestCmdFormat_MultipleRedirects(t *testing.T) {
-	ctx := SplitForCompletion("echo foo 2>&1 > bar", CmdFormat())
+	ctx := SplitForCompletion("echo foo 2>&1 > bar", Cmd)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
 }
 
 func TestCmdFormat_EmptyQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo ""`, CmdFormat())
+	tokens, err := SplitWith(`echo ""`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestCmdFormat_EmptyQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_AdjacentQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo ""hello""`, CmdFormat())
+	tokens, err := SplitWith(`echo ""hello""`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestCmdFormat_AdjacentQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_QuoteInsideWord(t *testing.T) {
-	tokens, err := SplitWith(`echo pre"mid"post`, CmdFormat())
+	tokens, err := SplitWith(`echo pre"mid"post`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}

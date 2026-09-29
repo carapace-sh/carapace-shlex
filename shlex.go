@@ -181,7 +181,7 @@ func (t tokenClassifier) addWordbreaks(wordbreakRunes string) {
 type lexer tokenizer
 
 // newLexer creates a new lexer from an input stream and format.
-func newLexer(r io.Reader, format Format) *lexer {
+func newLexer(r io.Reader, format formatImpl) *lexer {
 	return (*lexer)(newTokenizer(r, format))
 }
 
@@ -208,7 +208,7 @@ func (l *lexer) Next() (*Token, error) {
 type tokenizer struct {
 	input            bufio.Reader
 	classifier       tokenClassifier
-	format           Format
+	format           formatImpl
 	index            int
 	state            LexerState
 	rawQuote         bool   // true when current quote was opened with a raw prefix (r/R)
@@ -233,7 +233,7 @@ func (t *tokenizer) UnreadRune() (err error) {
 }
 
 // newTokenizer creates a new tokenizer from an input stream and format.
-func newTokenizer(r io.Reader, format Format) *tokenizer {
+func newTokenizer(r io.Reader, format formatImpl) *tokenizer {
 	input := bufio.NewReader(r)
 	classifier := format.Classifier()
 	return &tokenizer{
@@ -1143,12 +1143,17 @@ func (t *tokenizer) Next() (*Token, error) {
 
 // Split partitions a string into tokens using the default (bash) format.
 func Split(s string) (TokenSlice, error) {
-	return SplitWith(s, BashFormat())
+	return SplitWith(s, Default)
 }
 
 // SplitWith partitions a string into tokens using the given format.
+// Unknown format names are rejected.
 func SplitWith(s string, format Format) (TokenSlice, error) {
-	l := newLexer(strings.NewReader(s), format)
+	f, ok := formatImplFor(format)
+	if !ok {
+		return nil, fmt.Errorf("unknown format: %q", format)
+	}
+	l := newLexer(strings.NewReader(s), f)
 	tokens := make(TokenSlice, 0)
 	for {
 		token, err := l.Next()
@@ -1160,7 +1165,7 @@ func SplitWith(s string, format Format) (TokenSlice, error) {
 		}
 		tokens = append(tokens, *token)
 	}
-	if pp, ok := format.(PostProcessor); ok {
+	if pp, ok := f.(PostProcessor); ok {
 		tokens = pp.PostProcess(tokens)
 	}
 	return tokens, nil
@@ -1169,14 +1174,19 @@ func SplitWith(s string, format Format) (TokenSlice, error) {
 // Join concatenates words to create a single string using the default
 // (bash) format. It quotes and escapes where appropriate.
 func Join(s []string) string {
-	return JoinWith(s, BashFormat())
+	return JoinWith(s, Default)
 }
 
 // JoinWith concatenates words using the given format's quoting rules.
+// Unknown format names fall back to the default format.
 func JoinWith(s []string, format Format) string {
+	f, ok := formatImplFor(format)
+	if !ok {
+		f = formatImpls[Default]
+	}
 	formatted := make([]string, 0, len(s))
 	for _, arg := range s {
-		formatted = append(formatted, format.QuoteWord(arg))
+		formatted = append(formatted, f.QuoteWord(arg))
 	}
 	return strings.Join(formatted, " ")
 }

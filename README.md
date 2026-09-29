@@ -23,7 +23,7 @@ Defaults to the bash (POSIX) format. Returns a `TokenSlice` with typed tokens in
 ### SplitWith (format-specific)
 
 ```go
-tokens, err := shlex.SplitWith(`echo 'it''s'`, shlex.ElvishFormat())
+tokens, err := shlex.SplitWith(`echo 'it''s'`, shlex.Elvish)
 ```
 
 Use a specific shell format for lexing.
@@ -31,7 +31,7 @@ Use a specific shell format for lexing.
 ### SplitForCompletion
 
 ```go
-ctx := shlex.SplitForCompletion(`echo foo | grep hel`, shlex.BashFormat())
+ctx := shlex.SplitForCompletion(`echo foo | grep hel`, shlex.Bash)
 // ctx.CurrentWord   = "hel"
 // ctx.Words         = ["grep", "hel"]
 // ctx.QuotingState  = IN_WORD_STATE
@@ -44,7 +44,7 @@ Returns a `CompletionContext` with the current word, quoting state, prefix, pipe
 ### Variable references
 
 ```go
-ctx := shlex.SplitForCompletion(`echo "text$HO`, shlex.BashFormat())
+ctx := shlex.SplitForCompletion(`echo "text$HO`, shlex.Bash)
 // ctx.VariableRef          = &shlex.VariableRef{Name: "HO"}   (nil when not a reference)
 // ctx.RawReplacementWord   = "text$HO"                        (raw text the shell replaces)
 ```
@@ -53,18 +53,18 @@ ctx := shlex.SplitForCompletion(`echo "text$HO`, shlex.BashFormat())
 
 ## Supported Formats
 
-| Format | Function | Key features |
+| Format | Constant | Key features |
 |--------|----------|-------------|
-| Bash | `BashFormat()` | POSIX baseline, reads `COMP_WORDBREAKS` |
-| Zsh | `ZshFormat()` | RC_QUOTES (`''`→`'`) |
-| Oil | `OilFormat()` | bash-compatible (OSH) |
-| Tcsh | `TcshFormat()` | POSIX-family |
-| Fish | `FishFormat()` | `\'`/`\\` in single quotes, keyword operators (`and`/`or`) |
-| Elvish | `ElvishFormat()` | `''` doubled-quote, `\` as bareword |
-| PowerShell | `PowershellFormat()` | backtick escape, `''`/`""` doubled-quotes |
-| Nushell | `NushellFormat()` | backtick-as-quote, `$'...'`/`$"..."` |
-| Xonsh | `XonshFormat()` | Python string prefixes, POSIX operators |
-| Cmd | `CmdFormat()` | caret escape, `"`-only, `&` separator |
+| Bash | `shlex.Bash` | POSIX baseline, reads `COMP_WORDBREAKS` |
+| Zsh | `shlex.Zsh` | RC_QUOTES (`''`→`'`) |
+| Oil | `shlex.Oil` | bash-compatible (OSH) |
+| Tcsh | `shlex.Tcsh` | POSIX-family |
+| Fish | `shlex.Fish` | `\'`/`\\` in single quotes, keyword operators (`and`/`or`) |
+| Elvish | `shlex.Elvish` | `''` doubled-quote, `\` as bareword |
+| PowerShell | `shlex.Powershell` | backtick escape, `''`/`""` doubled-quotes |
+| Nushell | `shlex.Nushell` | backtick-as-quote, `$'...'`/`$"..."` |
+| Xonsh | `shlex.Xonsh` | Python string prefixes, POSIX operators |
+| Cmd | `shlex.Cmd` | caret escape, `"`-only, `&` separator |
 
 ## CLI
 

@@ -6,9 +6,33 @@ type Span struct {
 	End   int // rune offset after the last character
 }
 
-// Format describes a shell's lexical rules: which runes are quotes,
+// Format identifies a shell's lexical rules. It is the name of one of the
+// supported shells; the lexing behavior itself is internal. Unknown names
+// are rejected by SplitWith and fall back to Default in SplitForCompletion.
+type Format string
+
+// Supported formats.
+const (
+	// Default is the empty format name, resolving to Bash. Spec macros
+	// and callers that omit the shell use this.
+	Default Format = ""
+
+	Bash       Format = "bash"
+	Cmd        Format = "cmd"
+	Elvish     Format = "elvish"
+	Fish       Format = "fish"
+	Nushell    Format = "nushell"
+	Oil        Format = "oil"
+	Powershell Format = "powershell"
+	Tcsh       Format = "tcsh"
+	Xonsh      Format = "xonsh"
+	Zsh        Format = "zsh"
+)
+
+// formatImpl describes a shell's lexical rules: which runes are quotes,
 // escapes, comments, and word breaks, and how operators are classified.
-type Format interface {
+// It is the behavior behind a Format name and is resolved via formatImplFor.
+type formatImpl interface {
 	// Classifier returns a rune classifier mapping runes to runeTokenClass.
 	// Called once per tokenizer; should be freshly built (may read env vars).
 	Classifier() tokenClassifier
@@ -79,6 +103,28 @@ type Format interface {
 	// wrapping for nushell/PowerShell, single-quote wrapping for shells
 	// that support it, etc.
 	QuoteWord(s string) string
+}
+
+// formatImpls maps Format names to their behavior.
+var formatImpls = map[Format]formatImpl{
+	Default:    bashFormat{},
+	Bash:       bashFormat{},
+	Cmd:        cmdFormat{},
+	Elvish:     elvishFormat{},
+	Fish:       fishFormat{},
+	Nushell:    nushellFormat{},
+	Oil:        bashFormat{},
+	Powershell: powershellFormat{},
+	Tcsh:       tcshFormat{},
+	Xonsh:      xonshFormat{},
+	Zsh:        zshFormat{},
+}
+
+// formatImplFor returns the behavior for a Format name, reporting false for
+// unknown names.
+func formatImplFor(name Format) (formatImpl, bool) {
+	f, ok := formatImpls[name]
+	return f, ok
 }
 
 // EscapingQuoteUnescaper is an optional interface for formats that need to

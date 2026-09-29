@@ -10,9 +10,6 @@ package shlex
 // - Supports &&, ||, & (background), |&, &|, &>, &>>, &>?, &>>?, >&, >|, <>, >?, >>?, <?, <>&
 type fishFormat struct{}
 
-// FishFormat returns the fish lexical format.
-func FishFormat() Format { return fishFormat{} }
-
 func (fishFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)
 	// Fish operators: |, ;, <, >, &, ?

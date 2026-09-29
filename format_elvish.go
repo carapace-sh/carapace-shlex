@@ -7,9 +7,6 @@ package shlex
 // - No POSIX list operators (no &&, ||, &)
 type elvishFormat struct{}
 
-// ElvishFormat returns the elvish lexical format.
-func ElvishFormat() Format { return elvishFormat{} }
-
 func (elvishFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)
 	// Elvish operators: |, >, <, >>, <>, ;

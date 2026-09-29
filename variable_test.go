@@ -14,115 +14,115 @@ func TestVariableRef(t *testing.T) {
 		wantStart int // rune offset of the opener in the input
 		wantEnd   int
 	}{
-		{name: "empty input", input: "", format: BashFormat()},
-		{name: "no dollar", input: "echo text", format: BashFormat()},
-		{name: "dollar only", input: "echo $", format: BashFormat(), wantName: "", wantRef: true},
-		{name: "dollar with name", input: "echo $HO", format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 6},
-		{name: "brace only", input: "echo ${", format: BashFormat(), wantName: "", wantBrace: true, wantRef: true},
-		{name: "brace with name", input: "echo ${HO", format: BashFormat(), wantName: "HO", wantBrace: true, wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 7},
+		{name: "empty input", input: "", format: Bash},
+		{name: "no dollar", input: "echo text", format: Bash},
+		{name: "dollar only", input: "echo $", format: Bash, wantName: "", wantRef: true},
+		{name: "dollar with name", input: "echo $HO", format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 6},
+		{name: "brace only", input: "echo ${", format: Bash, wantName: "", wantBrace: true, wantRef: true},
+		{name: "brace with name", input: "echo ${HO", format: Bash, wantName: "HO", wantBrace: true, wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 7},
 		{
 			name: "quoted text then dollar", input: `echo "text$HO`,
-			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 10, wantEnd: 11,
+			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 10, wantEnd: 11,
 		},
 		{
 			name: "quoted text then brace", input: `echo "test${`,
-			format: BashFormat(), wantName: "", wantBrace: true, wantRef: true,
+			format: Bash, wantName: "", wantBrace: true, wantRef: true,
 		},
 		{
 			// the lexer word is `text $HO`; expansion semantics are the
 			// same as the unsplit case
 			name: "quoted text with space", input: `echo "text $HO`,
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "single quotes keep dollar literal", input: `echo 'text$HO`,
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "closed quote then dollar", input: `echo "text"$HO`,
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "closed brace is not a reference", input: `echo ${HOME}`,
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "dollar before non-name char", input: `echo a$-x`,
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "escaped dollar is literal", input: `echo "\$HO`,
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "escaped backslash then dollar", input: `echo "\\$HO`,
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "command substitution is not a variable", input: `echo $(`,
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "fish has no brace form", input: "echo ${",
-			format: FishFormat(),
+			format: Fish,
 		},
 		{
 			name: "fish without expander", input: "echo $HO",
-			format: FishFormat(),
+			format: Fish,
 		},
 		{
 			name: "zsh quoted", input: `echo "text$HO`,
-			format: ZshFormat(), wantName: "HO", wantRef: true,
+			format: Zsh, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "redirect target", input: "echo >$HO",
-			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 6, wantEnd: 7,
+			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 6, wantEnd: 7,
 		},
 		{
 			name: "pid parameter then reference", input: "echo $$$HO",
-			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 7, wantEnd: 8,
+			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 7, wantEnd: 8,
 		},
 		{
 			name: "positional parameter", input: "echo $1",
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "positional parameter plus literal", input: "echo $9x",
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "brace positional parameter", input: "echo ${1",
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "positional parameter then reference", input: "echo $1x$HO",
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "inside substitution uses absolute span", input: "echo $(echo $HO",
-			format: BashFormat(), wantName: "HO", wantRef: true, wantSpan: true, wantStart: 12, wantEnd: 13,
+			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 12, wantEnd: 13,
 		},
 		{
 			// `#` mid-word is not a bash wordbreak; the reference is
 			// still detected and the whole word is replaced
 			name: "hash mid-word", input: "echo a#c$HO",
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "pid parameter is not a reference", input: "echo $$",
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "pid parameter mid-word is not a reference", input: "echo a$$",
-			format: BashFormat(),
+			format: Bash,
 		},
 		{
 			name: "pid parameter then reference", input: "echo $$$HO",
-			format: BashFormat(), wantName: "HO", wantRef: true,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "closed brace then reference", input: `echo ${HO}x$NE`,
-			format: BashFormat(), wantName: "NE", wantRef: true,
+			format: Bash, wantName: "NE", wantRef: true,
 		},
 	}
 
@@ -171,7 +171,7 @@ func TestRawReplacementWord(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := SplitForCompletion(tt.input, BashFormat())
+			ctx := SplitForCompletion(tt.input, Bash)
 			if ctx.RawReplacementWord != tt.want {
 				t.Errorf("RawReplacementWord = %q, want %q", ctx.RawReplacementWord, tt.want)
 			}
@@ -180,7 +180,7 @@ func TestRawReplacementWord(t *testing.T) {
 }
 
 func TestZshKeepsWholeRawWord(t *testing.T) {
-	ctx := SplitForCompletion(`echo "text $HO`, ZshFormat())
+	ctx := SplitForCompletion(`echo "text $HO`, Zsh)
 	if ctx.RawReplacementWord != ctx.RawCurrentWord {
 		t.Errorf("RawReplacementWord = %q, want RawCurrentWord %q", ctx.RawReplacementWord, ctx.RawCurrentWord)
 	}

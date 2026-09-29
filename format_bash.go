@@ -3,12 +3,9 @@ package shlex
 import "os"
 
 // bashFormat implements Format for POSIX/bash lexing.
-// This is the default format.
+// This is the default format. The Classifier reads COMP_WORDBREAKS from
+// the environment at call time.
 type bashFormat struct{}
-
-// BashFormat returns the POSIX/bash lexical format.
-// It reads COMP_WORDBREAKS from the environment at Classifier() call time.
-func BashFormat() Format { return bashFormat{} }
 
 func (bashFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)

@@ -27,7 +27,7 @@ func TestVerify_XonshWordBreakChars(t *testing.T) {
 	const xonshWordBreakOps = "|<>&;()"
 	const xonshSpaceChars = " \t\r\n"
 
-	classifier := XonshFormat().Classifier()
+	classifier := xonshFormat{}.Classifier()
 
 	for _, r := range xonshWordBreakOps {
 		got := classifier.ClassifyRune(r)
@@ -51,7 +51,7 @@ func TestVerify_XonshWordBreakChars(t *testing.T) {
 // shlex's subprocess-mode classifier they are word characters because
 // shlex treats them as part of the word (e.g. file.txt, user@host).
 func TestVerify_XonshStringCharacters(t *testing.T) {
-	classifier := XonshFormat().Classifier()
+	classifier := xonshFormat{}.Classifier()
 
 	// Regular string characters should NOT be wordbreaks
 	regularChars := "abcXYZ012_-.@/%+"
@@ -69,7 +69,7 @@ func TestVerify_XonshStringCharacters(t *testing.T) {
 // ' is the non-escaping quote (single quote) — limited escapes via
 // NonEscapingQuoteBackslashEscapes.
 func TestVerify_XonshQuoteChars(t *testing.T) {
-	classifier := XonshFormat().Classifier()
+	classifier := xonshFormat{}.Classifier()
 
 	// " is the escaping quote (double quote) — variable expansion, escapes
 	if got := classifier.ClassifyRune('"'); got != escapingQuoteRuneClass {
@@ -84,7 +84,7 @@ func TestVerify_XonshQuoteChars(t *testing.T) {
 // XONSH_ESCAPE_CHAR — from tokenize.py: Single/Double regexes use \\.
 // Backslash is the escape character in xonsh (Python rules).
 func TestVerify_XonshEscapeChar(t *testing.T) {
-	classifier := XonshFormat().Classifier()
+	classifier := xonshFormat{}.Classifier()
 	if got := classifier.ClassifyRune('\\'); got != escapeRuneClass {
 		t.Errorf("\\ classifier=%v, want escapeRuneClass", got)
 	}
@@ -93,7 +93,7 @@ func TestVerify_XonshEscapeChar(t *testing.T) {
 // XONSH_COMMENT_CHAR — xonsh uses # for comments (Python and shell).
 // In subprocess mode, # at token start begins a comment.
 func TestVerify_XonshCommentChar(t *testing.T) {
-	classifier := XonshFormat().Classifier()
+	classifier := xonshFormat{}.Classifier()
 	if got := classifier.ClassifyRune('#'); got != commentRuneClass {
 		t.Errorf("# classifier=%v, want commentRuneClass", got)
 	}
@@ -135,7 +135,7 @@ func TestVerify_XonshOperatorGrammar(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := XonshFormat().ClassifyOperator(tc.input)
+		got := xonshFormat{}.ClassifyOperator(tc.input)
 		if got != tc.opType {
 			t.Errorf("ClassifyOperator(%q) = %v, want %v", tc.input, got, tc.opType)
 			continue
@@ -154,7 +154,7 @@ func TestVerify_XonshOperatorGrammar(t *testing.T) {
 func TestVerify_XonshPipelineDelimiters(t *testing.T) {
 	pipelineOps := []string{"|", "||", "&", "&&", ";"}
 	for _, op := range pipelineOps {
-		wbType := XonshFormat().ClassifyOperator(op)
+		wbType := xonshFormat{}.ClassifyOperator(op)
 		if !wbType.IsPipelineDelimiter() {
 			t.Errorf("ClassifyOperator(%q).IsPipelineDelimiter() = false, want true", op)
 		}
@@ -166,7 +166,7 @@ func TestVerify_XonshPipelineDelimiters(t *testing.T) {
 func TestVerify_XonshRedirectOperators(t *testing.T) {
 	redirectOps := []string{">", ">>", "<"}
 	for _, op := range redirectOps {
-		wbType := XonshFormat().ClassifyOperator(op)
+		wbType := xonshFormat{}.ClassifyOperator(op)
 		if !wbType.IsRedirect() {
 			t.Errorf("ClassifyOperator(%q).IsRedirect() = false, want true", op)
 		}
@@ -178,7 +178,7 @@ func TestVerify_XonshRedirectOperators(t *testing.T) {
 // yielded as AND/OR tokens (pipeline delimiters).
 // Other words (not, etc.) are NOT keyword operators.
 func TestVerify_XonshKeywordOperators(t *testing.T) {
-	kwOps := XonshFormat().KeywordOperators()
+	kwOps := xonshFormat{}.KeywordOperators()
 	if kwOps == nil {
 		t.Fatal("KeywordOperators() = nil, want non-nil for xonsh")
 	}
@@ -201,7 +201,7 @@ func TestVerify_XonshKeywordOperators(t *testing.T) {
 // Verify keyword operators split pipelines end-to-end
 func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 	// "and" splits pipelines
-	tokens, err := SplitWith("echo foo and echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo and echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 	}
 
 	// "or" splits pipelines
-	tokens, err = SplitWith("echo foo or echo bar", XonshFormat())
+	tokens, err = SplitWith("echo foo or echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 
 	// "not" is NOT a keyword operator in xonsh (it's a Python keyword,
 	// not a subprocess separator) — should NOT split
-	tokens, err = SplitWith("echo foo not echo bar", XonshFormat())
+	tokens, err = SplitWith("echo foo not echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 // NEED_WHITESPACE checks RE_NEED_WHITESPACE pattern.
 // "fooand" or "echo fooand bar" should NOT trigger keyword splitting.
 func TestVerify_XonshKeywordOperatorNoSplitWithoutWhitespace(t *testing.T) {
-	tokens, err := SplitWith("echo fooand bar", XonshFormat())
+	tokens, err := SplitWith("echo fooand bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestVerify_XonshKeywordOperatorNoSplitWithoutWhitespace(t *testing.T) {
 // backslash escapes ANY character inside double quotes.
 func TestVerify_XonshDoubleQuoteEscapeChars(t *testing.T) {
 	// nil means backslash escapes any character (Python semantics)
-	got := XonshFormat().EscapingQuoteEscapeChars()
+	got := xonshFormat{}.EscapingQuoteEscapeChars()
 	if got != nil {
 		t.Errorf("EscapingQuoteEscapeChars() = %v, want nil (Python: backslash escapes any char)", got)
 	}
@@ -263,7 +263,7 @@ func TestVerify_XonshDoubleQuoteEscapeChars(t *testing.T) {
 // \X inside double quotes: backslash dropped, X emitted (for any X).
 func TestVerify_XonshDoubleQuoteEscaping(t *testing.T) {
 	// \" inside double quotes → literal "
-	tokens, err := SplitWith(`echo "say \"hello\""`, XonshFormat())
+	tokens, err := SplitWith(`echo "say \"hello\""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +273,7 @@ func TestVerify_XonshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \\ inside double quotes → literal \
-	tokens, err = SplitWith(`echo "C:\\path"`, XonshFormat())
+	tokens, err = SplitWith(`echo "C:\\path"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestVerify_XonshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \n inside double quotes → literal \n (Python: backslash dropped, n emitted)
-	tokens, err = SplitWith(`echo "hello\nworld"`, XonshFormat())
+	tokens, err = SplitWith(`echo "hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +293,7 @@ func TestVerify_XonshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \t inside double quotes → literal t (backslash dropped, t emitted)
-	tokens, err = SplitWith(`echo "a\tb"`, XonshFormat())
+	tokens, err = SplitWith(`echo "a\tb"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,7 +303,7 @@ func TestVerify_XonshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \$ inside double quotes → literal $ (backslash dropped, $ emitted)
-	tokens, err = SplitWith(`echo "cost: \$5"`, XonshFormat())
+	tokens, err = SplitWith(`echo "cost: \$5"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +319,7 @@ func TestVerify_XonshDoubleQuoteEscaping(t *testing.T) {
 // shlex xonsh: NonEscapingQuoteBackslashEscapes() = true (\' and \\ work).
 func TestVerify_XonshSingleQuoteEscapes(t *testing.T) {
 	// \' inside single quotes → literal '
-	tokens, err := SplitWith("echo 'it\\'s'", XonshFormat())
+	tokens, err := SplitWith("echo 'it\\'s'", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +329,7 @@ func TestVerify_XonshSingleQuoteEscapes(t *testing.T) {
 	}
 
 	// \\ inside single quotes → literal \
-	tokens, err = SplitWith("echo 'C:\\\\path'", XonshFormat())
+	tokens, err = SplitWith("echo 'C:\\\\path'", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,7 +345,7 @@ func TestVerify_XonshSingleQuoteEscapes(t *testing.T) {
 // keep both characters.
 func TestVerify_XonshSingleQuoteNonEscape(t *testing.T) {
 	// \$ inside single quotes → literal \$ (NOT an escape)
-	tokens, err := SplitWith(`echo 'cost: \$5'`, XonshFormat())
+	tokens, err := SplitWith(`echo 'cost: \$5'`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -355,7 +355,7 @@ func TestVerify_XonshSingleQuoteNonEscape(t *testing.T) {
 	}
 
 	// \n inside single quotes → literal \n (NOT a newline)
-	tokens, err = SplitWith(`echo 'hello\nworld'`, XonshFormat())
+	tokens, err = SplitWith(`echo 'hello\nworld'`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +371,7 @@ func TestVerify_XonshSingleQuoteNonEscape(t *testing.T) {
 // This applies both outside quotes and inside double quotes (Python semantics).
 func TestVerify_XonshLineContinuation(t *testing.T) {
 	// Outside quotes: \ + \n → removed (word continues)
-	tokens, err := SplitWith("echo foo\\\nbar", XonshFormat())
+	tokens, err := SplitWith("echo foo\\\nbar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +381,7 @@ func TestVerify_XonshLineContinuation(t *testing.T) {
 	}
 
 	// Inside double quotes: \ + \n → removed (line continuation)
-	tokens, err = SplitWith("echo \"foo\\\nbar\"", XonshFormat())
+	tokens, err = SplitWith("echo \"foo\\\nbar\"", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -391,7 +391,7 @@ func TestVerify_XonshLineContinuation(t *testing.T) {
 	}
 
 	// CRLF variant: \ + \r\n → removed
-	tokens, err = SplitWith("echo foo\\\r\nbar", XonshFormat())
+	tokens, err = SplitWith("echo foo\\\r\nbar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +404,7 @@ func TestVerify_XonshLineContinuation(t *testing.T) {
 // Comment: # starts a comment (Python and shell).
 // From xonsh: # at token start begins a comment to end of line.
 func TestVerify_XonshComment(t *testing.T) {
-	tokens, err := SplitWith("echo hello # this is a comment", XonshFormat())
+	tokens, err := SplitWith("echo hello # this is a comment", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,12 +418,12 @@ func TestVerify_XonshComment(t *testing.T) {
 // Triple-single and triple-double quoted strings (Python syntax).
 // shlex: TripleQuoteSupport() = true.
 func TestVerify_XonshTripleQuoteSupport(t *testing.T) {
-	if !XonshFormat().TripleQuoteSupport() {
+	if !(xonshFormat{}).TripleQuoteSupport() {
 		t.Error("TripleQuoteSupport() = false, want true (xonsh supports triple quotes)")
 	}
 
 	// Triple single quotes
-	tokens, err := SplitWith(`echo '''hello world'''`, XonshFormat())
+	tokens, err := SplitWith(`echo '''hello world'''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestVerify_XonshTripleQuoteSupport(t *testing.T) {
 	}
 
 	// Triple double quotes
-	tokens, err = SplitWith(`echo """hello world"""`, XonshFormat())
+	tokens, err = SplitWith(`echo """hello world"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -448,7 +448,7 @@ func TestVerify_XonshTripleQuoteSupport(t *testing.T) {
 // From Double3 regex: same for double quotes.
 func TestVerify_XonshTripleQuoteEmbeddedQuotes(t *testing.T) {
 	// '' inside '''...''' should NOT close
-	tokens, err := SplitWith(`echo '''hello''there'''`, XonshFormat())
+	tokens, err := SplitWith(`echo '''hello''there'''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -458,7 +458,7 @@ func TestVerify_XonshTripleQuoteEmbeddedQuotes(t *testing.T) {
 	}
 
 	// "" inside """...""" should NOT close
-	tokens, err = SplitWith(`echo """hello""there"""`, XonshFormat())
+	tokens, err = SplitWith(`echo """hello""there"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,7 +471,7 @@ func TestVerify_XonshTripleQuoteEmbeddedQuotes(t *testing.T) {
 // Triple quote escape behavior — from Single3/Double3 regexes: \\.
 // Inside triple double quotes, \" is an escape (backslash dropped, " emitted).
 func TestVerify_XonshTripleDoubleQuoteEscape(t *testing.T) {
-	tokens, err := SplitWith(`echo """say \"hello\""""`, XonshFormat())
+	tokens, err := SplitWith(`echo """say \"hello\""""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,12 +487,12 @@ func TestVerify_XonshTripleDoubleQuoteEscape(t *testing.T) {
 // Raw strings suppress escape processing inside double quotes.
 // shlex: RawPrefixSupport() = true.
 func TestVerify_XonshRawPrefixSupport(t *testing.T) {
-	if !XonshFormat().RawPrefixSupport() {
+	if !(xonshFormat{}).RawPrefixSupport() {
 		t.Error("RawPrefixSupport() = false, want true (xonsh supports raw strings)")
 	}
 
 	// r'...' — raw single-quoted string, \ is literal
-	tokens, err := SplitWith(`echo r'C:\path'`, XonshFormat())
+	tokens, err := SplitWith(`echo r'C:\path'`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -502,7 +502,7 @@ func TestVerify_XonshRawPrefixSupport(t *testing.T) {
 	}
 
 	// r"..." — raw double-quoted string, \ is literal (no escape processing)
-	tokens, err = SplitWith(`echo r"C:\path"`, XonshFormat())
+	tokens, err = SplitWith(`echo r"C:\path"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -512,7 +512,7 @@ func TestVerify_XonshRawPrefixSupport(t *testing.T) {
 	}
 
 	// br"..." — valid raw prefix (b + r), \ is literal
-	tokens, err = SplitWith(`echo br"hello\nworld"`, XonshFormat())
+	tokens, err = SplitWith(`echo br"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -527,7 +527,7 @@ func TestVerify_XonshRawPrefixSupport(t *testing.T) {
 // should process escapes normally.
 func TestVerify_XonshInvalidPrefixDoesNotSuppress(t *testing.T) {
 	// xr"..." — 'xr' is not a valid prefix, so escapes are processed
-	tokens, err := SplitWith(`echo xr"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo xr"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -562,7 +562,7 @@ func TestVerify_XonshStreamRedirects(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tokens, err := SplitWith(tc.input, XonshFormat())
+		tokens, err := SplitWith(tc.input, Xonsh)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", tc.input, err)
 		}
@@ -593,7 +593,7 @@ func TestVerify_XonshPipeChannelRedirects(t *testing.T) {
 	pipeChannelOps := []string{"e>p", "o>p", "a>p"}
 	for _, op := range pipeChannelOps {
 		input := "echo foo " + op + " bar"
-		tokens, err := SplitWith(input, XonshFormat())
+		tokens, err := SplitWith(input, Xonsh)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", input, err)
 		}
@@ -614,7 +614,7 @@ func TestVerify_XonshPipeChannelRedirects(t *testing.T) {
 // Only bare words (Value == RawValue) are merged with > as stream redirects.
 // Quoted 'e' is a string literal, not an operator.
 func TestVerify_XonshQuotedStreamRedirectNotMerged(t *testing.T) {
-	tokens, err := SplitWith("echo foo 'e'> bar", XonshFormat())
+	tokens, err := SplitWith("echo foo 'e'> bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -629,7 +629,7 @@ func TestVerify_XonshQuotedStreamRedirectNotMerged(t *testing.T) {
 // shlex PostProcess merges $ + ( and @ + ( into WORDBREAK_SUBSTITUTION_OPEN.
 func TestVerify_XonshCommandSubstitution(t *testing.T) {
 	// $(...) — command substitution
-	tokens, err := SplitWith("echo $(ls)", XonshFormat())
+	tokens, err := SplitWith("echo $(ls)", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -655,7 +655,7 @@ func TestVerify_XonshCommandSubstitution(t *testing.T) {
 
 // @() — Python expression substitution
 func TestVerify_XonshAtSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo @(1+2)", XonshFormat())
+	tokens, err := SplitWith("echo @(1+2)", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -674,7 +674,7 @@ func TestVerify_XonshAtSubstitution(t *testing.T) {
 // PostProcess reclassifies standalone ( as WORDBREAK_SUBSTITUTION_OPEN
 // and ) as WORDBREAK_SUBSTITUTION_CLOSE.
 func TestVerify_XonshBareParens(t *testing.T) {
-	tokens, err := SplitWith("echo (ls)", XonshFormat())
+	tokens, err := SplitWith("echo (ls)", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -699,7 +699,7 @@ func TestVerify_XonshBareParens(t *testing.T) {
 // Substitution delimiters should not split pipelines.
 // Pipe inside () should not split the outer pipeline.
 func TestVerify_XonshSubstitutionDoesntSplitPipeline(t *testing.T) {
-	tokens, err := SplitWith("echo $(ls | grep foo)", XonshFormat())
+	tokens, err := SplitWith("echo $(ls | grep foo)", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -742,7 +742,7 @@ func TestVerify_XonshQuoteWord(t *testing.T) {
 // split on $VAR expansion. Spaces inside quotes don't split words.
 func TestVerify_XonshNoWordSplitting(t *testing.T) {
 	// Inside double quotes, spaces don't split
-	tokens, err := SplitWith(`echo "hello world"`, XonshFormat())
+	tokens, err := SplitWith(`echo "hello world"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -752,7 +752,7 @@ func TestVerify_XonshNoWordSplitting(t *testing.T) {
 	}
 
 	// Outside quotes, spaces DO split (literal source whitespace)
-	tokens, err = SplitWith("echo hello world", XonshFormat())
+	tokens, err = SplitWith("echo hello world", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -766,7 +766,7 @@ func TestVerify_XonshNoWordSplitting(t *testing.T) {
 // From tokenize.py: escape mode consumes next char literally.
 func TestVerify_XonshEscapeOutsideQuotes(t *testing.T) {
 	// Escaped space → one word
-	tokens, err := SplitWith(`echo a\ b`, XonshFormat())
+	tokens, err := SplitWith(`echo a\ b`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -776,7 +776,7 @@ func TestVerify_XonshEscapeOutsideQuotes(t *testing.T) {
 	}
 
 	// Escaped pipe → literal | (not a pipeline delimiter)
-	tokens, err = SplitWith(`echo foo\|bar`, XonshFormat())
+	tokens, err = SplitWith(`echo foo\|bar`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -788,7 +788,7 @@ func TestVerify_XonshEscapeOutsideQuotes(t *testing.T) {
 
 // Xonsh has no COMP_WORDBREAKS dependency — the wordbreak set is fixed.
 func TestVerify_XonshNoEnvVarDependency(t *testing.T) {
-	classifier := XonshFormat().Classifier()
+	classifier := xonshFormat{}.Classifier()
 	for _, r := range "|<>&;()" {
 		got := classifier.ClassifyRune(r)
 		if got != wordbreakRuneClass {
@@ -801,10 +801,7 @@ func TestVerify_XonshNoEnvVarDependency(t *testing.T) {
 // From tokenize.py Ignore pattern: \\\r?\n is line continuation.
 // \n and \r should both return true.
 func TestVerify_XonshLineContinuationInterface(t *testing.T) {
-	lc, ok := XonshFormat().(LineContinuationEscaper)
-	if !ok {
-		t.Fatal("XonshFormat() does not implement LineContinuationEscaper")
-	}
+	var lc LineContinuationEscaper = xonshFormat{}
 	if !lc.IsLineContinuation('\n') {
 		t.Error("IsLineContinuation('\\n') = false, want true")
 	}

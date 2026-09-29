@@ -4,7 +4,7 @@ import "testing"
 
 func TestElvishFormat_BarewordBackslash(t *testing.T) {
 	// Elvish: \ is a bareword character outside quotes (not an escape)
-	tokens, err := SplitWith(`echo C:\path`, ElvishFormat())
+	tokens, err := SplitWith(`echo C:\path`, Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -16,7 +16,7 @@ func TestElvishFormat_BarewordBackslash(t *testing.T) {
 
 func TestElvishFormat_DoubleQuoteEscape(t *testing.T) {
 	// Elvish: \ IS an escape inside double quotes
-	tokens, err := SplitWith(`echo "hello\nworld"`, ElvishFormat())
+	tokens, err := SplitWith(`echo "hello\nworld"`, Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestElvishFormat_DoubleQuoteEscape(t *testing.T) {
 }
 
 func TestElvishFormat_DoubledQuoteSplit(t *testing.T) {
-	tokens, err := SplitWith("echo 'it''s a test'", ElvishFormat())
+	tokens, err := SplitWith("echo 'it''s a test'", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestElvishFormat_DoubledQuoteSplit(t *testing.T) {
 }
 
 func TestElvishFormat_DoubleQuoteValue(t *testing.T) {
-	tokens, err := SplitWith(`echo "say \"hello\""`, ElvishFormat())
+	tokens, err := SplitWith(`echo "say \"hello\""`, Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestElvishFormat_DoubleQuoteValue(t *testing.T) {
 
 func TestElvishFormat_AmpNotListOperator(t *testing.T) {
 	// & is for map literals in elvish, not a list operator
-	tokens, err := SplitWith("echo foo & echo bar", ElvishFormat())
+	tokens, err := SplitWith("echo foo & echo bar", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestElvishFormat_AmpNotListOperator(t *testing.T) {
 }
 
 func TestElvishFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", ElvishFormat())
+	tokens, err := SplitWith("echo foo | grep bar", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestElvishFormat_Pipe(t *testing.T) {
 }
 
 func TestElvishFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", ElvishFormat())
+	tokens, err := SplitWith("echo foo ; echo bar", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestElvishFormat_Semicolon(t *testing.T) {
 }
 
 func TestElvishFormat_OpenSingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", ElvishFormat())
+	tokens, err := SplitWith("echo 'hel", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestElvishFormat_OpenSingleQuote(t *testing.T) {
 
 func TestElvishFormat_LambdaPipe(t *testing.T) {
 	// {| — the | after { is a lambda parameter delimiter, not a pipeline pipe
-	tokens, err := SplitWith("bat | {|", ElvishFormat())
+	tokens, err := SplitWith("bat | {|", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestElvishFormat_LambdaPipe(t *testing.T) {
 
 func TestElvishFormat_LambdaPipeParams(t *testing.T) {
 	// {|a b| — both | are lambda parameter delimiters
-	tokens, err := SplitWith("bat | {|a b|", ElvishFormat())
+	tokens, err := SplitWith("bat | {|a b|", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestElvishFormat_LambdaPipeParams(t *testing.T) {
 
 func TestElvishFormat_LambdaBodyPipe(t *testing.T) {
 	// {|a| cmd1 | cmd2} — first two | are lambda delimiters, third is a real pipe in the body
-	tokens, err := SplitWith("{|a| cmd1 | cmd2}", ElvishFormat())
+	tokens, err := SplitWith("{|a| cmd1 | cmd2}", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestElvishFormat_LambdaBodyPipe(t *testing.T) {
 
 func TestElvishFormat_BracedListNotLambda(t *testing.T) {
 	// {a,b} is a braced list, not a lambda — no | to reclassify
-	tokens, err := SplitWith("echo {a,b}", ElvishFormat())
+	tokens, err := SplitWith("echo {a,b}", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestElvishFormat_BracedListNotLambda(t *testing.T) {
 
 func TestElvishFormat_LambdaNoParams(t *testing.T) {
 	// { body } — lambda with no params (space after {), no | at all
-	tokens, err := SplitWith("var f = { echo hi }", ElvishFormat())
+	tokens, err := SplitWith("var f = { echo hi }", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestElvishFormat_LambdaNoParams(t *testing.T) {
 
 func TestElvishFormat_NestedLambda(t *testing.T) {
 	// {|a| {|b| echo $a $b }} — nested lambdas
-	tokens, err := SplitWith("{|a| {|b| echo $a $b }}", ElvishFormat())
+	tokens, err := SplitWith("{|a| {|b| echo $a $b }}", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestElvishFormat_NestedLambda(t *testing.T) {
 
 func TestElvishFormat_LambdaPipeDoesNotSplitPipeline(t *testing.T) {
 	// The lambda | should not split CurrentPipeline — only the real pipe before {|
-	tokens, err := SplitWith("bat | {|a", ElvishFormat())
+	tokens, err := SplitWith("bat | {|a", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestElvishFormat_LambdaPipeDoesNotSplitPipeline(t *testing.T) {
 
 func TestElvishFormat_CompletionInLambdaParams(t *testing.T) {
 	// Cursor after {| — should be in lambda parameter position
-	ctx := SplitForCompletion("bat | {|", ElvishFormat())
+	ctx := SplitForCompletion("bat | {|", Elvish)
 	if !ctx.InLambdaParams {
 		t.Errorf("elvish completion in lambda params: InLambdaParams = false, want true")
 	}
@@ -262,7 +262,7 @@ func TestElvishFormat_CompletionInLambdaParams(t *testing.T) {
 
 func TestElvishFormat_CompletionInLambdaParamsWithArg(t *testing.T) {
 	// Cursor after {|a — still in parameter list
-	ctx := SplitForCompletion("bat | {|a", ElvishFormat())
+	ctx := SplitForCompletion("bat | {|a", Elvish)
 	if !ctx.InLambdaParams {
 		t.Errorf("elvish completion in lambda params (with arg): InLambdaParams = false, want true")
 	}
@@ -270,7 +270,7 @@ func TestElvishFormat_CompletionInLambdaParamsWithArg(t *testing.T) {
 
 func TestElvishFormat_CompletionAfterLambdaParams(t *testing.T) {
 	// Cursor after {|a| — parameter list closed, in lambda body
-	ctx := SplitForCompletion("bat | {|a|", ElvishFormat())
+	ctx := SplitForCompletion("bat | {|a|", Elvish)
 	if ctx.InLambdaParams {
 		t.Errorf("elvish completion after lambda params: InLambdaParams = true, want false (in body)")
 	}
@@ -278,7 +278,7 @@ func TestElvishFormat_CompletionAfterLambdaParams(t *testing.T) {
 
 func TestElvishFormat_CompletionNotInLambda(t *testing.T) {
 	// Cursor after regular pipe — not in lambda
-	ctx := SplitForCompletion("bat | grep ", ElvishFormat())
+	ctx := SplitForCompletion("bat | grep ", Elvish)
 	if ctx.InLambdaParams {
 		t.Errorf("elvish completion not in lambda: InLambdaParams = true, want false")
 	}
@@ -286,7 +286,7 @@ func TestElvishFormat_CompletionNotInLambda(t *testing.T) {
 
 func TestElvishFormat_OutputCapture(t *testing.T) {
 	// ( and ) are word breaks — output capture delimiters
-	tokens, err := SplitWith("echo (ls)", ElvishFormat())
+	tokens, err := SplitWith("echo (ls)", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +297,7 @@ func TestElvishFormat_OutputCapture(t *testing.T) {
 }
 
 func TestElvishFormat_OutputCaptureWordbreakType(t *testing.T) {
-	tokens, err := SplitWith("echo (ls)", ElvishFormat())
+	tokens, err := SplitWith("echo (ls)", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func TestElvishFormat_OutputCaptureWordbreakType(t *testing.T) {
 
 func TestElvishFormat_OutputCaptureDoesNotSplitPipeline(t *testing.T) {
 	// ( and ) create a substitution scope — | inside does not split the outer pipeline
-	tokens, err := SplitWith("echo (ls | grep foo)", ElvishFormat())
+	tokens, err := SplitWith("echo (ls | grep foo)", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func TestElvishFormat_OutputCaptureDoesNotSplitPipeline(t *testing.T) {
 
 func TestElvishFormat_ListLiteral(t *testing.T) {
 	// [ and ] are word breaks at word start — list literal
-	tokens, err := SplitWith("[a b]", ElvishFormat())
+	tokens, err := SplitWith("[a b]", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +342,7 @@ func TestElvishFormat_ListLiteral(t *testing.T) {
 }
 
 func TestElvishFormat_ListLiteralWordbreakType(t *testing.T) {
-	tokens, err := SplitWith("[a b]", ElvishFormat())
+	tokens, err := SplitWith("[a b]", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +357,7 @@ func TestElvishFormat_ListLiteralWordbreakType(t *testing.T) {
 
 func TestElvishFormat_Indexing(t *testing.T) {
 	// [ after a word char is indexing — Words() should merge $var[0] back together
-	tokens, err := SplitWith("echo $var[0]", ElvishFormat())
+	tokens, err := SplitWith("echo $var[0]", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,7 +369,7 @@ func TestElvishFormat_Indexing(t *testing.T) {
 
 func TestElvishFormat_IndexingRange(t *testing.T) {
 	// $var[0:3] — indexing with range
-	tokens, err := SplitWith("echo $var[0:3]", ElvishFormat())
+	tokens, err := SplitWith("echo $var[0:3]", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +381,7 @@ func TestElvishFormat_IndexingRange(t *testing.T) {
 
 func TestElvishFormat_BracketDoesNotSplitPipeline(t *testing.T) {
 	// [ and ] are not pipeline delimiters
-	tokens, err := SplitWith("echo [a b]", ElvishFormat())
+	tokens, err := SplitWith("echo [a b]", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestElvishFormat_BracketDoesNotSplitPipeline(t *testing.T) {
 func TestElvishFormat_NestedOutputCapture(t *testing.T) {
 	// Nested output capture: echo (echo (ls))
 	// The inner ( is a word break, so (echo and (ls)) are separate words
-	tokens, err := SplitWith("echo (echo (ls))", ElvishFormat())
+	tokens, err := SplitWith("echo (echo (ls))", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,7 +408,7 @@ func TestElvishFormat_NestedOutputCapture(t *testing.T) {
 func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
 	// Cursor inside output capture: echo (ls
 	// The ( opens a substitution scope, so the inner context is "ls"
-	ctx := SplitForCompletion("echo (ls", ElvishFormat())
+	ctx := SplitForCompletion("echo (ls", Elvish)
 	if len(ctx.Words) != 1 || ctx.Words[0] != "ls" {
 		t.Errorf("elvish output capture completion: Words = %v, want [ls]", ctx.Words)
 	}
@@ -417,7 +417,7 @@ func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
 func TestElvishFormat_ClosedLambdaThenPipe(t *testing.T) {
 	// {|a| echo $a} | grep foo — } is embedded in "$a}" word.
 	// The | after } should be WORDBREAK_PIPE, not WORDBREAK_LAMBDA_PIPE.
-	tokens, err := SplitWith("{|a| echo $a} | grep foo", ElvishFormat())
+	tokens, err := SplitWith("{|a| echo $a} | grep foo", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,7 +443,7 @@ func TestElvishFormat_ClosedLambdaThenPipe(t *testing.T) {
 func TestElvishFormat_LambdaNoParamsBodyPipe(t *testing.T) {
 	// { echo foo | grep bar } — lambda with no params, body has a pipe.
 	// The | should be WORDBREAK_PIPE, not WORDBREAK_LAMBDA_PIPE.
-	tokens, err := SplitWith("{ echo foo | grep bar }", ElvishFormat())
+	tokens, err := SplitWith("{ echo foo | grep bar }", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,7 +468,7 @@ func TestElvishFormat_LambdaNoParamsBodyPipe(t *testing.T) {
 
 func TestElvishFormat_MultipleLambdasWithPipeBetween(t *testing.T) {
 	// {|a| echo $a} | {|b| echo $b} — pipe between two closed lambdas
-	tokens, err := SplitWith("{|a| echo $a} | {|b| echo $b}", ElvishFormat())
+	tokens, err := SplitWith("{|a| echo $a} | {|b| echo $b}", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -493,7 +493,7 @@ func TestElvishFormat_MultipleLambdasWithPipeBetween(t *testing.T) {
 
 func TestElvishFormat_NestedLambdaThenPipeInBody(t *testing.T) {
 	// {|a| {|b| echo $b} | grep foo} — inner lambda closed, then real pipe in outer body
-	tokens, err := SplitWith("{|a| {|b| echo $b} | grep foo}", ElvishFormat())
+	tokens, err := SplitWith("{|a| {|b| echo $b} | grep foo}", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -518,7 +518,7 @@ func TestElvishFormat_NestedLambdaThenPipeInBody(t *testing.T) {
 
 func TestElvishFormat_ClosedLambdaCompletion(t *testing.T) {
 	// {|a| echo $a} | grep foo — cursor at end, lambda is closed
-	ctx := SplitForCompletion("{|a| echo $a} | grep foo", ElvishFormat())
+	ctx := SplitForCompletion("{|a| echo $a} | grep foo", Elvish)
 	if ctx.InLambdaParams {
 		t.Errorf("closed lambda completion: InLambdaParams = true, want false")
 	}
@@ -531,7 +531,7 @@ func TestElvishFormat_CaretLineContinuation(t *testing.T) {
 	// elvish: ^<newline> is whitespace (word break) — like a space.
 	// foo^\nbar → foo bar (two words)
 	input := "echo foo" + "^" + "\n" + "bar"
-	tokens, err := SplitWith(input, ElvishFormat())
+	tokens, err := SplitWith(input, Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -544,7 +544,7 @@ func TestElvishFormat_CaretLineContinuation(t *testing.T) {
 func TestElvishFormat_CaretLineContinuationCRLF(t *testing.T) {
 	// elvish: ^<CR><LF> is whitespace (word break)
 	input := "echo foo" + "^" + "\r\n" + "bar"
-	tokens, err := SplitWith(input, ElvishFormat())
+	tokens, err := SplitWith(input, Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -556,7 +556,7 @@ func TestElvishFormat_CaretLineContinuationCRLF(t *testing.T) {
 
 func TestElvishFormat_CaretAloneIsBareword(t *testing.T) {
 	// elvish: ^ without a following newline is a regular bareword character
-	tokens, err := SplitWith("echo foo^bar", ElvishFormat())
+	tokens, err := SplitWith("echo foo^bar", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +569,7 @@ func TestElvishFormat_CaretAloneIsBareword(t *testing.T) {
 func TestElvishFormat_CaretNewlineAtWordStart(t *testing.T) {
 	// elvish: ^<newline> at start of word — pure whitespace
 	input := "echo " + "^" + "\n" + "bar"
-	tokens, err := SplitWith(input, ElvishFormat())
+	tokens, err := SplitWith(input, Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}

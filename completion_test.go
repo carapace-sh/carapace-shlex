@@ -16,7 +16,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "simple word",
 			input:      "echo hel",
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "hel",
 			wantPrefix: "",
 			wantState:  IN_WORD_STATE,
@@ -25,7 +25,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "inside double quotes",
 			input:      `echo "hel`,
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "hel",
 			wantPrefix: "",
 			wantState:  QUOTING_ESCAPING_STATE,
@@ -34,7 +34,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "inside single quotes",
 			input:      "echo 'hel",
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "hel",
 			wantPrefix: "",
 			wantState:  QUOTING_STATE,
@@ -43,7 +43,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "pipeline",
 			input:      "echo foo | grep bar",
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "bar",
 			wantPrefix: "",
 			wantState:  IN_WORD_STATE,
@@ -52,7 +52,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:         "redirect target",
 			input:        "echo foo > bar",
-			format:       BashFormat(),
+			format:       Bash,
 			wantWord:     "bar",
 			wantPrefix:   "",
 			wantState:    IN_WORD_STATE,
@@ -62,7 +62,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "wordbreak prefix with equals",
 			input:      "echo foo=bar",
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "foo=bar",
 			wantPrefix: "foo=",
 			wantState:  IN_WORD_STATE,
@@ -71,7 +71,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "empty input",
 			input:      "",
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "",
 			wantPrefix: "",
 			wantState:  START_STATE,
@@ -80,7 +80,7 @@ func TestSplitForCompletion(t *testing.T) {
 		{
 			name:       "escape at end",
 			input:      `echo foo\`,
-			format:     BashFormat(),
+			format:     Bash,
 			wantWord:   "foo",
 			wantPrefix: "",
 			wantState:  ESCAPING_STATE,

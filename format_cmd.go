@@ -13,11 +13,9 @@ package shlex
 //   - \ is a literal word character (Windows paths)
 //   - Caret + newline is line continuation (consumed, not part of word)
 //   - Numeric stream redirects: 2>, 2>&1, 1>&2 (merged in PostProcess)
-type cmdFormat struct{}
-
-// CmdFormat returns the cmd.exe lexical format.
+//
 // REM/:: keyword comments are not yet handled (deferred).
-func CmdFormat() Format { return cmdFormat{} }
+type cmdFormat struct{}
 
 func (cmdFormat) Classifier() tokenClassifier {
 	t := tokenClassifier{}

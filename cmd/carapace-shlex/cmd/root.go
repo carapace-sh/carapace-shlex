@@ -12,31 +12,6 @@ import (
 
 var formatFlag string
 
-func formatFromFlag(name string) shlex.Format {
-	switch name {
-	case "zsh":
-		return shlex.ZshFormat()
-	case "fish":
-		return shlex.FishFormat()
-	case "elvish":
-		return shlex.ElvishFormat()
-	case "nushell":
-		return shlex.NushellFormat()
-	case "powershell":
-		return shlex.PowershellFormat()
-	case "xonsh":
-		return shlex.XonshFormat()
-	case "tcsh":
-		return shlex.TcshFormat()
-	case "oil":
-		return shlex.OilFormat()
-	case "cmd":
-		return shlex.CmdFormat()
-	default:
-		return shlex.BashFormat()
-	}
-}
-
 var rootCmd = &cobra.Command{
 	Use:  "carapace-shlex",
 	Long: "simple shell lexer",
@@ -45,7 +20,7 @@ var rootCmd = &cobra.Command{
 	},
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		format := formatFromFlag(formatFlag)
+		format := shlex.Format(formatFlag)
 
 		switch {
 		case cmd.Flag("completion-context").Changed:

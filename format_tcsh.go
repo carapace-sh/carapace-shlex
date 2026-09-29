@@ -14,9 +14,6 @@ package shlex
 // (backslash is already the escape char, $ is a word char before quotes).
 type tcshFormat struct{}
 
-// TcshFormat returns the tcsh lexical format.
-func TcshFormat() Format { return tcshFormat{} }
-
 // TCSH_WORDBREAKS are the wordbreak characters for tcsh, derived from the
 // _META character class in tcsh's _cmap table (sh.char.c).
 // Unlike bash, tcsh does not include = or @ as wordbreak characters.

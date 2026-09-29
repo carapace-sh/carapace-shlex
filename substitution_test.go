@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestSubstitution_BashCommandSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo $(echo test)", BashFormat())
+	tokens, err := SplitWith("echo $(echo test)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestSubstitution_BashCommandSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_BashArithmetic(t *testing.T) {
-	tokens, err := SplitWith("echo $((1+2))", BashFormat())
+	tokens, err := SplitWith("echo $((1+2))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestSubstitution_BashArithmetic(t *testing.T) {
 }
 
 func TestSubstitution_BashProcessSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo <(grep foo)", BashFormat())
+	tokens, err := SplitWith("echo <(grep foo)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestSubstitution_BashProcessSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_PipelineDoesNotSplitInsideSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo foo $(bar | grep x) baz", BashFormat())
+	tokens, err := SplitWith("echo foo $(bar | grep x) baz", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestSubstitution_PipelineDoesNotSplitInsideSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_NestedCommandSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo $(echo $(echo test))", BashFormat())
+	tokens, err := SplitWith("echo $(echo $(echo test))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestSubstitution_NestedCommandSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_CompletionInsideSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo $(git ch", BashFormat())
+	ctx := SplitForCompletion("echo $(git ch", Bash)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
@@ -73,28 +73,28 @@ func TestSubstitution_CompletionInsideSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_CompletionInsideNestedSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo $(echo $(git ch", BashFormat())
+	ctx := SplitForCompletion("echo $(echo $(git ch", Bash)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
 }
 
 func TestSubstitution_CompletionInsideArithmetic(t *testing.T) {
-	ctx := SplitForCompletion("echo $((1+2", BashFormat())
+	ctx := SplitForCompletion("echo $((1+2", Bash)
 	if len(ctx.Words) != 1 || ctx.Words[0] != "echo" {
 		t.Errorf("Words = %v, want [echo]", ctx.Words)
 	}
 }
 
 func TestSubstitution_CompletionClosedSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo $(echo test)", BashFormat())
+	ctx := SplitForCompletion("echo $(echo test)", Bash)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "echo" || ctx.Words[1] != "$(echo test)" {
 		t.Errorf("Words = %v, want [echo $(echo test)]", ctx.Words)
 	}
 }
 
 func TestSubstitution_CompletionInsideSubstitutionWithInnerPipe(t *testing.T) {
-	ctx := SplitForCompletion("echo foo $(bar | grep x", BashFormat())
+	ctx := SplitForCompletion("echo foo $(bar | grep x", Bash)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "grep" || ctx.Words[1] != "x" {
 		t.Errorf("Words = %v, want [grep x]", ctx.Words)
 	}
@@ -104,7 +104,7 @@ func TestSubstitution_CompletionInsideSubstitutionWithInnerPipe(t *testing.T) {
 }
 
 func TestSubstitution_BashBacktickSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo `echo test`", BashFormat())
+	tokens, err := SplitWith("echo `echo test`", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestSubstitution_BashBacktickSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_ElvishOutputCapture(t *testing.T) {
-	tokens, err := SplitWith("echo (echo test)", ElvishFormat())
+	tokens, err := SplitWith("echo (echo test)", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,14 +126,14 @@ func TestSubstitution_ElvishOutputCapture(t *testing.T) {
 }
 
 func TestSubstitution_ElvishOutputCaptureCompletion(t *testing.T) {
-	ctx := SplitForCompletion("echo (ls", ElvishFormat())
+	ctx := SplitForCompletion("echo (ls", Elvish)
 	if len(ctx.Words) != 1 || ctx.Words[0] != "ls" {
 		t.Errorf("Words = %v, want [ls]", ctx.Words)
 	}
 }
 
 func TestSubstitution_TokenReclassification(t *testing.T) {
-	tokens, err := SplitWith("echo $(test)", BashFormat())
+	tokens, err := SplitWith("echo $(test)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,29 +154,29 @@ func TestSubstitution_TokenReclassification(t *testing.T) {
 }
 
 func TestSubstitution_CompletionSubstitutionDepth(t *testing.T) {
-	ctx := SplitForCompletion("echo $(git ch", BashFormat())
+	ctx := SplitForCompletion("echo $(git ch", Bash)
 	if ctx.SubstitutionDepth != 1 {
 		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
 	}
 
-	ctx = SplitForCompletion("echo $(echo $(git ch", BashFormat())
+	ctx = SplitForCompletion("echo $(echo $(git ch", Bash)
 	if ctx.SubstitutionDepth != 2 {
 		t.Errorf("SubstitutionDepth = %d, want 2", ctx.SubstitutionDepth)
 	}
 
-	ctx = SplitForCompletion("echo test", BashFormat())
+	ctx = SplitForCompletion("echo test", Bash)
 	if ctx.SubstitutionDepth != 0 {
 		t.Errorf("SubstitutionDepth = %d, want 0", ctx.SubstitutionDepth)
 	}
 
-	ctx = SplitForCompletion("echo $(echo test)", BashFormat())
+	ctx = SplitForCompletion("echo $(echo test)", Bash)
 	if ctx.SubstitutionDepth != 0 {
 		t.Errorf("SubstitutionDepth = %d, want 0 (closed)", ctx.SubstitutionDepth)
 	}
 }
 
 func TestSubstitution_CompletionRedirectInsideSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo $(cat >", BashFormat())
+	ctx := SplitForCompletion("echo $(cat >", Bash)
 	if ctx.SubstitutionDepth != 1 {
 		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
 	}
@@ -186,7 +186,7 @@ func TestSubstitution_CompletionRedirectInsideSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_ZshCommandSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo $(git ch", ZshFormat())
+	ctx := SplitForCompletion("echo $(git ch", Zsh)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
@@ -196,7 +196,7 @@ func TestSubstitution_ZshCommandSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_FishCommandSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo (git ch", FishFormat())
+	ctx := SplitForCompletion("echo (git ch", Fish)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
@@ -206,7 +206,7 @@ func TestSubstitution_FishCommandSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_NushellSubexpression(t *testing.T) {
-	ctx := SplitForCompletion("echo (git ch", NushellFormat())
+	ctx := SplitForCompletion("echo (git ch", Nushell)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
@@ -216,7 +216,7 @@ func TestSubstitution_NushellSubexpression(t *testing.T) {
 }
 
 func TestSubstitution_PowerShellSubexpression(t *testing.T) {
-	ctx := SplitForCompletion("echo $(git ch", PowershellFormat())
+	ctx := SplitForCompletion("echo $(git ch", Powershell)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
@@ -226,7 +226,7 @@ func TestSubstitution_PowerShellSubexpression(t *testing.T) {
 }
 
 func TestSubstitution_ProcessSubstitution(t *testing.T) {
-	ctx := SplitForCompletion("echo <(git ch", BashFormat())
+	ctx := SplitForCompletion("echo <(git ch", Bash)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "git" || ctx.Words[1] != "ch" {
 		t.Errorf("Words = %v, want [git ch]", ctx.Words)
 	}
@@ -236,7 +236,7 @@ func TestSubstitution_ProcessSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_ClosedSubstitutionDoesNotAffectPrefix(t *testing.T) {
-	ctx := SplitForCompletion("echo $(echo test) foo", BashFormat())
+	ctx := SplitForCompletion("echo $(echo test) foo", Bash)
 	if ctx.SubstitutionDepth != 0 {
 		t.Errorf("SubstitutionDepth = %d, want 0", ctx.SubstitutionDepth)
 	}

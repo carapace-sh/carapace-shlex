@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestNushellFormat_SingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hello world'", NushellFormat())
+	tokens, err := SplitWith("echo 'hello world'", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestNushellFormat_SingleQuote(t *testing.T) {
 }
 
 func TestNushellFormat_DoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "hello\nworld"`, NushellFormat())
+	tokens, err := SplitWith(`echo "hello\nworld"`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestNushellFormat_DoubleQuote(t *testing.T) {
 
 func TestNushellFormat_BacktickQuote(t *testing.T) {
 	// Nushell: backtick is a quote char (not escape)
-	tokens, err := SplitWith("echo `hello world`", NushellFormat())
+	tokens, err := SplitWith("echo `hello world`", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestNushellFormat_BacktickQuote(t *testing.T) {
 
 func TestNushellFormat_InterpolatedPrefix(t *testing.T) {
 	// $'...' — $ prefix + single quote, Words() merges
-	tokens, err := SplitWith("echo $'hello'", NushellFormat())
+	tokens, err := SplitWith("echo $'hello'", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestNushellFormat_InterpolatedPrefix(t *testing.T) {
 }
 
 func TestNushellFormat_InterpolatedDouble(t *testing.T) {
-	tokens, err := SplitWith(`echo $"hello"`, NushellFormat())
+	tokens, err := SplitWith(`echo $"hello"`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestNushellFormat_InterpolatedDouble(t *testing.T) {
 }
 
 func TestNushellFormat_OpenBacktick(t *testing.T) {
-	tokens, err := SplitWith("echo `hel", NushellFormat())
+	tokens, err := SplitWith("echo `hel", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestNushellFormat_OpenBacktick(t *testing.T) {
 }
 
 func TestNushellFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", NushellFormat())
+	tokens, err := SplitWith("echo foo | grep bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestNushellFormat_Pipe(t *testing.T) {
 }
 
 func TestNushellFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", NushellFormat())
+	tokens, err := SplitWith("echo foo ; echo bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestNushellFormat_Semicolon(t *testing.T) {
 }
 
 func TestNushellFormat_OpenSingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", NushellFormat())
+	tokens, err := SplitWith("echo 'hel", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestNushellFormat_OpenSingleQuote(t *testing.T) {
 }
 
 func TestNushellFormat_OpenDoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "hel`, NushellFormat())
+	tokens, err := SplitWith(`echo "hel`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestNushellFormat_EscapeSequences(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tokens, err := SplitWith("echo "+tc.input, NushellFormat())
+			tokens, err := SplitWith("echo "+tc.input, Nushell)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -163,7 +163,7 @@ func TestNushellFormat_EscapeSequences(t *testing.T) {
 
 func TestNushellFormat_EscapeInSingleQuote(t *testing.T) {
 	// Single-quoted strings have no escape processing
-	tokens, err := SplitWith(`echo 'hello\nworld'`, NushellFormat())
+	tokens, err := SplitWith(`echo 'hello\nworld'`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestNushellFormat_EscapeInSingleQuote(t *testing.T) {
 
 func TestNushellFormat_EscapeInBacktick(t *testing.T) {
 	// Backtick strings have no escape processing
-	tokens, err := SplitWith(`echo `+"`hello\\nworld`", NushellFormat())
+	tokens, err := SplitWith(`echo `+"`hello\\nworld`", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestNushellFormat_EscapeInBacktick(t *testing.T) {
 
 func TestNushellFormat_OpenDoubleQuoteWithEscape(t *testing.T) {
 	// Open double quote with escape at EOF — should stay in QUOTING_ESCAPING_STATE
-	tokens, err := SplitWith(`echo "hello\`, NushellFormat())
+	tokens, err := SplitWith(`echo "hello\`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestNushellFormat_OpenDoubleQuoteWithEscape(t *testing.T) {
 // --- Stream redirect operator tests ---
 
 func TestNushellFormat_StreamRedirect_Out(t *testing.T) {
-	tokens, err := SplitWith("cat foo out> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo out> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func TestNushellFormat_StreamRedirect_Out(t *testing.T) {
 }
 
 func TestNushellFormat_StreamRedirect_Err(t *testing.T) {
-	tokens, err := SplitWith("cat foo err> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo err> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestNushellFormat_StreamRedirect_Err(t *testing.T) {
 }
 
 func TestNushellFormat_StreamRedirect_OE(t *testing.T) {
-	tokens, err := SplitWith("cat foo o+e> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo o+e> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func TestNushellFormat_StreamRedirect_OE(t *testing.T) {
 }
 
 func TestNushellFormat_StreamRedirect_OutErr(t *testing.T) {
-	tokens, err := SplitWith("cat foo out+err> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo out+err> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func TestNushellFormat_StreamRedirect_OutErr(t *testing.T) {
 }
 
 func TestNushellFormat_StreamRedirect_Short(t *testing.T) {
-	tokens, err := SplitWith("cat foo o> bar e> baz", NushellFormat())
+	tokens, err := SplitWith("cat foo o> bar e> baz", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +260,7 @@ func TestNushellFormat_StreamRedirect_Short(t *testing.T) {
 }
 
 func TestNushellFormat_StreamPipe_EPipe(t *testing.T) {
-	tokens, err := SplitWith("cat foo e>| bar", NushellFormat())
+	tokens, err := SplitWith("cat foo e>| bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func TestNushellFormat_StreamPipe_EPipe(t *testing.T) {
 }
 
 func TestNushellFormat_StreamPipe_OEPipe(t *testing.T) {
-	tokens, err := SplitWith("cat foo o+e>| bar", NushellFormat())
+	tokens, err := SplitWith("cat foo o+e>| bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func TestNushellFormat_StreamPipe_OEPipe(t *testing.T) {
 }
 
 func TestNushellFormat_StreamPipe_ErrPipe(t *testing.T) {
-	tokens, err := SplitWith("cat foo err>| bar", NushellFormat())
+	tokens, err := SplitWith("cat foo err>| bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,11 +294,11 @@ func TestNushellFormat_StreamPipe_ErrPipe(t *testing.T) {
 
 func TestNushellFormat_StreamRedirect_IsRedirect(t *testing.T) {
 	// Verify that completion context detects redirect after out>
-	tokens, err := SplitWith("cat foo out> ", NushellFormat())
+	tokens, err := SplitWith("cat foo out> ", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := SplitForCompletion("cat foo out> ", NushellFormat())
+	ctx := SplitForCompletion("cat foo out> ", Nushell)
 	if !ctx.IsRedirect {
 		t.Errorf("nushell out> completion: IsRedirect = false, want true")
 	}
@@ -311,7 +311,7 @@ func TestNushellFormat_StreamRedirect_IsRedirect(t *testing.T) {
 
 func TestNushellFormat_NonStreamWordNotMerged(t *testing.T) {
 	// A regular word like "foo" before > should NOT be merged as a stream redirect
-	tokens, err := SplitWith("echo foo > bar", NushellFormat())
+	tokens, err := SplitWith("echo foo > bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,7 +324,7 @@ func TestNushellFormat_NonStreamWordNotMerged(t *testing.T) {
 
 func TestNushellFormat_StreamRedirectWithAppend(t *testing.T) {
 	// out>> should be recognized (out + >>)
-	tokens, err := SplitWith("cat foo out>> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo out>> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +348,7 @@ func TestNushellFormat_QuotedStreamWordNotMerged(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tokens, err := SplitWith(tc.input, NushellFormat())
+			tokens, err := SplitWith(tc.input, Nushell)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -366,7 +366,7 @@ func TestNushellFormat_QuotedStreamWordNotMerged(t *testing.T) {
 func TestNushellFormat_BackslashBareword(t *testing.T) {
 	// Nushell: backslash outside quotes is a regular word character, not an escape.
 	// foo\bar should be a single word.
-	tokens, err := SplitWith(`echo foo\bar`, NushellFormat())
+	tokens, err := SplitWith(`echo foo\bar`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,7 +378,7 @@ func TestNushellFormat_BackslashBareword(t *testing.T) {
 
 func TestNushellFormat_BackslashSpaceNotEscape(t *testing.T) {
 	// foo\ bar should be two words: foo\ and bar (backslash doesn't escape space)
-	tokens, err := SplitWith(`echo foo\ bar`, NushellFormat())
+	tokens, err := SplitWith(`echo foo\ bar`, Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,7 +393,7 @@ func TestNushellFormat_BackslashSpaceNotEscape(t *testing.T) {
 func TestNushellFormat_LessThanNotWordbreak(t *testing.T) {
 	// Nushell does not support input redirection with <.
 	// foo<bar should be a single word (comparison operator context).
-	tokens, err := SplitWith("echo foo<bar", NushellFormat())
+	tokens, err := SplitWith("echo foo<bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,7 +406,7 @@ func TestNushellFormat_LessThanNotWordbreak(t *testing.T) {
 // --- Additional stream redirect alias tests ---
 
 func TestNushellFormat_StreamRedirect_ErrOut(t *testing.T) {
-	tokens, err := SplitWith("cat foo err+out> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo err+out> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,7 +418,7 @@ func TestNushellFormat_StreamRedirect_ErrOut(t *testing.T) {
 }
 
 func TestNushellFormat_StreamRedirect_EO(t *testing.T) {
-	tokens, err := SplitWith("cat foo e+o> bar", NushellFormat())
+	tokens, err := SplitWith("cat foo e+o> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestNushellFormat_StreamRedirect_EO(t *testing.T) {
 
 func TestNushellFormat_AppendRedirect(t *testing.T) {
 	// >> alone should be WORDBREAK_REDIRECT_OUTPUT_APPEND
-	tokens, err := SplitWith("echo foo >> bar", NushellFormat())
+	tokens, err := SplitWith("echo foo >> bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -453,7 +453,7 @@ func TestNushellFormat_StreamRedirectAppendBoth(t *testing.T) {
 		"cat foo e+o>> bar",
 	} {
 		t.Run(input, func(t *testing.T) {
-			tokens, err := SplitWith(input, NushellFormat())
+			tokens, err := SplitWith(input, Nushell)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -470,7 +470,7 @@ func TestNushellFormat_StreamRedirectAppendBoth(t *testing.T) {
 
 func TestNushellFormat_StreamPipe_OutPipeIsPlainPipe(t *testing.T) {
 	// out>| in nushell is a plain Pipe (stdout to pipe = normal piping)
-	tokens, err := SplitWith("echo foo out>| bar", NushellFormat())
+	tokens, err := SplitWith("echo foo out>| bar", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -497,7 +497,7 @@ func TestNushellFormat_StreamPipe_AllPipeVariants(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tokens, err := SplitWith(tc.input, NushellFormat())
+			tokens, err := SplitWith(tc.input, Nushell)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -512,14 +512,14 @@ func TestNushellFormat_StreamPipe_AllPipeVariants(t *testing.T) {
 // --- Completion context redirect detection ---
 
 func TestNushellFormat_CompletionRedirectAfterErr(t *testing.T) {
-	ctx := SplitForCompletion("cat foo err> ", NushellFormat())
+	ctx := SplitForCompletion("cat foo err> ", Nushell)
 	if !ctx.IsRedirect {
 		t.Errorf("nushell err> completion: IsRedirect = false, want true")
 	}
 }
 
 func TestNushellFormat_CompletionRedirectAfterOutAppend(t *testing.T) {
-	ctx := SplitForCompletion("cat foo out>> ", NushellFormat())
+	ctx := SplitForCompletion("cat foo out>> ", Nushell)
 	if !ctx.IsRedirect {
 		t.Errorf("nushell out>> completion: IsRedirect = false, want true")
 	}

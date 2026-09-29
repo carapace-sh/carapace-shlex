@@ -70,6 +70,10 @@ type CompletionContext struct {
 // $(...), the context describes the innermost substitution's command,
 // not the outer command.
 func SplitForCompletion(s string, format Format) *CompletionContext {
+	f, ok := formatImplFor(format)
+	if !ok {
+		return &CompletionContext{QuotingState: START_STATE}
+	}
 	tokens, err := SplitWith(s, format)
 	if err != nil || len(tokens) == 0 {
 		return &CompletionContext{QuotingState: START_STATE}
@@ -78,17 +82,17 @@ func SplitForCompletion(s string, format Format) *CompletionContext {
 	// If cursor is inside an unclosed command substitution, build the
 	// context from the inner tokens.
 	if scope := innermostUnclosedCommandScope(tokens); scope >= 0 {
-		ctx := buildCompletionContext(tokens[scope+1:], format)
+		ctx := buildCompletionContext(tokens[scope+1:], f)
 		ctx.SubstitutionDepth = countUnclosedCommandScopes(tokens)
 		return ctx
 	}
 
-	return buildCompletionContext(tokens, format)
+	return buildCompletionContext(tokens, f)
 }
 
 // buildCompletionContext derives the completion context fields from a
 // token slice.
-func buildCompletionContext(tokens TokenSlice, format Format) *CompletionContext {
+func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionContext {
 	pipeline := tokens.CurrentPipeline()
 	filtered := pipeline.FilterRedirects()
 	words := filtered.WordsWithSubstitutions()

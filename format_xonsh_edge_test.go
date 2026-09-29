@@ -4,7 +4,7 @@ import "testing"
 
 func TestXonshFormat_RawPrefixRb(t *testing.T) {
 	// rb"hello\nworld" — rb is a valid Python raw prefix, should be detected
-	tokens, err := SplitWith(`echo rb"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo rb"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,7 +17,7 @@ func TestXonshFormat_RawPrefixRb(t *testing.T) {
 
 func TestXonshFormat_RawPrefixRf(t *testing.T) {
 	// rf"hello\nworld" — rf is a valid Python raw prefix, should be detected
-	tokens, err := SplitWith(`echo rf"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo rf"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestXonshFormat_RawPrefixRf(t *testing.T) {
 
 func TestXonshFormat_RawPrefixRbf(t *testing.T) {
 	// rbf"hello\nworld" — rbf is a valid Python 3 raw prefix, should be detected
-	tokens, err := SplitWith(`echo rbf"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo rbf"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestXonshFormat_RawPrefixRbf(t *testing.T) {
 
 func TestXonshFormat_RawPrefixUppercaseR(t *testing.T) {
 	// R"hello\nworld" — uppercase R prefix, should be detected as raw
-	tokens, err := SplitWith(`echo R"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo R"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestXonshFormat_RawPrefixUppercaseR(t *testing.T) {
 
 func TestXonshFormat_RawPrefixBR(t *testing.T) {
 	// BR"hello\nworld" — uppercase BR prefix, should be detected as raw
-	tokens, err := SplitWith(`echo BR"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo BR"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestXonshFormat_RawPrefixBR(t *testing.T) {
 func TestXonshFormat_RawPrefixFalsePositiveRR(t *testing.T) {
 	// rr"hello\nworld" — rr is NOT a valid Python prefix (duplicate r),
 	// should NOT be detected as raw
-	tokens, err := SplitWith(`echo rr"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo rr"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestXonshFormat_RawPrefixFalsePositiveRR(t *testing.T) {
 func TestXonshFormat_RawPrefixFalsePositiveBB(t *testing.T) {
 	// bb"hello\nworld" — bb is NOT valid Python prefix (duplicate b),
 	// should NOT be detected as raw
-	tokens, err := SplitWith(`echo bb"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo bb"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestXonshFormat_RawPrefixFalsePositiveBB(t *testing.T) {
 
 func TestXonshFormat_NonRawPrefixF(t *testing.T) {
 	// f"hello\nworld" — f-string, NOT raw, escapes should be processed
-	tokens, err := SplitWith(`echo f"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo f"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestXonshFormat_NonRawPrefixF(t *testing.T) {
 
 func TestXonshFormat_NonRawPrefixB(t *testing.T) {
 	// b"hello\nworld" — bytes prefix, NOT raw, escapes should be processed
-	tokens, err := SplitWith(`echo b"hello\nworld"`, XonshFormat())
+	tokens, err := SplitWith(`echo b"hello\nworld"`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestXonshFormat_NonRawPrefixB(t *testing.T) {
 
 func TestXonshFormat_RawTripleRb(t *testing.T) {
 	// rb"""hello\nworld""" — raw triple-double with rb prefix
-	tokens, err := SplitWith(`echo rb"""hello\nworld"""`, XonshFormat())
+	tokens, err := SplitWith(`echo rb"""hello\nworld"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestXonshFormat_RawTripleRb(t *testing.T) {
 
 func TestXonshFormat_EmptyTripleDouble(t *testing.T) {
 	// """""" — six double quotes = empty triple-quoted string
-	tokens, err := SplitWith(`echo """"""`, XonshFormat())
+	tokens, err := SplitWith(`echo """"""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestXonshFormat_EmptyTripleDouble(t *testing.T) {
 
 func TestXonshFormat_EmptyTripleSingle(t *testing.T) {
 	// '''''' — six single quotes = empty triple-quoted string
-	tokens, err := SplitWith(`echo ''''''`, XonshFormat())
+	tokens, err := SplitWith(`echo ''''''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestXonshFormat_EmptyTripleSingle(t *testing.T) {
 
 func TestXonshFormat_TripleQuoteAtEOFNoContent(t *testing.T) {
 	// """ at EOF with no content — should be in QUOTING_TRIPLE_ESCAPING_STATE
-	tokens, err := SplitWith(`echo """`, XonshFormat())
+	tokens, err := SplitWith(`echo """`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestXonshFormat_TripleQuoteAtEOFNoContent(t *testing.T) {
 
 func TestXonshFormat_TripleSingleAtEOFNoContent(t *testing.T) {
 	// ''' at EOF with no content — should be in QUOTING_TRIPLE_STATE
-	tokens, err := SplitWith(`echo '''`, XonshFormat())
+	tokens, err := SplitWith(`echo '''`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestXonshFormat_TripleSingleAtEOFNoContent(t *testing.T) {
 
 func TestXonshFormat_KeywordUppercase(t *testing.T) {
 	// AND/OR uppercase — Python keywords are case-sensitive, should NOT split
-	tokens, err := SplitWith("echo foo AND echo bar", XonshFormat())
+	tokens, err := SplitWith("echo foo AND echo bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestXonshFormat_KeywordUppercase(t *testing.T) {
 func TestXonshFormat_KeywordAtEOF(t *testing.T) {
 	// "and" at EOF — shlex keyword matching checks RawValue=="and"
 	// This should split (shlex doesn't enforce trailing whitespace)
-	tokens, err := SplitWith("echo foo and", XonshFormat())
+	tokens, err := SplitWith("echo foo and", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestXonshFormat_KeywordAtEOF(t *testing.T) {
 
 func TestXonshFormat_StreamRedirectAtEOF(t *testing.T) {
 	// e> at EOF — should be recognized as redirect
-	ctx := SplitForCompletion("echo foo e>", XonshFormat())
+	ctx := SplitForCompletion("echo foo e>", Xonsh)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true (e> at EOF)")
 	}
@@ -216,7 +216,7 @@ func TestXonshFormat_StreamRedirectAtEOF(t *testing.T) {
 
 func TestXonshFormat_AppendPipeChannel(t *testing.T) {
 	// e>>p — append pipe channel, classified as redirect (not pipeline delimiter)
-	tokens, err := SplitWith("echo foo e>>p bar", XonshFormat())
+	tokens, err := SplitWith("echo foo e>>p bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func TestXonshFormat_AppendPipeChannel(t *testing.T) {
 
 func TestXonshFormat_LongFormPipeChannel(t *testing.T) {
 	// err>p — long-form pipe channel, classified as redirect
-	tokens, err := SplitWith("echo foo err>p bar", XonshFormat())
+	tokens, err := SplitWith("echo foo err>p bar", Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}

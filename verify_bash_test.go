@@ -20,7 +20,7 @@ import (
 // These are the characters that separate words at the parser level.
 func TestVerify_BashMetaChars(t *testing.T) {
 	const bashMetaChars = "()<>;&|"
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 	for _, r := range bashMetaChars {
 		got := classifier.ClassifyRune(r)
 		if got != wordbreakRuneClass {
@@ -33,7 +33,7 @@ func TestVerify_BashMetaChars(t *testing.T) {
 // These are the characters readline uses to break words.
 func TestVerify_BashBreakChars(t *testing.T) {
 	const bashBreakChars = "()<>;&| \t\n"
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 	for _, r := range bashBreakChars {
 		got := classifier.ClassifyRune(r)
 		// Space chars are classified as space, the rest as wordbreak
@@ -53,7 +53,7 @@ func TestVerify_BashBreakChars(t *testing.T) {
 // BASH_QUOTE_CHARS = "\"`'" — from syntax.h: shell_quote_chars
 // " and ' are quotes; ` is backquote (CBACKQ).
 func TestVerify_BashQuoteChars(t *testing.T) {
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 
 	// " is the escaping quote (double quote)
 	if got := classifier.ClassifyRune('"'); got != escapingQuoteRuneClass {
@@ -77,7 +77,7 @@ func TestVerify_SlashifyInQuotes(t *testing.T) {
 		'"':  true,
 		'\n': true,
 	}
-	got := BashFormat().EscapingQuoteEscapeChars()
+	got := bashFormat{}.EscapingQuoteEscapeChars()
 	for r, want := range expected {
 		if got[r] != want {
 			t.Errorf("EscapingQuoteEscapeChars[%q]=%v, want %v", r, got[r], want)
@@ -108,7 +108,7 @@ func TestVerify_CompletionWordBreaks(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 
 	// The shlex BASH_WORDBREAKS constant is " \t\r\n\"'@><=;|&():"
 	// Note: shlex includes \r (carriage return) and uses () instead of (
@@ -139,7 +139,7 @@ func TestVerify_CompletionWordBreaks(t *testing.T) {
 
 	// Test with hostname completion off (no @)
 	os.Setenv("COMP_WORDBREAKS", noHostnameWB)
-	classifier2 := BashFormat().Classifier()
+	classifier2 := bashFormat{}.Classifier()
 	// @ should NOT be a wordbreak when COMP_WORDBREAKS doesn't include it
 	if got := classifier2.ClassifyRune('@'); got == wordbreakRuneClass {
 		t.Error("@ should not be wordbreak when COMP_WORDBREAKS excludes it")
@@ -201,7 +201,7 @@ func TestVerify_OperatorGrammar(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tokens, err := SplitWith("echo "+tc.input+" foo", BashFormat())
+		tokens, err := SplitWith("echo "+tc.input+" foo", Bash)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", "echo "+tc.input+" foo", err)
 		}
@@ -293,7 +293,7 @@ func TestVerify_DoubleQuoteBackslashEscaping(t *testing.T) {
 		if r == '\n' {
 			input = "echo \"\\\n\""
 		}
-		tokens, err := SplitWith(input, BashFormat())
+		tokens, err := SplitWith(input, Bash)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", input, err)
 		}
@@ -320,7 +320,7 @@ func TestVerify_DoubleQuoteBackslashEscaping(t *testing.T) {
 			continue // spaces break the word
 		}
 		input := `echo "\` + string(r) + `"`
-		tokens, err := SplitWith(input, BashFormat())
+		tokens, err := SplitWith(input, Bash)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", input, err)
 		}
@@ -342,7 +342,7 @@ func TestVerify_SingleQuoteNoEscape(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// \ is literal inside single quotes
-	tokens, err := SplitWith(`echo 'hello\nworld'`, BashFormat())
+	tokens, err := SplitWith(`echo 'hello\nworld'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +353,7 @@ func TestVerify_SingleQuoteNoEscape(t *testing.T) {
 	}
 
 	// $ is literal inside single quotes
-	tokens, err = SplitWith(`echo '$HOME'`, BashFormat())
+	tokens, err = SplitWith(`echo '$HOME'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +364,7 @@ func TestVerify_SingleQuoteNoEscape(t *testing.T) {
 	}
 
 	// ` is literal inside single quotes
-	tokens, err = SplitWith(`echo '`+"`"+`cmd`+"`"+`'`, BashFormat())
+	tokens, err = SplitWith(`echo '`+"`"+`cmd`+"`"+`'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestVerify_LineContinuation(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// Outside quotes: \ + \n → removed (word continues)
-	tokens, err := SplitWith("echo foo\\\nbar", BashFormat())
+	tokens, err := SplitWith("echo foo\\\nbar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestVerify_LineContinuation(t *testing.T) {
 	}
 
 	// Inside double quotes: \ + \n → removed (line continuation)
-	tokens, err = SplitWith("echo \"foo\\\nbar\"", BashFormat())
+	tokens, err = SplitWith("echo \"foo\\\nbar\"", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +404,7 @@ func TestVerify_LineContinuation(t *testing.T) {
 	}
 
 	// CRLF variant: \ + \r\n → removed
-	tokens, err = SplitWith("echo foo\\\r\nbar", BashFormat())
+	tokens, err = SplitWith("echo foo\\\r\nbar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -423,7 +423,7 @@ func TestVerify_Comment(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo hello # this is a comment", BashFormat())
+	tokens, err := SplitWith("echo hello # this is a comment", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -482,7 +482,7 @@ func TestVerify_CommandSeparators(t *testing.T) {
 	separators := []string{";", "|", "&"}
 	for _, sep := range separators {
 		input := "echo foo" + sep + " bar"
-		tokens, err := SplitWith(input, BashFormat())
+		tokens, err := SplitWith(input, Bash)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", input, err)
 		}
@@ -502,7 +502,7 @@ func TestVerify_FdPrefixInRedirects(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// 2> should filter out the "2" as fd prefix
-	tokens, err := SplitWith("echo 2> file", BashFormat())
+	tokens, err := SplitWith("echo 2> file", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +534,7 @@ func TestVerify_ProcessSubstitution(t *testing.T) {
 		if op == ")" {
 			input = "echo <(cat) " + op
 		}
-		tokens, err := SplitWith(input, BashFormat())
+		tokens, err := SplitWith(input, Bash)
 		if err != nil {
 			t.Fatalf("SplitWith(%q): %v", input, err)
 		}
@@ -559,7 +559,7 @@ func TestVerify_CommandSubstitution(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $(ls)", BashFormat())
+	tokens, err := SplitWith("echo $(ls)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -590,7 +590,7 @@ func TestVerify_ArithmeticExpansion(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $((1+2))", BashFormat())
+	tokens, err := SplitWith("echo $((1+2))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -624,7 +624,7 @@ func TestVerify_DollarNotWordbreak(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 	got := classifier.ClassifyRune('$')
 	if got == wordbreakRuneClass {
 		t.Error("$ should not be a wordbreak (it's CEXP, not CSHBRK)")
@@ -639,7 +639,7 @@ func TestVerify_GlobCharsNotWordbreak(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 	for _, r := range "*?[]^" {
 		got := classifier.ClassifyRune(r)
 		if got == wordbreakRuneClass {
@@ -658,7 +658,7 @@ func TestVerify_ExtGlobCharsNotShellBreak(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// Without COMP_WORDBREAKS, @ should be in BASH_WORDBREAKS
-	classifier := BashFormat().Classifier()
+	classifier := bashFormat{}.Classifier()
 	got := classifier.ClassifyRune('@')
 	if got != wordbreakRuneClass {
 		t.Error("@ should be wordbreak (it's in BASH_WORDBREAKS)")

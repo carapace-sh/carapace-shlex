@@ -32,11 +32,11 @@ This worked for bash and bash-like shells (zsh, oil OSH) but could not express:
 
 ## V2 Architecture
 
-V2 keeps the proven tokenizer state machine and `TokenSlice` operations but makes the **rune classification**, **operator grammar**, and **quote behavior** configurable per shell format via the `Format` interface. A format is a small struct that implements:
+V2 keeps the proven tokenizer state machine and `TokenSlice` operations but makes the **rune classification**, **operator grammar**, and **quote behavior** configurable per shell format. A `Format` is a string constant naming a shell (`shlex.Bash`, ...); the behavior is a small struct implementing the unexported `formatImpl` interface, registered in the `formatImpls` map in `format.go`:
 
 ```go
 // format.go
-type Format interface {
+type formatImpl interface {
 	// Classifier returns a rune classifier mapping runes to runeTokenClass.
 	// Called once per tokenizer; should be freshly built (may read env vars).
 	Classifier() tokenClassifier
@@ -215,7 +215,7 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 | xonsh | Python single-quote wrapping with `\' \\` escapes |
 | cmd | double-quote wrapping with `^"` for literal `"` |
 
-`Join(s []string) string` delegates to `JoinWith(s, BashFormat())` for backward compatibility. The old v1 `Join` that used Go's `%#v` quoting is gone.
+`Join(s []string) string` delegates to `JoinWith(s, shlex.Default)` for backward compatibility. The old v1 `Join` that used Go's `%#v` quoting is gone.
 
 ## Implemented Formats
 
@@ -223,16 +223,16 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 
 | Format | File | Key features |
 |--------|------|-------------|
-| `BashFormat()` | `format_bash.go` | POSIX baseline, reads `COMP_WORDBREAKS` |
-| `ZshFormat()` | `format_zsh.go` | RC_QUOTES (`''`→`'`), `NonEscapingQuoteEscapes` |
-| `OilFormat()` | `format_oil.go` | bash-compatible (OSH) |
-| `TcshFormat()` | `format_tcsh.go` | POSIX-family |
-| `FishFormat()` | `format_fish.go` | `\'`/`\\` in single quotes, keyword operators |
-| `ElvishFormat()` | `format_elvish.go` | `''` doubled-quote, `\` as bareword (`EscapeNotBareword`) |
-| `PowershellFormat()` | `format_powershell.go` | backtick escape, `''`/`""` doubled-quotes |
-| `NushellFormat()` | `format_nushell.go` | backtick-as-quote, `$'...'`/`$"..."` |
-| `XonshFormat()` | `format_xonsh.go` | Python string prefixes, POSIX operators |
-| `CmdFormat()` | `format_cmd.go` | caret escape, `"`-only, `&` separator |
+| `shlex.Bash` | `format_bash.go` | POSIX baseline, reads `COMP_WORDBREAKS` |
+| `shlex.Zsh` | `format_zsh.go` | RC_QUOTES (`''`→`'`), `NonEscapingQuoteEscapes` |
+| `shlex.Oil` | `format_oil.go` | bash-compatible (OSH) |
+| `shlex.Tcsh` | `format_tcsh.go` | POSIX-family |
+| `shlex.Fish` | `format_fish.go` | `\'`/`\\` in single quotes, keyword operators |
+| `shlex.Elvish` | `format_elvish.go` | `''` doubled-quote, `\` as bareword (`EscapeNotBareword`) |
+| `shlex.Powershell` | `format_powershell.go` | backtick escape, `''`/`""` doubled-quotes |
+| `shlex.Nushell` | `format_nushell.go` | backtick-as-quote, `$'...'`/`$"..."` |
+| `shlex.Xonsh` | `format_xonsh.go` | Python string prefixes, POSIX operators |
+| `shlex.Cmd` | `format_cmd.go` | caret escape, `"`-only, `&` separator |
 
 ### Deferred format features
 
@@ -322,32 +322,27 @@ When `KeywordOperators()` returns a non-nil map, the `tokenizer.Next()` method r
 
 ```go
 // Backward compatible (v1)
-func Split(s string) (TokenSlice, error)    // defaults to BashFormat()
-func Join(s []string) string                // defaults to BashFormat()
+func Split(s string) (TokenSlice, error)    // defaults to Bash
+func Join(s []string) string                // defaults to Bash
 
 // New (v2)
 func SplitWith(s string, format Format) (TokenSlice, error)
 func SplitForCompletion(s string, format Format) *CompletionContext
 func JoinWith(s []string, format Format) string
 
-// Format constructors
-func BashFormat() Format
-func ZshFormat() Format
-func OilFormat() Format
-func TcshFormat() Format
-func FishFormat() Format
-func ElvishFormat() Format
-func PowershellFormat() Format
-func NushellFormat() Format
-func XonshFormat() Format
-func CmdFormat() Format
+// Format constants
+const (
+	Default Format = "" // resolves to Bash
+	Bash    Format = "bash"
+	// ... one per format, see format.go
+)
 ```
 
-`Split(s)` delegates to `SplitWith(s, BashFormat())`, preserving v1 behavior. Existing carapace code using `Split` and `TokenSlice` methods works unchanged (the only breaking change is `Token.Index` → `Token.Span.Start`).
+`Split(s)` delegates to `SplitWith(s, Default)`, preserving v1 behavior. Existing carapace code using `Split` and `TokenSlice` methods works unchanged (the only breaking change is `Token.Index` → `Token.Span.Start`).
 
 ## Adding a New Shell Format
 
-1. **Create `format_<shell>.go`** — implement the `Format` interface with a struct
+1. **Create `format_<shell>.go`** — implement the `formatImpl` interface with a struct
 2. **Configure the classifier** — map runes to `runeTokenClass` values (spaces, quotes, escape, comments, wordbreaks)
 3. **Configure the operator grammar** — implement `ClassifyOperator()` mapping operator strings to `WordbreakType`
 4. **Set the format flags** — `NonEscapingQuoteEscapes`, `NonEscapingQuoteBackslashEscapes`, `EscapeNotBareword`, `KeywordOperators` as needed
@@ -358,7 +353,7 @@ See [comparison.md](comparison.md) for the per-shell lexical rules and the `form
 ## References
 
 - `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `SplitWith`, `Join`, `JoinWith`
-- `format.go` — `Format` interface, `Span`
+- `format.go` — `Format` constants, `formatImpl` interface, `Span`
 - `completion.go` — `CompletionContext`, `SplitForCompletion`
 - `quote.go` — per-shell `QuoteWord` implementations
 - `tokenslice.go` — `TokenSlice` operations

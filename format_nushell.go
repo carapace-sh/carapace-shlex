@@ -20,11 +20,6 @@ import "strings"
 //     format-nushell.md → Deferred Features)
 type nushellFormat struct{}
 
-// NushellFormat returns the nushell lexical format.
-// Basic quote types (single, double, backtick) are supported.
-// Raw strings (r#'...'#) and here-strings are deferred.
-func NushellFormat() Format { return nushellFormat{} }
-
 func (nushellFormat) Classifier() tokenClassifier {
 	t := tokenClassifier{}
 	t.addRuneClass(spaceRunes, spaceRuneClass)

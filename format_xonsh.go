@@ -14,11 +14,6 @@ package shlex
 //   - \ is the escape char (Python rules inside quotes, literal in raw strings)
 type xonshFormat struct{}
 
-// XonshFormat returns the xonsh lexical format.
-// Standard quotes, prefix strings, triple-quotes, raw strings, keyword
-// operators, and stream redirects are supported.
-func XonshFormat() Format { return xonshFormat{} }
-
 func (xonshFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)
 	// Xonsh operators: |, >, >>, <, ;, &&, ||, &

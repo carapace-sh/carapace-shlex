@@ -8,8 +8,8 @@ description: >
   Triggers on: "shlex", "shlex v2", "carapace-shlex", "shell lexer", "command line lexer",
   "quotation state", "wordbreak", "WORDBREAK", "COMP_WORDBREAKS", "TokenSlice", "LexerState",
   "TokenType", "tokenizer", "Split", "SplitWith", "SplitForCompletion", "CompletionContext",
-  "Format", "BashFormat", "ZshFormat", "FishFormat", "ElvishFormat", "PowershellFormat",
-  "NushellFormat", "XonshFormat", "TcshFormat", "OilFormat", "CmdFormat",
+  "Format", "shlex.Bash", "shlex.Zsh", "shlex.Fish", "shlex.Elvish", "shlex.Powershell",
+  "shlex.Nushell", "shlex.Xonsh", "shlex.Tcsh", "shlex.Oil", "shlex.Cmd", "formatImpl",
   "Span", "shell format", "lexical format", "POSIX shell lexing", "non-POSIX shell lexing".
 user-invocable: true
 ---

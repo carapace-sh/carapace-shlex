@@ -14,9 +14,6 @@ package shlex
 //   - Here-strings (@'...'@, @"..."@) are deferred
 type powershellFormat struct{}
 
-// PowershellFormat returns the PowerShell lexical format.
-func PowershellFormat() Format { return powershellFormat{} }
-
 func (powershellFormat) Classifier() tokenClassifier {
 	t := tokenClassifier{}
 	t.addRuneClass(spaceRunes, spaceRuneClass)

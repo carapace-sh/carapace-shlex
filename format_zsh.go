@@ -5,10 +5,6 @@ package shlex
 // and WORDCHARS/FIGNORE for word breaks.
 type zshFormat struct{}
 
-// ZshFormat returns the zsh lexical format.
-// RC_QUOTES is enabled (zsh's default for ” inside single quotes).
-func ZshFormat() Format { return zshFormat{} }
-
 func (zshFormat) Classifier() tokenClassifier {
 	return bashFormat{}.Classifier() // zsh uses the same rune classes as bash
 }
