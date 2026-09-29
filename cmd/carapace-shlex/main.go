@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/carapace-sh/carapace-shlex/cmd/carapace-shlex/cmd"
+	"github.com/carapace-sh/carapace-shlex/v2/cmd/carapace-shlex/cmd"
 )
 
 var commit, date string

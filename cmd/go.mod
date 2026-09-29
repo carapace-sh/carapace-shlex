@@ -1,11 +1,12 @@
-module github.com/carapace-sh/carapace-shlex/cmd
+module github.com/carapace-sh/carapace-shlex/v2/cmd
 
 go 1.24.0
 
 require (
-	github.com/carapace-sh/carapace v1.13.1-0.20260731192344-c8f45afe0dd5
-	github.com/carapace-sh/carapace-bridge v1.4.11
+	github.com/carapace-sh/carapace v1.16.2
+	github.com/carapace-sh/carapace-bridge v1.6.4
 	github.com/carapace-sh/carapace-shlex v1.1.2-0.20260701213017-3985f5788c03
+	github.com/carapace-sh/carapace-shlex/cmd v0.0.0-20260928212301-79cdb1e6d7e0
 	github.com/spf13/cobra v1.10.2
 )
 
