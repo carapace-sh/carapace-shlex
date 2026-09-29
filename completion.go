@@ -36,7 +36,7 @@ type CompletionContext struct {
 	// VariableRef describes a variable reference ending the current word,
 	// detected lexically on the lexer's final word. Nil when the word does
 	// not end in a variable reference, or when the format does not
-	// implement VariableExpander.
+	// implement variableExpander.
 	//
 	// For insertion, shells with a naive word interface (see
 	// RawReplacementWord) replace the typed name suffix of
@@ -47,7 +47,7 @@ type CompletionContext struct {
 
 	// RawReplacementWord is the raw text the shell replaces on insertion.
 	// It equals RawCurrentWord unless the format implements
-	// NaiveWordSplitter (bash: the naive COMP_WORDS suffix, so
+	// naiveWordSplitter (bash: the naive COMP_WORDS suffix, so
 	// `"text $HO` yields `$HO` while the lexer word is `text $HO`).
 	RawReplacementWord string
 
@@ -121,7 +121,7 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 		ctx.RawCurrentWord = current.RawValue
 		ctx.QuotingState = current.State
 
-		if expander, ok := format.(VariableExpander); ok {
+		if expander, ok := format.(variableExpander); ok {
 			if ref, ok := expander.VariableRef(*current); ok {
 				ctx.VariableRef = &ref
 			}
@@ -129,7 +129,7 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 	}
 
 	ctx.RawReplacementWord = ctx.RawCurrentWord
-	if splitter, ok := format.(NaiveWordSplitter); ok {
+	if splitter, ok := format.(naiveWordSplitter); ok {
 		ctx.RawReplacementWord = splitter.NaiveSplitWord(ctx.RawReplacementWord)
 	}
 

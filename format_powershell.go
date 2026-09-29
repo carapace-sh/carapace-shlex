@@ -62,21 +62,21 @@ func (powershellFormat) QuoteWord(s string) string               { return powers
 func (powershellFormat) TripleQuoteSupport() bool                { return false }
 func (powershellFormat) RawPrefixSupport() bool                  { return false }
 
-// IsLineContinuation implements LineContinuationEscaper. PowerShell's
+// IsLineContinuation implements lineContinuationEscaper. PowerShell's
 // backtick followed by \n or \r is a line continuation — the sequence is
 // consumed and the word continues on the next line.
 func (powershellFormat) IsLineContinuation(r rune) bool {
 	return r == '\n' || r == '\r'
 }
 
-// BlockCommentOpener implements BlockCommenter. PowerShell supports
+// BlockCommentOpener implements blockCommenter. PowerShell supports
 // multi-line block comments delimited by <# and #>.
 func (powershellFormat) BlockCommentOpener() string { return "<#" }
 
-// BlockCommentCloser implements BlockCommenter.
+// BlockCommentCloser implements blockCommenter.
 func (powershellFormat) BlockCommentCloser() string { return "#>" }
 
-// StopParsingWord implements StopParsingToken. PowerShell's --% token
+// StopParsingWord implements stopParsingToken. PowerShell's --% token
 // stops PowerShell from interpreting subsequent input.
 func (powershellFormat) StopParsingWord() string { return "--%" }
 

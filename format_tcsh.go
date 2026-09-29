@@ -50,7 +50,7 @@ func (tcshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (tcshFormat) TripleQuoteSupport() bool  { return false }
 func (tcshFormat) RawPrefixSupport() bool    { return false }
 
-// IsLineContinuation implements LineContinuationEscaper. Tcsh treats
+// IsLineContinuation implements lineContinuationEscaper. Tcsh treats
 // backslash followed by \n or \r as a line continuation.
 func (tcshFormat) IsLineContinuation(r rune) bool {
 	return r == '\n' || r == '\r'

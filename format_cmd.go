@@ -74,7 +74,7 @@ func (cmdFormat) QuoteWord(s string) string               { return cmdQuoteWord(
 func (cmdFormat) TripleQuoteSupport() bool                { return false }
 func (cmdFormat) RawPrefixSupport() bool                  { return false }
 
-// IsLineContinuation implements LineContinuationEscaper. cmd.exe's caret
+// IsLineContinuation implements lineContinuationEscaper. cmd.exe's caret
 // followed by \n or \r is a line continuation — the sequence is consumed
 // and the word continues on the next line.
 func (cmdFormat) IsLineContinuation(r rune) bool {

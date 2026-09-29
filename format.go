@@ -127,26 +127,26 @@ func formatImplFor(name Format) (formatImpl, bool) {
 	return f, ok
 }
 
-// EscapingQuoteUnescaper is an optional interface for formats that need to
+// escapingQuoteUnescaper is an optional interface for formats that need to
 // transform escape sequences inside double quotes beyond simple
 // backslash-dropping. When implemented, the ESCAPING_QUOTED_STATE handler
 // calls EscapingQuoteUnescape for the rune following a backslash. If the
 // rune is a recognized escape, the replacement string is used; otherwise
 // both the backslash and the rune are kept literally. Formats implementing
 // this interface take priority over EscapingQuoteEscapeChars.
-type EscapingQuoteUnescaper interface {
+type escapingQuoteUnescaper interface {
 	EscapingQuoteUnescape(r rune) (replacement string, handled bool)
 }
 
-// PostProcessor is an optional interface for formats that need to reclassify
+// postProcessor is an optional interface for formats that need to reclassify
 // tokens after the main tokenization pass. Used by formats that require
 // context not available in the flat state machine (e.g. elvish brace/lambda
 // context for | disambiguation, nushell stream-redirect operator merging).
-type PostProcessor interface {
+type postProcessor interface {
 	PostProcess(tokens TokenSlice) TokenSlice
 }
 
-// LineContinuationEscaper is an optional interface for formats where the
+// lineContinuationEscaper is an optional interface for formats where the
 // escape character followed by a newline (or carriage return) acts as a
 // line continuation — the escape+newline sequence is consumed and discarded,
 // NOT added to the word value. This applies both outside quotes (ESCAPING_STATE)
@@ -154,22 +154,22 @@ type PostProcessor interface {
 //
 // Supported by: bash, zsh, tcsh, fish, xonsh (backslash+newline),
 // PowerShell (backtick+newline), cmd (caret+newline).
-type LineContinuationEscaper interface {
+type lineContinuationEscaper interface {
 	// IsLineContinuation returns true if the rune following the escape
 	// character should be treated as a line continuation. The parameter
 	// is the rune that follows the escape character (e.g. '\n' or '\r').
 	IsLineContinuation(r rune) bool
 }
 
-// LineContinuationWhitespace is an optional interface for formats where
+// lineContinuationWhitespace is an optional interface for formats where
 // a specific non-escape character followed by a newline acts as whitespace
 // (a word break) rather than a concatenation. This differs from
-// LineContinuationEscaper: that interface consumes escape+newline and
+// lineContinuationEscaper: that interface consumes escape+newline and
 // concatenates the word; this interface consumes char+newline and breaks
 // the word (like a space).
 //
 // Supported by: elvish (^+newline).
-type LineContinuationWhitespace interface {
+type lineContinuationWhitespace interface {
 	// LineContinuationChar returns the rune that, when followed by \n or \r,
 	// acts as whitespace. Returns 0 if not supported.
 	LineContinuationChar() rune
@@ -178,23 +178,23 @@ type LineContinuationWhitespace interface {
 	IsLineContinuationWhitespace(r rune) bool
 }
 
-// BlockCommenter is an optional interface for formats that support
+// blockCommenter is an optional interface for formats that support
 // multi-line block comments (e.g. PowerShell's <# ... #>). When the
 // tokenizer encounters the blockCommentOpener runes at a word boundary,
 // it enters a dedicated BLOCK_COMMENT_STATE that scans until the
 // blockCommentCloser runes are found, spanning multiple lines.
-type BlockCommenter interface {
+type blockCommenter interface {
 	BlockCommentOpener() string // e.g. "<#" for PowerShell
 	BlockCommentCloser() string // e.g. "#>" for PowerShell
 }
 
-// StopParsingToken is an optional interface for formats that support a
+// stopParsingToken is an optional interface for formats that support a
 // stop-parsing token (e.g. PowerShell's --%). When the tokenizer encounters
 // this token as a bare word, it switches to a raw lexing mode for the
 // remainder of the line (until newline or pipeline delimiter), where
 // all characters except the pipeline delimiters are treated as literal
 // word content.
-type StopParsingToken interface {
+type stopParsingToken interface {
 	// StopParsingWord returns the literal token that triggers raw mode.
 	// e.g. "--%" for PowerShell.
 	StopParsingWord() string

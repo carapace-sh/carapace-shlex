@@ -132,7 +132,7 @@ Nushell's `unescape_string` recognizes these escapes inside `"..."`  and `$"..."
 
 Unrecognized escapes are a parse error in nushell. shlex is lenient: it keeps both `\` and the rune.
 
-The `EscapingQuoteUnescaper` interface provides the full escape set to the tokenizer. `\xHH` and `\u{X}` are not yet handled by shlex (deferred — they require multi-rune lookahead in the escape state).
+The `escapingQuoteUnescaper` interface provides the full escape set to the tokenizer. `\xHH` and `\u{X}` are not yet handled by shlex (deferred — they require multi-rune lookahead in the escape state).
 
 ## Metacharacters
 
@@ -191,7 +191,7 @@ Nushell passes args **with quoting intact** (unlike bash which strips quotes). T
 - **Backtick as quote** (not escape): opposite of PowerShell. Don't confuse the two formats.
 - **`$` prefix on quotes**: `$'...'` and `$"..."` — the `$` adjoins the quoted segment; `Words()` merges them.
 - **No `COMP_WORDBREAKS`**: nushell has no equivalent env var.
-- **C-style escapes produce real characters**: `\n` in `"..."` produces a newline character (0x0A), not the literal text `n`. Implemented via `EscapingQuoteUnescaper`.
+- **C-style escapes produce real characters**: `\n` in `"..."` produces a newline character (0x0A), not the literal text `n`. Implemented via `escapingQuoteUnescaper`.
 - **Stream redirect operators**: `out>`, `err>`, `o+e>`, `e>|`, etc. are multi-rune operators. Implemented via `PostProcess`. Only bare words are merged — quoted strings like `'out'` are not treated as stream operators.
 - **Quoted words before `>`**: `'out'>bar` is a string literal `out` followed by a plain redirect `>`, not a stream redirect operator. The `PostProcess` check `t.Value == t.RawValue` prevents merging quoted words.
 
@@ -261,7 +261,7 @@ The tokenizer's `scanStream` state machine processes one rune at a time via `Rea
 **Key challenge**: The state machine is shared across all formats. Raw-string detection must be opt-in per format (only nushell has raw strings). This could be:
 - A new `Format` interface method (e.g. `SupportsRawStrings() bool`)
 - A new rune class (e.g. `rawStringOpenerRuneClass`) triggered by a multi-rune classifier
-- A `PostProcessor` approach — but this won't work because by the time PostProcess runs, the tokens are already split incorrectly (the `#` may have been classified as a comment)
+- A `postProcessor` approach — but this won't work because by the time PostProcess runs, the tokens are already split incorrectly (the `#` may have been classified as a comment)
 
 The cleanest approach is likely a multi-rune lookahead in `scanStream`, gated by a format check, similar to how `NonEscapingQuoteEscapes()` gates the single-quote peek logic.
 
@@ -295,7 +295,7 @@ $"hello\n($name)"        # → hello\nworld (interpolated)
 
 #### Current (wrong) behavior
 
-The `EscapingQuoteUnescaper` interface handles single-rune escapes (`\n`, `\t`, etc.) but cannot handle multi-rune escapes like `\x41` or `\u{1F600}` because the `ESCAPING_QUOTED_STATE` handler only receives one rune after the backslash. When it sees `x` or `u`, the unescaper returns `handled=false`, so both `\` and `x` (or `u`) are kept literally.
+The `escapingQuoteUnescaper` interface handles single-rune escapes (`\n`, `\t`, etc.) but cannot handle multi-rune escapes like `\x41` or `\u{1F600}` because the `ESCAPING_QUOTED_STATE` handler only receives one rune after the backslash. When it sees `x` or `u`, the unescaper returns `handled=false`, so both `\` and `x` (or `u`) are kept literally.
 
 Result: `"\x41"` produces value `\x41` instead of `A`.
 
@@ -316,14 +316,14 @@ Some(b'u') => {
 
 #### Implementation plan
 
-The `EscapingQuoteUnescaper` interface is called from `ESCAPING_QUOTED_STATE` with a single rune. To support multi-rune escapes, we need the unescaper to be able to consume additional runes from the tokenizer. Two approaches:
+The `escapingQuoteUnescaper` interface is called from `ESCAPING_QUOTED_STATE` with a single rune. To support multi-rune escapes, we need the unescaper to be able to consume additional runes from the tokenizer. Two approaches:
 
 **Option A: Multi-rune unescaper (preferred)**
 
-Extend `EscapingQuoteUnescaper` with a method that takes a `runeReader` or similar interface, allowing it to consume additional runes:
+Extend `escapingQuoteUnescaper` with a method that takes a `runeReader` or similar interface, allowing it to consume additional runes:
 
 ```go
-type EscapingQuoteUnescaper interface {
+type escapingQuoteUnescaper interface {
     EscapingQuoteUnescape(r rune) (replacement string, handled bool)
     // EscapingQuoteUnescapeMulti is called when EscapingQuoteUnescape returns
     // handled=false. It receives the first rune and a peekable reader, allowing
@@ -350,14 +350,14 @@ Give the unescaper access to a `PeekRune(n int) (rune, bool)` method that peeks 
 Add new states like `ESCAPING_HEX_STATE` and `ESCAPING_UNICODE_STATE` to the state machine, with format-gated transitions. This is more invasive but keeps the single-rune-at-a-time model.
 
 **Affected files**:
-- `format.go` — extend `EscapingQuoteUnescaper` interface
+- `format.go` — extend `escapingQuoteUnescaper` interface
 - `shlex.go` — `ESCAPING_QUOTED_STATE` handler: add multi-rune escape logic
 - `format_nushell.go` — implement `\xHH` and `\u{X...}` in the unescaper
 
 **Key challenges**:
 - The tokenizer's `RawValue` must include all consumed runes (the full `\x41` or `\u{1F600}`), while `Value` gets only the replacement character.
 - Invalid escapes (`\x4`, `\x4z`, `\u{110000}`, `\u{6e`) are parse errors in nushell. shlex should be lenient: if the hex digits are missing or invalid, keep the backslash and the escape letter literally.
-- `EscapingQuoteEscapeChars` (used by fish) and `EscapingQuoteUnescaper` are mutually exclusive — the unescaper takes priority. The multi-rune extension only applies to formats implementing `EscapingQuoteUnescaper`.
+- `EscapingQuoteEscapeChars` (used by fish) and `escapingQuoteUnescaper` are mutually exclusive — the unescaper takes priority. The multi-rune extension only applies to formats implementing `escapingQuoteUnescaper`.
 
 **Test cases to add**:
 - `"\x41\x42\x43"` → value `ABC`

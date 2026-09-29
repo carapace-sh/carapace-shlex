@@ -13,7 +13,7 @@ type VariableRef struct {
 	Span Span
 }
 
-// VariableExpander is implemented by formats whose variable references can
+// variableExpander is implemented by formats whose variable references can
 // be detected lexically. The detection runs on the lexer's final word, so
 // quote and escape state are authoritative: a `$` inside single quotes is
 // literal, an escaped `$` is literal, and a reference ends the word only
@@ -23,17 +23,17 @@ type VariableRef struct {
 //
 // Formats without variable expansion (or with forms this detection does not
 // cover) simply do not implement the interface.
-type VariableExpander interface {
+type variableExpander interface {
 	VariableRef(word Token) (VariableRef, bool)
 }
 
-// NaiveWordSplitter is implemented by formats whose completion interface
+// naiveWordSplitter is implemented by formats whose completion interface
 // splits words naively on delimiter characters instead of lexically (bash's
 // COMP_WORDS model). For those shells the text the shell replaces on
 // insertion is only the raw text after the last delimiter character, which
 // may differ from the lexer's word (`"text $HO` is one lexer word but
 // completes as `$HO`).
-type NaiveWordSplitter interface {
+type naiveWordSplitter interface {
 	NaiveSplitWord(raw string) string
 }
 

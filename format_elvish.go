@@ -46,7 +46,7 @@ func (elvishFormat) QuoteWord(s string) string               { return elvishQuot
 func (elvishFormat) TripleQuoteSupport() bool                { return false }
 func (elvishFormat) RawPrefixSupport() bool                  { return false }
 
-// LineContinuationChar implements LineContinuationWhitespace. Elvish uses ^
+// LineContinuationChar implements lineContinuationWhitespace. Elvish uses ^
 // followed by \n or \r\n as whitespace (a word break), not as concatenation.
 func (elvishFormat) LineContinuationChar() rune { return '^' }
 func (elvishFormat) IsLineContinuationWhitespace(r rune) bool {

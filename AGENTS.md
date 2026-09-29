@@ -52,7 +52,7 @@ command line string
 
 The core state machine in `shlex.go` (`scanStream`) has **no nesting awareness**. It classifies runes one at a time into `TokenType`s (WORD/SPACE/COMMENT/WORDBREAK) and tracks quotation state via `LexerState`. Every shell format plugs into the **same** machine via the `formatImpl` interface — there is no per-shell parser.
 
-**Consequence**: format-specific behavior that requires context the flat machine can't track (e.g. elvish `|` inside `{|params|}` being a parameter delimiter, not a pipeline pipe) is handled via the optional `PostProcessor` interface, which runs a post-pass over the `TokenSlice` after tokenization. Do **not** add nesting/brace tracking into `scanStream` — add a `PostProcess` method on the format instead.
+**Consequence**: format-specific behavior that requires context the flat machine can't track (e.g. elvish `|` inside `{|params|}` being a parameter delimiter, not a pipeline pipe) is handled via the optional `postProcessor` interface, which runs a post-pass over the `TokenSlice` after tokenization. Do **not** add nesting/brace tracking into `scanStream` — add a `PostProcess` method on the format instead.
 
 ### `Format` and `formatImpl`
 
@@ -61,11 +61,11 @@ The core state machine in `shlex.go` (`scanStream`) has **no nesting awareness**
 - **`Format`** — a string type naming a supported shell (`shlex.Bash`, `shlex.Zsh`, ..., `shlex.Default` for the empty name used by spec macros). Formats are a closed set: the lexing behavior lives behind the unexported `formatImpl` interface, resolved by the `formatImpls` map. Adding a format means adding a constant and a map entry, not implementing an interface from outside the package.
 - **`formatImpl`** (required, unexported): `Classifier`, `ClassifyOperator`, `KeywordOperators`, quote-behavior flags (`NonEscapingQuoteEscapes`, `NonEscapingQuoteBackslashEscapes`, `EscapeNotBareword`, `EscapeNotInEscapingQuote`, `EscapingQuoteEscapeChars`), `TripleQuoteSupport`, `RawPrefixSupport`, `QuoteWord`.
 - **Optional interfaces** (asserted via type assertion in `tokenizer.Next` / `SplitWith`):
-  - `PostProcessor` — post-pass token reclassification (elvish, nushell)
-  - `BlockCommenter` — multi-line block comments (PowerShell `<# #>`)
-  - `StopParsingToken` — raw lexing mode after a token (PowerShell `--%`)
-  - `LineContinuationEscaper` — escape+newline as line continuation (PowerShell backtick)
-  - `EscapingQuoteUnescaper` — custom unescape inside double quotes beyond simple backslash-dropping
+  - `postProcessor` — post-pass token reclassification (elvish, nushell)
+  - `blockCommenter` — multi-line block comments (PowerShell `<# #>`)
+  - `stopParsingToken` — raw lexing mode after a token (PowerShell `--%`)
+  - `lineContinuationEscaper` — escape+newline as line continuation (PowerShell backtick)
+  - `escapingQuoteUnescaper` — custom unescape inside double quotes beyond simple backslash-dropping
 
 When adding a new format, implement `formatImpl` plus whichever optional interfaces apply. No-op returns (e.g. `KeywordOperators() nil`) are the norm for formats that don't need a feature.
 
@@ -108,7 +108,7 @@ type Token struct {
 4. Add a `Format` constant and a `formatImpls` map entry in `format.go`, and add the format name to the `--format` flag's completion values in `cmd/carapace-shlex/cmd/root.go`.
 5. Add the format to the table in `README.md`.
 6. Create `format_<shell>_test.go` (see existing test files for the pattern).
-7. If the shell needs behavior the flat state machine can't express, implement `PostProcessor` rather than modifying `scanStream`.
+7. If the shell needs behavior the flat state machine can't express, implement `postProcessor` rather than modifying `scanStream`.
 
 ## Testing Patterns
 

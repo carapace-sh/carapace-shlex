@@ -59,7 +59,7 @@ echo ^|                     # | (literal pipe)
 echo "say ^"hello^""        # say "hello"
 ```
 
-For the lexer: `^` enters `ESCAPING_STATE` (outside quotes) — the next rune is literal. Inside double quotes, `^` is **completely literal** — it does not escape the next character. This is implemented via the `EscapeNotInEscapingQuote` flag. `^` followed by `\n` or `\r\n` is a line continuation (via `LineContinuationEscaper`) — the sequence is consumed and the word continues on the next line.
+For the lexer: `^` enters `ESCAPING_STATE` (outside quotes) — the next rune is literal. Inside double quotes, `^` is **completely literal** — it does not escape the next character. This is implemented via the `EscapeNotInEscapingQuote` flag. `^` followed by `\n` or `\r\n` is a line continuation (via `lineContinuationEscaper`) — the sequence is consumed and the word continues on the next line.
 
 ## Variable Expansion `%VAR%`
 

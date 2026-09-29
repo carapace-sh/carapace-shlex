@@ -43,7 +43,7 @@ func (zshFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
 func (zshFormat) TripleQuoteSupport() bool  { return false }
 func (zshFormat) RawPrefixSupport() bool    { return false }
 
-// IsLineContinuation implements LineContinuationEscaper. Zsh (like bash)
+// IsLineContinuation implements lineContinuationEscaper. Zsh (like bash)
 // treats backslash followed by \n or \r as a line continuation.
 func (zshFormat) IsLineContinuation(r rune) bool {
 	return r == '\n' || r == '\r'
@@ -55,7 +55,7 @@ func (zshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return posixSubstitutionPostProcess(tokens)
 }
 
-// VariableRef implements VariableExpander. Zsh expands `$name` and `${name`;
+// VariableRef implements variableExpander. Zsh expands `$name` and `${name`;
 // `$` is literal inside single quotes and when escaped. Quote stripping at
 // insertion time is compsys's job (IPREFIX), not detection's.
 func (zshFormat) VariableRef(word Token) (VariableRef, bool) {

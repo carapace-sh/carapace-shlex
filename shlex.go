@@ -365,7 +365,7 @@ func (t *tokenizer) checkTripleClose() (closed bool, r1 rune, r2 rune, consumedR
 // the tokenizer enters BLOCK_COMMENT_STATE. Returns true if the opener was
 // matched and consumed. On mismatch, peeked runes are unread.
 func (t *tokenizer) checkBlockCommentOpener(firstRune rune, token *Token) bool {
-	bc, ok := t.format.(BlockCommenter)
+	bc, ok := t.format.(blockCommenter)
 	if !ok {
 		return false
 	}
@@ -501,7 +501,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					token.Type = WORD_TOKEN
 					if t.format.EscapeNotBareword() {
 						// Check for line continuation (e.g. PowerShell backtick + newline)
-						if lc, ok := t.format.(LineContinuationEscaper); ok {
+						if lc, ok := t.format.(lineContinuationEscaper); ok {
 							peekRune, _, peekErr := t.ReadRune()
 							if peekErr != nil {
 								// EOF after escape — enter ESCAPING_STATE to handle
@@ -542,7 +542,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					t.state = WORDBREAK_STATE
 				default:
 					// Check for line-continuation whitespace (e.g. elvish ^+newline)
-					if lcw, ok := t.format.(LineContinuationWhitespace); ok && nextRune == lcw.LineContinuationChar() {
+					if lcw, ok := t.format.(lineContinuationWhitespace); ok && nextRune == lcw.LineContinuationChar() {
 						peekRune, _, peekErr := t.ReadRune()
 						if peekErr == nil && lcw.IsLineContinuationWhitespace(peekRune) {
 							if peekRune == '\r' {
@@ -571,7 +571,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			// may be the first rune of the opener (e.g. "<" in "<#").
 			// token.RawValue includes nextRune (added at top of loop), so
 			// we check if the RawValue without nextRune matches the opener start.
-			if bc, ok := t.format.(BlockCommenter); ok {
+			if bc, ok := t.format.(blockCommenter); ok {
 				opener := bc.BlockCommentOpener()
 				if len(opener) > 0 {
 					// The wordbreak portion is token.Value (without nextRune).
@@ -674,7 +674,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			case escapeRuneClass:
 				if t.format.EscapeNotBareword() {
 					// Check for line continuation (e.g. PowerShell backtick + newline)
-					if lc, ok := t.format.(LineContinuationEscaper); ok {
+					if lc, ok := t.format.(lineContinuationEscaper); ok {
 						peekRune, _, peekErr := t.ReadRune()
 						if peekErr != nil {
 							// EOF after escape — enter ESCAPING_STATE to handle
@@ -707,7 +707,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				}
 			default:
 				// Check for line-continuation whitespace (e.g. elvish ^+newline)
-				if lcw, ok := t.format.(LineContinuationWhitespace); ok && nextRune == lcw.LineContinuationChar() {
+				if lcw, ok := t.format.(lineContinuationWhitespace); ok && nextRune == lcw.LineContinuationChar() {
 					peekRune, _, peekErr := t.ReadRune()
 					if peekErr == nil && lcw.IsLineContinuationWhitespace(peekRune) {
 						// Consume optional \n after \r
@@ -737,7 +737,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				// Check for line continuation (e.g. PowerShell backtick + newline)
-				if lc, ok := t.format.(LineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
+				if lc, ok := t.format.(lineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
 					// Consume optional \n after \r (without adding to RawValue)
 					if nextRune == '\r' {
 						peek2, _, peek2Err := t.ReadRune()
@@ -769,7 +769,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				// Check for line continuation (e.g. bash/fish \+newline inside "...")
-				if lc, ok := t.format.(LineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
+				if lc, ok := t.format.(lineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
 					// Consume optional \n after \r (without adding to RawValue)
 					if nextRune == '\r' {
 						peek2, _, peek2Err := t.ReadRune()
@@ -787,7 +787,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					continue
 				}
 				t.state = QUOTING_ESCAPING_STATE
-				if unescaper, ok := t.format.(EscapingQuoteUnescaper); ok {
+				if unescaper, ok := t.format.(escapingQuoteUnescaper); ok {
 					if replacement, handled := unescaper.EscapingQuoteUnescape(nextRune); handled {
 						token.Value += replacement
 					} else {
@@ -1130,7 +1130,7 @@ func (t *tokenizer) Next() (*Token, error) {
 				}
 			}
 			// Check for stop-parsing token (e.g. PowerShell --%)
-			if sp, ok := t.format.(StopParsingToken); ok {
+			if sp, ok := t.format.(stopParsingToken); ok {
 				if token.Value == sp.StopParsingWord() && token.Value == token.RawValue {
 					t.state = STOP_PARSING_STATE
 					t.stopParsingDelim = ""
@@ -1165,7 +1165,7 @@ func SplitWith(s string, format Format) (TokenSlice, error) {
 		}
 		tokens = append(tokens, *token)
 	}
-	if pp, ok := f.(PostProcessor); ok {
+	if pp, ok := f.(postProcessor); ok {
 		tokens = pp.PostProcess(tokens)
 	}
 	return tokens, nil

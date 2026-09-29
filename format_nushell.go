@@ -65,7 +65,7 @@ func (nushellFormat) QuoteWord(s string) string               { return nushellQu
 func (nushellFormat) TripleQuoteSupport() bool                { return false }
 func (nushellFormat) RawPrefixSupport() bool                  { return false }
 
-// EscapingQuoteUnescape implements the EscapingQuoteUnescaper interface.
+// EscapingQuoteUnescape implements the escapingQuoteUnescaper interface.
 // Nushell double-quoted strings support C-style escapes with a richer set
 // than bash. Recognized escapes produce the corresponding character(s);
 // unrecognized escapes keep both the backslash and the rune literally

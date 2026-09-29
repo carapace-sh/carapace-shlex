@@ -249,10 +249,10 @@ The basic quote types (single, double, backtick) cover the vast majority of comp
 ### Implemented cmd.exe features
 
 The cmd format now implements:
-- Line continuation (`^` + newline, via `LineContinuationEscaper`)
+- Line continuation (`^` + newline, via `lineContinuationEscaper`)
 - `(` `)` grouping operators (wordbreak runes, `WORDBREAK_UNKNOWN`)
 - `,` as word delimiter (space class, not a command separator)
-- Numeric stream redirects `2>`, `2>>`, `2>&1`, `1>&2` (via `PostProcessor`)
+- Numeric stream redirects `2>`, `2>>`, `2>&1`, `1>&2` (via `postProcessor`)
 - `^` is literal inside double quotes (via `EscapeNotInEscapingQuote` flag — cmd's Phase 2 parser only treats `"` and `<LF>` as special inside quotes)
 - `cmdQuoteWord` uses close-quote/`^"`/reopen-quote to embed literal `"` (no escape mechanism exists inside cmd double quotes)
 
@@ -290,11 +290,11 @@ In real shells, `\` inside double quotes is only special before specific charact
 - **nushell**: `"`, `\` — `\$` should be literal
 - **PowerShell**: backtick (not `\`) — `\` is always literal
 
-This is a known limitation of the lexer. For completion purposes it doesn't affect word splitting or quote-state tracking — the `Value` field may differ from the shell's actual dequoting, but the `State` and word boundaries are correct. The `EscapingQuoteEscapeChars` and `EscapingQuoteUnescaper` interfaces narrow this behavior for formats that need it.
+This is a known limitation of the lexer. For completion purposes it doesn't affect word splitting or quote-state tracking — the `Value` field may differ from the shell's actual dequoting, but the `State` and word boundaries are correct. The `EscapingQuoteEscapeChars` and `escapingQuoteUnescaper` interfaces narrow this behavior for formats that need it.
 
 ### Line continuation (`\<newline>`)
 
-POSIX shells (bash, zsh, tcsh, oil), fish, and xonsh implement `LineContinuationEscaper`. When the escape character (backslash) is followed by `\n` or `\r`, both the escape char and the newline are consumed — they are not added to the token's `Value` or `RawValue`. This applies:
+POSIX shells (bash, zsh, tcsh, oil), fish, and xonsh implement `lineContinuationEscaper`. When the escape character (backslash) is followed by `\n` or `\r`, both the escape char and the newline are consumed — they are not added to the token's `Value` or `RawValue`. This applies:
 - Outside quotes (`ESCAPING_STATE`): the word continues on the next line
 - Inside double quotes (`ESCAPING_QUOTED_STATE`): the string continues on the next line
 
@@ -304,7 +304,7 @@ PowerShell and cmd implement the same interface for their escape characters (bac
 
 ### Line continuation whitespace (`^<newline>` in elvish)
 
-Elvish uses `^` (not `\`) followed by newline as a line continuation. Unlike `LineContinuationEscaper` (which concatenates the word across lines), elvish's `^<newline>` acts as **whitespace** — it ends the current word and the next word starts on the next line. The `LineContinuationWhitespace` interface handles this: when the line-continuation char is seen in `IN_WORD_STATE` or `START_STATE`, the tokenizer peeks ahead. If the next rune is `\n` or `\r`, both the char and newline are consumed and the current word ends (like a space). `^` without a following newline is a regular bareword character.
+Elvish uses `^` (not `\`) followed by newline as a line continuation. Unlike `lineContinuationEscaper` (which concatenates the word across lines), elvish's `^<newline>` acts as **whitespace** — it ends the current word and the next word starts on the next line. The `lineContinuationWhitespace` interface handles this: when the line-continuation char is seen in `IN_WORD_STATE` or `START_STATE`, the tokenizer peeks ahead. If the next rune is `\n` or `\r`, both the char and newline are consumed and the current word ends (like a space). `^` without a following newline is a regular bareword character.
 
 Supported by: elvish only.
 

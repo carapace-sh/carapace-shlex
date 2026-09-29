@@ -42,7 +42,7 @@ func (xonshFormat) QuoteWord(s string) string               { return xonshQuoteW
 func (xonshFormat) TripleQuoteSupport() bool                { return true }
 func (xonshFormat) RawPrefixSupport() bool                  { return true }
 
-// IsLineContinuation implements LineContinuationEscaper. Xonsh (Python)
+// IsLineContinuation implements lineContinuationEscaper. Xonsh (Python)
 // treats backslash followed by \n or \r as a line continuation inside
 // string literals and outside quotes.
 func (xonshFormat) IsLineContinuation(r rune) bool {

@@ -85,7 +85,7 @@ func (fishFormat) QuoteWord(s string) string { return fishQuoteWord(s) }
 func (fishFormat) TripleQuoteSupport() bool  { return false }
 func (fishFormat) RawPrefixSupport() bool    { return false }
 
-// IsLineContinuation implements LineContinuationEscaper. Fish treats
+// IsLineContinuation implements lineContinuationEscaper. Fish treats
 // backslash followed by \n or \r as a line continuation, both inside
 // and outside double quotes.
 func (fishFormat) IsLineContinuation(r rune) bool {

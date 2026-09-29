@@ -797,11 +797,11 @@ func TestVerify_XonshNoEnvVarDependency(t *testing.T) {
 	}
 }
 
-// LineContinuationEscaper — xonsh implements IsLineContinuation.
+// lineContinuationEscaper — xonsh implements IsLineContinuation.
 // From tokenize.py Ignore pattern: \\\r?\n is line continuation.
 // \n and \r should both return true.
 func TestVerify_XonshLineContinuationInterface(t *testing.T) {
-	var lc LineContinuationEscaper = xonshFormat{}
+	var lc lineContinuationEscaper = xonshFormat{}
 	if !lc.IsLineContinuation('\n') {
 		t.Error("IsLineContinuation('\\n') = false, want true")
 	}
