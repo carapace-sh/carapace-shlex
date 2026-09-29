@@ -58,3 +58,16 @@ func (bashFormat) IsLineContinuation(r rune) bool {
 func (bashFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return posixSubstitutionPostProcess(tokens)
 }
+
+// VariableRef implements VariableExpander. Bash expands `$name` and
+// `${name`; `$` is literal inside single quotes and when escaped.
+func (bashFormat) VariableRef(word Token) (VariableRef, bool) {
+	return posixVariableRef(word)
+}
+
+// NaiveSplitWord implements NaiveWordSplitter. Bash's COMP_WORDS interface
+// splits naively on wordbreak characters, quotes included, so the shell
+// replaces only the raw text after the last such character.
+func (f bashFormat) NaiveSplitWord(raw string) string {
+	return naiveSplitWord(f.Classifier(), raw)
+}

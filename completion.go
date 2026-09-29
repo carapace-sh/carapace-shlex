@@ -33,6 +33,24 @@ type CompletionContext struct {
 	// complete parameter names, not commands or arguments.
 	InLambdaParams bool
 
+	// VariableRef describes a variable reference ending the current word,
+	// detected lexically on the lexer's final word. Nil when the word does
+	// not end in a variable reference, or when the format does not
+	// implement VariableExpander.
+	//
+	// For insertion, shells with a naive word interface (see
+	// RawReplacementWord) replace the typed name suffix of
+	// RawReplacementWord (VariableRef.Name) with the completed name;
+	// shells whose completion API resolves quoting handle the prefix
+	// themselves.
+	VariableRef *VariableRef
+
+	// RawReplacementWord is the raw text the shell replaces on insertion.
+	// It equals RawCurrentWord unless the format implements
+	// NaiveWordSplitter (bash: the naive COMP_WORDS suffix, so
+	// `"text $HO` yields `$HO` while the lexer word is `text $HO`).
+	RawReplacementWord string
+
 	// Pipeline is the raw token slice of the current pipeline (before
 	// redirect filtering and word merging). Use this as an escape hatch
 	// for edge cases not covered by the fields above.
@@ -60,17 +78,17 @@ func SplitForCompletion(s string, format Format) *CompletionContext {
 	// If cursor is inside an unclosed command substitution, build the
 	// context from the inner tokens.
 	if scope := innermostUnclosedCommandScope(tokens); scope >= 0 {
-		ctx := buildCompletionContext(tokens[scope+1:])
+		ctx := buildCompletionContext(tokens[scope+1:], format)
 		ctx.SubstitutionDepth = countUnclosedCommandScopes(tokens)
 		return ctx
 	}
 
-	return buildCompletionContext(tokens)
+	return buildCompletionContext(tokens, format)
 }
 
 // buildCompletionContext derives the completion context fields from a
 // token slice.
-func buildCompletionContext(tokens TokenSlice) *CompletionContext {
+func buildCompletionContext(tokens TokenSlice, format Format) *CompletionContext {
 	pipeline := tokens.CurrentPipeline()
 	filtered := pipeline.FilterRedirects()
 	words := filtered.WordsWithSubstitutions()
@@ -88,16 +106,27 @@ func buildCompletionContext(tokens TokenSlice) *CompletionContext {
 		}
 	}
 
+	var current *Token
 	if ctx.IsRedirect {
-		current := pipeline[len(pipeline)-1]
-		ctx.CurrentWord = current.Value
-		ctx.RawCurrentWord = current.RawValue
-		ctx.QuotingState = current.State
+		current = &pipeline[len(pipeline)-1]
 	} else if len(words) > 0 {
-		current := words[len(words)-1]
+		current = &words[len(words)-1]
+	}
+	if current != nil {
 		ctx.CurrentWord = current.Value
 		ctx.RawCurrentWord = current.RawValue
 		ctx.QuotingState = current.State
+
+		if expander, ok := format.(VariableExpander); ok {
+			if ref, ok := expander.VariableRef(*current); ok {
+				ctx.VariableRef = &ref
+			}
+		}
+	}
+
+	ctx.RawReplacementWord = ctx.RawCurrentWord
+	if splitter, ok := format.(NaiveWordSplitter); ok {
+		ctx.RawReplacementWord = splitter.NaiveSplitWord(ctx.RawReplacementWord)
 	}
 
 	ctx.Prefix = pipeline.WordbreakPrefix()

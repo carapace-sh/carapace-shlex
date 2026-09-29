@@ -41,6 +41,16 @@ ctx := shlex.SplitForCompletion(`echo foo | grep hel`, shlex.BashFormat())
 
 Returns a `CompletionContext` with the current word, quoting state, prefix, pipeline words, and redirect detection — replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains.
 
+### Variable references
+
+```go
+ctx := shlex.SplitForCompletion(`echo "text$HO`, shlex.BashFormat())
+// ctx.VariableRef          = &shlex.VariableRef{Name: "HO"}   (nil when not a reference)
+// ctx.RawReplacementWord   = "text$HO"                        (raw text the shell replaces)
+```
+
+`VariableRef` is detected on the lexer's final word — quote state, escapes, and the `${` form are handled by the format (`$` inside single quotes or after `\` is literal; closed expansions like `${HOME}` are not references). `RawReplacementWord` is the raw text the shell's completion interface replaces (bash's naive `COMP_WORDS` split, e.g. `"text $HO` yields `$HO`); insertion replaces its `VariableRef.Name` suffix with the completed name.
+
 ## Supported Formats
 
 | Format | Function | Key features |
