@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	},
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		format := shlex.Format(formatFlag)
+		format := formatFlag
 
 		switch {
 		case cmd.Flag("completion-context").Changed:
