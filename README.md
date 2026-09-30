@@ -6,7 +6,7 @@
 
 A command-line lexer that splits and re-joins command lines with quotation-state information for shell completion. Fork of [go-shlex](https://github.com/google/shlex).
 
-V1 was POSIX-only. V2 supports multiple shell formats (including non-POSIX) via the `Format` interface.
+V1 was POSIX-only. V2 supports multiple shell formats (including non-POSIX) via `Format` constants.
 
 [![asciicast](https://asciinema.org/a/599580.svg)](https://asciinema.org/a/599580)
 
@@ -33,7 +33,7 @@ ctx := shlex.Complete(`echo foo | grep hel`, shlex.Bash)
 // ctx.IsRedirect    = false
 ```
 
-Returns a `CompletionContext` with the current word, quoting state, prefix, pipeline words, and redirect detection; `ctx.Span` locates the current word in the input and `ctx.Tokens` carries the raw tokens. — replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().currentToken()` chains.
+Returns a `CompletionContext` — current word, quoting state, prefix, pipeline words, and redirect detection; `ctx.Span` locates the current word in the input and `ctx.Tokens` carries the raw tokens. This replaces the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains of v1.
 
 ### Variable references
 
@@ -53,6 +53,15 @@ ctx.Quote(`llo world`) // `"llo world"` - closes the open double quote
 ```
 
 `Quote` returns the value quoted so it can replace the raw current word: an open quote is closed with the format's own escape rules (per shell: bash `'"'"'`, fish `\'`, zsh/elvish `''`, cmd `""`, PowerShell backtick), and barewords are quoted as complete words. Stop-parsing mode (PowerShell `--%`) passes values through raw.
+
+### Join
+
+```go
+shlex.Join([]string{"echo", "hello world"}, shlex.Bash)
+// `echo "hello world"`
+```
+
+Quotes and escapes words into a single command line using the format's quoting rules.
 
 ## Supported Formats
 
