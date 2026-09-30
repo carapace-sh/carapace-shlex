@@ -1,20 +1,32 @@
 package shlex
 
-// VariableRef describes a variable reference ending the current word.
-type VariableRef struct {
+// Variable describes a variable reference ending the current word.
+type Variable struct {
 	// Name is the variable name typed so far. Empty when the cursor is
 	// directly after the sigil.
 	Name string
 
-	// Brace reports the `${` form (as opposed to the plain `$` form).
-	Brace bool
+	brace bool // `${` form (as opposed to the plain `$` form)
 
-	// Replacement is the raw text the shell's completion interface
-	// replaces on insertion. It equals the raw current word unless the
-	// format has a naive word interface (bash: the COMP_WORDS suffix, so
-	// `"text $HO` yields `$HO`); shells whose completion API resolves
-	// quoting themselves receive the whole raw word and strip the prefix.
-	Replacement string
+	// replacement is the raw text the shell's completion interface
+	// replaces on insertion, ending in the sigil and the typed name. It
+	// equals the raw current word unless the format has a naive word
+	// interface (bash: the COMP_WORDS suffix, so `"text $HO` yields
+	// `$HO`); shells whose completion API resolves quoting themselves
+	// receive the whole raw word and strip the prefix.
+	replacement string
+}
+
+// Insert returns the replacement word with the completed variable
+// reference in place, preserving the reference's form (`$HOME` or
+// `${HOME}`). Consumers prefix it with everything before the replaced
+// region.
+func (v Variable) Insert(completed string) string {
+	sigil, closer := "$", ""
+	if v.brace {
+		sigil, closer = "${", "}"
+	}
+	return v.replacement[:len(v.replacement)-len(v.Name)-len(sigil)] + sigil + completed + closer
 }
 
 // variableExpander is implemented by formats whose variable references can
@@ -28,7 +40,7 @@ type VariableRef struct {
 // Formats without variable expansion (or with forms this detection does not
 // cover) simply do not implement the interface.
 type variableExpander interface {
-	VariableRef(word Token) (VariableRef, bool)
+	Variable(word Token) (Variable, bool)
 }
 
 // naiveWordSplitter is implemented by formats whose completion interface
@@ -67,7 +79,7 @@ type variableRules struct {
 // posixVariableRef detects a variable reference ending the given word using
 // POSIX expansion rules: `$name` and `${name`, backslash escapes, and no
 // expansion inside single quotes.
-func posixVariableRef(word Token) (VariableRef, bool) {
+func posixVariableRef(word Token) (Variable, bool) {
 	return variableRef(word, variableRules{
 		brace:           true,
 		expands:         func(state LexerState) bool { return state != QUOTING_STATE },
@@ -82,9 +94,9 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 // The word is parsed left to right so a `$` consumed as the special
 // character of a preceding parameter is not mistaken for an opener
 // (`$$` is the PID parameter, while `$$$HO` still opens `$HO`).
-func variableRef(word Token, rules variableRules) (VariableRef, bool) {
+func variableRef(word Token, rules variableRules) (Variable, bool) {
 	if !rules.expands(word.State) {
-		return VariableRef{}, false
+		return Variable{}, false
 	}
 
 	runes := []rune(word.RawValue)
@@ -126,7 +138,7 @@ func variableRef(word Token, rules variableRules) (VariableRef, bool) {
 		}
 	}
 	if opener < 0 {
-		return VariableRef{}, false
+		return Variable{}, false
 	}
 
 	rest := runes[opener+1:]
@@ -135,17 +147,17 @@ func variableRef(word Token, rules variableRules) (VariableRef, bool) {
 		rest = rest[1:]
 	}
 	if len(rest) > 0 && !rules.nameStart(rest[0]) {
-		return VariableRef{}, false
+		return Variable{}, false
 	}
 	for _, r := range rest {
 		if !rules.nameRune(r) {
-			return VariableRef{}, false
+			return Variable{}, false
 		}
 	}
 
-	return VariableRef{
+	return Variable{
 		Name:  string(rest),
-		Brace: brace,
+		brace: brace,
 	}, true
 }
 

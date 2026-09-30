@@ -56,9 +56,9 @@ func (bashFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return posixSubstitutionPostProcess(tokens)
 }
 
-// VariableRef implements variableExpander. Bash expands `$name` and
+// Variable implements variableExpander. Bash expands `$name` and
 // `${name`; `$` is literal inside single quotes and when escaped.
-func (bashFormat) VariableRef(word Token) (VariableRef, bool) {
+func (bashFormat) Variable(word Token) (Variable, bool) {
 	return posixVariableRef(word)
 }
 

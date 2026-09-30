@@ -228,10 +228,10 @@ func (nushellFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return result
 }
 
-// VariableRef implements variableExpander. Nushell expands `$name` in
+// Variable implements variableExpander. Nushell expands `$name` in
 // barewords only — quotes are literal strings, not interpolations — and
 // there is no `${` form. Variable names may contain hyphens.
-func (nushellFormat) VariableRef(word Token) (VariableRef, bool) {
+func (nushellFormat) Variable(word Token) (Variable, bool) {
 	return variableRef(word, variableRules{
 		expands:         func(state LexerState) bool { return state == IN_WORD_STATE },
 		barewordEscapes: true,

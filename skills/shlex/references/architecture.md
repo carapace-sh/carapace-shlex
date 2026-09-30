@@ -194,7 +194,7 @@ type CompletionContext struct {
 	QuotingState      LexerState   // IN_WORD / QUOTING / QUOTING_ESCAPING / ESCAPING
 	IsRedirect        bool         // true when completing a redirect target
 	InLambdaParams    bool         // elvish lambda parameter list (omitempty)
-	VariableRef       *VariableRef // variable reference ending the word (omitempty)
+	Variable       *Variable // variable reference ending the word (omitempty)
 	Span              Span         // current word's position in the input
 	Tokens            TokenSlice   // raw tokens of the whole input (escape hatch)
 	SubstitutionDepth int          // unclosed substitution scopes (omitempty)

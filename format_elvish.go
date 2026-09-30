@@ -150,11 +150,11 @@ func (elvishFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return tokens
 }
 
-// VariableRef implements variableExpander. Elvish expands `$name` in
+// Variable implements variableExpander. Elvish expands `$name` in
 // barewords and double quotes; there is no `${` form. Backslash is a
 // literal bareword character, so escapes only apply inside double quotes
 // (`\$HO` in a bareword is a literal backslash followed by the expansion).
-func (elvishFormat) VariableRef(word Token) (VariableRef, bool) {
+func (elvishFormat) Variable(word Token) (Variable, bool) {
 	return variableRef(word, variableRules{
 		expands:         func(state LexerState) bool { return state != QUOTING_STATE },
 		barewordEscapes: false,

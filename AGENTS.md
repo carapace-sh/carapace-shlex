@@ -101,7 +101,7 @@ type Token struct {
 - `Split(s, format)` → `TokenSlice, error` (unknown formats are rejected)
 - `Complete(s, format)` → `*CompletionContext` (never errors; returns empty context with `START_STATE` on failure)
 - `Join(s, format)` → quoted string (unknown formats fall back to `Default`)
-- `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `VariableRef` (lexical variable-reference detection, with `Replacement` for insertion), `Quote` (insertion quoting per format and quoting state), `Span` (current word position), and `Tokens` (raw token escape hatch)
+- `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `Variable` (lexical variable-reference detection; `Insert` composes the replacement word), `Quote` (insertion quoting per format and quoting state), `Span` (current word position), and `Tokens` (raw token escape hatch)
 
 `Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — nested lambdas are a known limitation).
 

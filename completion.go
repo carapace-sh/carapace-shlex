@@ -33,11 +33,11 @@ type CompletionContext struct {
 	// complete parameter names, not commands or arguments.
 	InLambdaParams bool `json:",omitempty"`
 
-	// VariableRef describes a variable reference ending the current word,
+	// Variable describes a variable reference ending the current word,
 	// detected lexically on the lexer's final word. Nil when the word does
 	// not end in a variable reference, or when the format does not
 	// implement variableExpander.
-	VariableRef *VariableRef `json:",omitempty"`
+	Variable *Variable `json:",omitempty"`
 
 	// Span is the rune span of the current word in the input. Offsets
 	// refer to the full input, also when the context describes the
@@ -140,16 +140,16 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 		ctx.Span = current.Span
 
 		if expander, ok := format.(variableExpander); ok {
-			if ref, ok := expander.VariableRef(*current); ok {
-				ctx.VariableRef = &ref
+			if ref, ok := expander.Variable(*current); ok {
+				ctx.Variable = &ref
 			}
 		}
 	}
 
-	if ctx.VariableRef != nil {
-		ctx.VariableRef.Replacement = ctx.RawCurrentWord
+	if ctx.Variable != nil {
+		ctx.Variable.replacement = ctx.RawCurrentWord
 		if splitter, ok := format.(naiveWordSplitter); ok {
-			ctx.VariableRef.Replacement = splitter.NaiveSplitWord(ctx.RawCurrentWord)
+			ctx.Variable.replacement = splitter.NaiveSplitWord(ctx.RawCurrentWord)
 		}
 	}
 

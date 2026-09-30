@@ -203,22 +203,22 @@ func TestVariableRef(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := Complete(tt.input, tt.format)
 			if tt.wantRef {
-				if ctx.VariableRef == nil {
-					t.Fatalf("VariableRef = nil, want Name=%q Brace=%v", tt.wantName, tt.wantBrace)
+				if ctx.Variable == nil {
+					t.Fatalf("Variable = nil, want Name=%q Brace=%v", tt.wantName, tt.wantBrace)
 				}
-				if ctx.VariableRef.Name != tt.wantName || ctx.VariableRef.Brace != tt.wantBrace {
-					t.Errorf("VariableRef = %+v, want Name=%q Brace=%v", *ctx.VariableRef, tt.wantName, tt.wantBrace)
+				if ctx.Variable.Name != tt.wantName || ctx.Variable.brace != tt.wantBrace {
+					t.Errorf("Variable = %+v, want Name=%q Brace=%v", *ctx.Variable, tt.wantName, tt.wantBrace)
 				}
 				return
 			}
-			if ctx.VariableRef != nil {
-				t.Errorf("VariableRef = %+v, want nil", *ctx.VariableRef)
+			if ctx.Variable != nil {
+				t.Errorf("Variable = %+v, want nil", *ctx.Variable)
 			}
 		})
 	}
 }
 
-func TestVariableRefReplacement(t *testing.T) {
+func TestVariableReplacement(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -237,11 +237,11 @@ func TestVariableRefReplacement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := Complete(tt.input, Bash)
-			if ctx.VariableRef == nil {
-				t.Fatalf("VariableRef = nil, want Replacement %q", tt.want)
+			if ctx.Variable == nil {
+				t.Fatalf("Variable = nil, want Replacement %q", tt.want)
 			}
-			if ctx.VariableRef.Replacement != tt.want {
-				t.Errorf("VariableRef.Replacement = %q, want %q", ctx.VariableRef.Replacement, tt.want)
+			if ctx.Variable.replacement != tt.want {
+				t.Errorf("Variable.replacement = %q, want %q", ctx.Variable.replacement, tt.want)
 			}
 		})
 	}
@@ -249,10 +249,41 @@ func TestVariableRefReplacement(t *testing.T) {
 
 func TestZshKeepsWholeRawWord(t *testing.T) {
 	ctx := Complete(`echo "text $HO`, Zsh)
-	if ctx.VariableRef == nil {
-		t.Fatal("VariableRef = nil")
+	if ctx.Variable == nil {
+		t.Fatal("Variable = nil")
 	}
-	if ctx.VariableRef.Replacement != ctx.RawCurrentWord {
-		t.Errorf("VariableRef.Replacement = %q, want RawCurrentWord %q", ctx.VariableRef.Replacement, ctx.RawCurrentWord)
+	if ctx.Variable.replacement != ctx.RawCurrentWord {
+		t.Errorf("Variable.replacement = %q, want RawCurrentWord %q", ctx.Variable.replacement, ctx.RawCurrentWord)
+	}
+}
+
+func TestVariableInsert(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		format Format
+		want   string
+	}{
+		{name: "plain form", input: "echo $HO", format: Bash, want: "$HOME"},
+		{name: "quoted word", input: `echo "text$HO`, format: Bash, want: "text$HOME"},
+		{name: "quoted text with space", input: `echo "text $HO`, format: Bash, want: "$HOME"},
+		{name: "brace form closes brace", input: `echo "test${HO`, format: Bash, want: "test${HOME}"},
+		{name: "brace only", input: "echo ${", format: Bash, want: "${HOME}"},
+		{name: "trailing sigil", input: "echo $", format: Bash, want: "$HOME"},
+		{name: "hyphenated nushell name", input: "echo $my-var", format: Nushell, want: "$HOME"},
+		{name: "elvish keeps bareword backslash", input: `echo \$HO`, format: Elvish, want: `\$HOME`},
+		{name: "redirect target", input: "echo >$HO", format: Bash, want: "$HOME"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := Complete(tt.input, tt.format)
+			if ctx.Variable == nil {
+				t.Fatalf("Variable = nil")
+			}
+			if got := ctx.Variable.Insert("HOME"); got != tt.want {
+				t.Errorf("Insert = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
