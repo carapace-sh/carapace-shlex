@@ -31,7 +31,7 @@ Go 1.24.0. The CI image is `ghcr.io/carapace-sh/go:1.25.4`. Tags trigger GoRelea
 
 - **Root package `shlex`** — the library: tokenizer state machine (`shlex.go`), `Format` name type and `formatImpl` interface (`format.go`), per-shell formats (`format_<shell>.go`), token slice operations (`tokenslice.go`), wordbreak types (`wordbreak.go`), quoting helpers (`quote.go`), completion context (`completion.go`).
 - **`cmd/carapace-shlex/`** — a **separate Go module** (`cmd/go.mod`) that imports the library and wraps it as a cobra CLI. It depends on `carapace` and `carapace-bridge` for its own completion.
-- **`go.work`** — workspace including both the root module and `./cmd`. Contains a `replace` directive: `github.com/carapace-sh/carapace v1.11.0 => ../carapace`. This means local development expects a sibling `../carapace` checkout.
+- **`go.work`** — workspace including both the root module and `./cmd`. Contains a `replace` directive pointing `carapace` at the sibling `../carapace` checkout, which local development expects.
 - **`skills/shlex/`** — in-depth reference docs (architecture, cross-shell comparison, per-format references). Load these via the `shlex` skill when doing substantial format work.
 
 ## Architecture
@@ -67,6 +67,10 @@ The core state machine in `shlex.go` (`scanStream`) has **no nesting awareness**
   - `stopParsingToken` — raw lexing mode after a token (PowerShell `--%`)
   - `lineContinuationEscaper` — escape+newline as line continuation (PowerShell backtick)
   - `escapingQuoteUnescaper` — custom unescape inside double quotes beyond simple backslash-dropping
+  - `lineContinuationWhitespace` — a non-escape char followed by newline acting as a word break (elvish)
+  - `variableExpander` — lexical variable-reference detection (bash, zsh, tcsh, fish, elvish, nushell, xonsh)
+  - `naiveWordSplitter` — the shell's naive word-splitting for insertion (bash COMP_WORDS)
+  - `quoteInserter` — insertion quoting deviating from the POSIX-style default (PowerShell backtick, cmd doubling)
 
 When adding a new format, implement `formatImpl` plus whichever optional interfaces apply. No-op returns (e.g. `KeywordOperators() nil`) are the norm for formats that don't need a feature.
 
@@ -94,9 +98,9 @@ type Token struct {
 
 ### Public API surface
 
-- `Split(s)` / `Split(s, format)` → `TokenSlice, error`
+- `Split(s, format)` → `TokenSlice, error` (unknown formats are rejected)
 - `Complete(s, format)` → `*CompletionContext` (never errors; returns empty context with `START_STATE` on failure)
-- `Join(s)` / `Join(s, format)` → quoted string
+- `Join(s, format)` → quoted string (unknown formats fall back to `Default`)
 - `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `VariableRef` (lexical variable-reference detection, with `Replacement` for insertion), `Quote` (insertion quoting per format and quoting state), `Span` (current word position), and `Tokens` (raw token escape hatch)
 
 `Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — nested lambdas are a known limitation).
@@ -128,8 +132,8 @@ Tests assert on **dequoted `Value`** via `Words().Strings()`, and on `State` (e.
 
 ## Gotchas
 
-- **`go.work` replace expects `../carapace`** as a sibling checkout. The root `go.mod` also has the replace, so even non-workspace `go build` pulls the local carapace. CI uses the image `ghcr.io/carapace-sh/go` which has the dependency available.
-- **`cmd/carapace-shlex` is a separate module** with its own `go.mod`. Changes to the library's public API must be reflected in `cmd/go.mod`'s `require` (often via a replace to `../`).
+- **The `carapace` dependency is pinned to its `shlex-v2` branch** (in `cmd/go.mod`), with `go.work` and that pin expecting the sibling `../carapace` checkout for local development. The root module itself has no carapace dependency.
+- **`cmd/carapace-shlex` is a separate module** with its own `go.mod`. It replaces the library with the parent checkout (`replace .../carapace-shlex/v2 => ../`), so CLI builds always exercise the working tree — the `require` pin only matters to external consumers.
 - **gofmt `-s` (simplify) is enforced**, not just plain gofmt. Run `gofmt -d -s .` before committing.
 - **`staticcheck` is enforced** in CI. Install and run it locally — it's not in the standard toolchain.
 - **`bufio.Reader` only supports one `UnreadRune`**. The triple-quote peek helpers (`checkTripleQuote`, `checkTripleClose`) handle this constraint by returning a `consumedRune` when the second peek fails to match — the first peeked rune can't be unread, so callers must add it to `RawValue`. Preserve this pattern when extending peek-based logic.
