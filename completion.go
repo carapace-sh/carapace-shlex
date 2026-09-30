@@ -151,6 +151,10 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 		if splitter, ok := format.(naiveWordSplitter); ok {
 			ctx.Variable.replacement = splitter.NaiveSplitWord(ctx.RawCurrentWord)
 		}
+		ctx.Variable.span = Span{
+			Start: current.Span.End - len([]rune(ctx.Variable.replacement)),
+			End:   current.Span.End,
+		}
 	}
 
 	ctx.Prefix = pipeline.WordbreakPrefix()

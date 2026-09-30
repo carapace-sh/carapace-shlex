@@ -287,3 +287,20 @@ func TestVariableInsert(t *testing.T) {
 		})
 	}
 }
+
+func TestVariableSpan(t *testing.T) {
+	ctx := Complete(`echo "text $HO`, Bash)
+	if ctx.Variable == nil {
+		t.Fatal("Variable = nil")
+	}
+	// the naive replacement region `$HO` ends at the word's end
+	if got := ctx.Variable.Span(); got != (Span{Start: ctx.Span.End - 3, End: ctx.Span.End}) {
+		t.Errorf("Span = %v, want {%d %d}", got, ctx.Span.End-3, ctx.Span.End)
+	}
+
+	// the naive replacement region excludes the opening quote
+	ctx = Complete(`echo "text$HO`, Bash)
+	if got := ctx.Variable.Span(); got != (Span{Start: ctx.Span.End - 7, End: ctx.Span.End}) {
+		t.Errorf("Span = %v, want {%d %d}", got, ctx.Span.End-7, ctx.Span.End)
+	}
+}

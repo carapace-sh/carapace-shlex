@@ -15,12 +15,22 @@ type Variable struct {
 	// `$HO`); shells whose completion API resolves quoting themselves
 	// receive the whole raw word and strip the prefix.
 	replacement string
+
+	// span is the absolute rune span of the replaced region.
+	span Span
 }
 
 // Insert returns the replacement word with the completed variable
 // reference in place, preserving the reference's form (`$HOME` or
 // `${HOME}`). Consumers prefix it with everything before the replaced
 // region.
+// Span returns the rune span of the replaced region in the input — the
+// text Insert replaces (the whole raw word, or its naive suffix for
+// formats with a naive word interface).
+func (v Variable) Span() Span {
+	return v.span
+}
+
 func (v Variable) Insert(completed string) string {
 	sigil, closer := "$", ""
 	if v.brace {
