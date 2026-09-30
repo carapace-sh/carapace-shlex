@@ -107,6 +107,14 @@ type Token struct {
 }
 ```
 
+## Migrating from v1
+
+- The module path gained `/v2` (`github.com/carapace-sh/carapace-shlex/v2`)
+- `Split(s)` and `Join(s)` now take the format: `shlex.Split(s, shlex.Bash)` — the format is no longer implied
+- `Token.Index` became `Token.Span` (rune offsets, `End` exclusive; `Index` was equivalent to `Span.Start`)
+- Completion consumers replace the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` composition with `shlex.Complete(s, format)`; the current word's position is `ctx.Span` instead of `CurrentToken().Index`
+- Formats are a closed set of constants — new lexing behavior lands as a format in this repository, not as an outside implementation
+
 ## Links
 
 - [carapace](https://github.com/carapace-sh/carapace) — shell completion framework that uses this library
