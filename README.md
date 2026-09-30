@@ -7,6 +7,8 @@ Fork of [go-shlex](https://github.com/google/shlex) aimed to enable completion o
 
 [![asciicast](https://asciinema.org/a/599580.svg)](https://asciinema.org/a/599580)
 
+> **v2** is still undergoing strong changes, stick to **v1** for stability.
+
 ## Usage
 
 ### Split
