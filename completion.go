@@ -51,15 +51,21 @@ type CompletionContext struct {
 	// `"text $HO` yields `$HO` while the lexer word is `text $HO`).
 	RawReplacementWord string
 
-	// Pipeline is the raw token slice of the current pipeline (before
-	// redirect filtering and word merging). Use this as an escape hatch
-	// for edge cases not covered by the fields above.
-	Pipeline TokenSlice
+	// Span is the rune span of the current word in the input. Offsets
+	// refer to the full input, also when the context describes the
+	// innermost substitution's command.
+	Span Span
+
+	// Tokens is the raw token slice of the whole input — what Split
+	// returns for the same line. Escape hatch for edge cases not covered
+	// by the fields above.
+	Tokens TokenSlice `json:"-"`
 
 	// SubstitutionDepth is the number of unclosed substitution scopes
-	// at the cursor position. 0 = cursor at top level. When > 0, all
-	// other fields (Words, CurrentWord, etc.) describe the innermost
-	// substitution's command, not the outer command.
+	// at the cursor position. 0 = cursor at top level. When > 0, the
+	// derived fields (Words, CurrentWord, etc.) describe the innermost
+	// substitution's command; Span and Tokens still refer to the full
+	// input.
 	SubstitutionDepth int
 }
 
@@ -83,11 +89,14 @@ func Complete(s string, format Format) *CompletionContext {
 	// context from the inner tokens.
 	if scope := innermostUnclosedCommandScope(tokens); scope >= 0 {
 		ctx := buildCompletionContext(tokens[scope+1:], f)
+		ctx.Tokens = tokens
 		ctx.SubstitutionDepth = countUnclosedCommandScopes(tokens)
 		return ctx
 	}
 
-	return buildCompletionContext(tokens, f)
+	ctx := buildCompletionContext(tokens, f)
+	ctx.Tokens = tokens
+	return ctx
 }
 
 // buildCompletionContext derives the completion context fields from a
@@ -99,8 +108,7 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 	wordStrings := words.Strings()
 
 	ctx := &CompletionContext{
-		Words:    wordStrings,
-		Pipeline: pipeline,
+		Words: wordStrings,
 	}
 
 	if len(pipeline) >= 2 {
@@ -120,6 +128,7 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 		ctx.CurrentWord = current.Value
 		ctx.RawCurrentWord = current.RawValue
 		ctx.QuotingState = current.State
+		ctx.Span = current.Span
 
 		if expander, ok := format.(variableExpander); ok {
 			if ref, ok := expander.VariableRef(*current); ok {

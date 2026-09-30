@@ -193,7 +193,7 @@ type CompletionContext struct {
 	Prefix         string      // wordbreak prefix up to cursor
 	QuotingState   LexerState  // IN_WORD / QUOTING / QUOTING_ESCAPING / ESCAPING
 	IsRedirect     bool        // true when completing a redirect target
-	Pipeline       TokenSlice  // raw pipeline tokens (escape hatch)
+	Tokens         TokenSlice  // raw tokens of the whole input (escape hatch)
 }
 
 func Complete(s string, format Format) *CompletionContext
