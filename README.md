@@ -45,6 +45,15 @@ ctx := shlex.Complete(`echo "text$HO`, shlex.Bash)
 
 `VariableRef` is detected on the lexer's final word — quote state, escapes, and the sigil forms are handled by the format (bash, zsh, tcsh, fish, elvish, nushell, and xonsh implement detection; `$` inside single quotes or after `\` is literal where the shell says so, closed expansions like `${HOME}` are not references). Its `Replacement` is the raw text the shell's completion interface replaces (bash's naive `COMP_WORDS` split, e.g. `"text $HO` yields `$HO`); insertion replaces the `Name` suffix with the completed name.
 
+### Quoting for insertion
+
+```go
+ctx := shlex.Complete(`echo "he`, shlex.Bash)
+ctx.Quote(`llo world`) // `"llo world"` - closes the open double quote
+```
+
+`Quote` returns the value quoted so it can replace the raw current word: an open quote is closed with the format's own escape rules (per shell: bash `'"'"'`, fish `\'`, zsh/elvish `''`, cmd `""`, PowerShell backtick), and barewords are quoted as complete words. Stop-parsing mode (PowerShell `--%`) passes values through raw.
+
 ## Supported Formats
 
 | Format | Constant | Key features |

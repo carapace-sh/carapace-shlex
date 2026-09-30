@@ -223,3 +223,111 @@ func cmdQuoteWord(s string) string {
 	b.WriteByte('"')
 	return b.String()
 }
+
+// quoteInserter is an optional interface for formats whose insertion
+// quoting differs from the POSIX-style default (PowerShell escapes with
+// the backtick, cmd doubles the quote and treats ^ literally inside
+// double quotes).
+type quoteInserter interface {
+	QuoteInsertion(state LexerState, value string) string
+}
+
+// QuoteInsertion implements quoteInserter for PowerShell. Inside double
+// quotes the escape character is the backtick, not the backslash; other
+// states use the default rules.
+func (powershellFormat) QuoteInsertion(state LexerState, value string) string {
+	if state == QUOTING_ESCAPING_STATE {
+		var b strings.Builder
+		b.WriteByte('"')
+		for _, r := range value {
+			switch r {
+			case '"':
+				b.WriteString("`\"")
+			case '`':
+				b.WriteString("``")
+			case '$':
+				b.WriteString("`$")
+			default:
+				b.WriteRune(r)
+			}
+		}
+		b.WriteByte('"')
+		return b.String()
+	}
+	return quoteInsertionDefault(powershellFormat{}, state, value)
+}
+
+// QuoteInsertion implements quoteInserter for cmd. The escape character
+// is literal inside double quotes, so the quote itself is doubled; other
+// states use the default rules.
+func (cmdFormat) QuoteInsertion(state LexerState, value string) string {
+	if state == QUOTING_ESCAPING_STATE {
+		return `"` + strings.ReplaceAll(value, `"`, `""`) + `"`
+	}
+	return quoteInsertionDefault(cmdFormat{}, state, value)
+}
+
+func quoteInsertion(f formatImpl, state LexerState, value string) string {
+	if qi, ok := f.(quoteInserter); ok {
+		return qi.QuoteInsertion(state, value)
+	}
+	return quoteInsertionDefault(f, state, value)
+}
+
+// quoteInsertionDefault quotes value for insertion at a cursor in the
+// given lexer state using the format's quoting primitives: quoting
+// states are closed with the format's own escape rules, and barewords
+// are quoted as a complete word (the QuoteWord rules).
+func quoteInsertionDefault(f formatImpl, state LexerState, value string) string {
+	if _, ok := f.(stopParsingToken); ok && state == STOP_PARSING_STATE {
+		return value // raw mode: nothing is quoted
+	}
+
+	switch state {
+	case QUOTING_STATE: // inside single quotes: close them
+		switch {
+		case f.NonEscapingQuoteBackslashEscapes():
+			return `'` + strings.ReplaceAll(value, `'`, `\'`) + `'`
+		case f.NonEscapingQuoteEscapes():
+			return `'` + strings.ReplaceAll(value, `'`, `''`) + `'`
+		default:
+			return `'` + strings.ReplaceAll(value, `'`, `'"'"'`) + `'`
+		}
+
+	case QUOTING_ESCAPING_STATE: // inside double quotes: close them
+		if f.EscapeNotInEscapingQuote() {
+			// the escape character is literal inside double quotes
+			// (cmd): the quote itself is doubled instead
+			return `"` + strings.ReplaceAll(value, `"`, `""`) + `"`
+		}
+		return `"` + escapeDoubleQuote(f, value) + `"`
+
+	case QUOTING_TRIPLE_STATE: // inside '''...''': close them
+		return `'''` + strings.ReplaceAll(value, `'`, `\'`) + `'''`
+
+	case QUOTING_TRIPLE_ESCAPING_STATE: // inside """...""": close them
+		escaped := strings.ReplaceAll(value, `\`, `\\`)
+		return `"""` + strings.ReplaceAll(escaped, `"`, `\"`) + `"""`
+
+	default: // bareword: quote as a complete word
+		return f.QuoteWord(value)
+	}
+}
+
+// escapeDoubleQuote escapes value for the inside of a double-quoted
+// string: the quote itself, the escape character, and the format's
+// documented escape set (e.g. `$` in bash and fish).
+func escapeDoubleQuote(f formatImpl, value string) string {
+	chars := f.EscapingQuoteEscapeChars()
+	var b strings.Builder
+	for _, r := range value {
+		switch {
+		case r == '"', r == '\\', chars != nil && chars[r]:
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}

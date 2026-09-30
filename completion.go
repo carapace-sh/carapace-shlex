@@ -55,6 +55,22 @@ type CompletionContext struct {
 	// substitution's command; Span and Tokens still refer to the full
 	// input.
 	SubstitutionDepth int `json:",omitempty"`
+
+	format formatImpl
+}
+
+// Quote returns value quoted for insertion at the cursor position
+// described by the context: an open quote is closed with the format's
+// own escape rules and a bareword is quoted as a complete word, so the
+// result can replace the whole raw current word. Values meant to be
+// inserted without a trailing space (nospace completions) may be passed
+// as-is by the caller when quoting is not wanted.
+func (c *CompletionContext) Quote(value string) string {
+	f := c.format
+	if f == nil {
+		f = formatImpls[Default]
+	}
+	return quoteInsertion(f, c.QuotingState, value)
 }
 
 // Complete parses s and returns a CompletionContext describing
@@ -99,7 +115,8 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 	wordStrings := words.Strings()
 
 	ctx := &CompletionContext{
-		Words: wordStrings,
+		Words:  wordStrings,
+		format: format,
 	}
 
 	if len(pipeline) >= 2 {

@@ -1044,7 +1044,7 @@ func (t *tokenizer) scanStopParsing() (*Token, error) {
 					return nil, err
 				}
 				token.Span.End = token.Span.Start + len([]rune(token.RawValue))
-				token.State = IN_WORD_STATE
+				token.State = STOP_PARSING_STATE
 				t.state = START_STATE
 				return token, nil
 			}
@@ -1066,7 +1066,7 @@ func (t *tokenizer) scanStopParsing() (*Token, error) {
 				return token, nil
 			}
 			token.Span.End = token.Span.Start + len([]rune(token.RawValue))
-			token.State = IN_WORD_STATE
+			token.State = STOP_PARSING_STATE
 			t.state = START_STATE
 			return token, nil
 		}
@@ -1089,7 +1089,7 @@ func (t *tokenizer) scanStopParsing() (*Token, error) {
 			} else {
 				token.Span.End = token.Span.Start + len([]rune(token.RawValue))
 			}
-			token.State = IN_WORD_STATE
+			token.State = STOP_PARSING_STATE
 			t.state = START_STATE
 			return token, nil
 		}
