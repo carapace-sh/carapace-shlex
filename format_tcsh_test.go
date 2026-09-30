@@ -7,7 +7,7 @@ func TestTcshFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("TcshFormat: %d pipelines, want 2", len(pipelines))
 	}
@@ -62,8 +62,8 @@ func TestTcshFormat_DoubleAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("tcsh &&: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh &&: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -72,8 +72,8 @@ func TestTcshFormat_DoubleOr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("tcsh ||: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh ||: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -82,8 +82,8 @@ func TestTcshFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("tcsh semicolon: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh semicolon: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -108,7 +108,7 @@ func TestTcshFormat_OpenSingleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_STATE {
 		t.Errorf("tcsh open single: State = %v, want QUOTING_STATE", last.State)
 	}
@@ -166,8 +166,8 @@ func TestTcshFormat_PipeWithStderr(t *testing.T) {
 	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_PIPE_WITH_STDERR {
 		t.Errorf("tcsh |&: Type=%v WT=%v, want WORDBREAK_TOKEN/PIPE_WITH_STDERR", op.Type, op.WordbreakType)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("tcsh |&: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh |&: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 

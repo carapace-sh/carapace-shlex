@@ -416,7 +416,7 @@ func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish 'and': %d pipelines, want 2", len(pipelines))
 	}
@@ -426,7 +426,7 @@ func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines = tokens.Pipelines()
+	pipelines = tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish 'or': %d pipelines, want 2", len(pipelines))
 	}
@@ -436,7 +436,7 @@ func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines = tokens.Pipelines()
+	pipelines = tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("fish 'not': %d pipelines, want 1 (not is a prefix, not a delimiter)", len(pipelines))
 	}
@@ -477,7 +477,7 @@ func TestVerify_FishSubstitutionDoesntSplitPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("fish subst pipeline: %d pipelines, want 1 (pipe inside () shouldn't split)", len(pipelines))
 	}

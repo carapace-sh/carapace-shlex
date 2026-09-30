@@ -7,7 +7,7 @@ func TestSubstitution_BashCommandSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[0] != "echo" || words[1] != "$(echo test)" {
 		t.Errorf("Words = %v, want [echo $(echo test)]", words)
 	}
@@ -18,7 +18,7 @@ func TestSubstitution_BashArithmetic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[0] != "echo" || words[1] != "$((1+2))" {
 		t.Errorf("Words = %v, want [echo $((1+2))]", words)
 	}
@@ -29,7 +29,7 @@ func TestSubstitution_BashProcessSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[0] != "echo" || words[1] != "<(grep foo)" {
 		t.Errorf("Words = %v, want [echo <(grep foo)]", words)
 	}
@@ -40,11 +40,11 @@ func TestSubstitution_PipelineDoesNotSplitInsideSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("Pipelines = %d, want 1", len(pipelines))
 	}
-	words := pipelines[0].WordsWithSubstitutions().Strings()
+	words := pipelines[0].wordsWithSubstitutions().Strings()
 	if len(words) != 4 || words[0] != "echo" || words[1] != "foo" ||
 		words[2] != "$(bar | grep x)" || words[3] != "baz" {
 		t.Errorf("Words = %v, want [echo foo $(bar | grep x) baz]", words)
@@ -56,7 +56,7 @@ func TestSubstitution_NestedCommandSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[0] != "echo" || words[1] != "$(echo $(echo test))" {
 		t.Errorf("Words = %v, want [echo $(echo $(echo test))]", words)
 	}
@@ -108,7 +108,7 @@ func TestSubstitution_BashBacktickSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 3 || words[0] != "echo" || words[1] != "`echo" || words[2] != "test`" {
 		t.Errorf("Words = %v, want [echo `echo test`]", words)
 	}
@@ -119,7 +119,7 @@ func TestSubstitution_ElvishOutputCapture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[0] != "echo" || words[1] != "(echo test)" {
 		t.Errorf("Words = %v, want [echo (echo test)]", words)
 	}

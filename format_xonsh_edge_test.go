@@ -186,7 +186,7 @@ func TestXonshFormat_KeywordUppercase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("Pipelines = %d, want 1 (AND uppercase should not split)", len(pipelines))
 	}
@@ -199,7 +199,7 @@ func TestXonshFormat_KeywordAtEOF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	// "and" is reclassified as a keyword operator, splitting the pipeline
 	if len(pipelines) != 2 {
 		t.Errorf("Pipelines = %d, want 2 (and at EOF should split)", len(pipelines))

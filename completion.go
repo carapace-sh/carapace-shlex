@@ -2,7 +2,7 @@ package shlex
 
 // CompletionContext describes the completion state at the end of the input.
 // It is the primary API for completion callers, replacing the manual
-// tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken() chains.
+// tokens.CurrentPipeline().FilterRedirects().Words().currentToken() chains.
 type CompletionContext struct {
 	// Words are the dequoted word values in the current pipeline
 	// (redirects filtered). When the cursor is inside a substitution
@@ -60,6 +60,9 @@ type CompletionContext struct {
 // Complete parses s and returns a CompletionContext describing
 // the completion state at the end of the string, using the given format.
 //
+// An empty or whitespace-terminated line yields an empty current word:
+// the cursor starts a new word.
+//
 // When the cursor is inside an unclosed substitution scope (e.g. inside
 // $(...), the context describes the innermost substitution's command,
 // not the outer command.
@@ -92,7 +95,7 @@ func Complete(s string, format Format) *CompletionContext {
 func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionContext {
 	pipeline := tokens.CurrentPipeline()
 	filtered := pipeline.FilterRedirects()
-	words := filtered.WordsWithSubstitutions()
+	words := filtered.wordsWithSubstitutions()
 	wordStrings := words.Strings()
 
 	ctx := &CompletionContext{

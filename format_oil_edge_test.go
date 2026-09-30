@@ -7,8 +7,8 @@ func TestOilFormat_DoubleOr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("oil ||: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("oil ||: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -17,8 +17,8 @@ func TestOilFormat_Background(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("oil &: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("oil &: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -27,8 +27,8 @@ func TestOilFormat_PipeWithStderr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("oil |&: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("oil |&: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -88,7 +88,7 @@ func TestOilFormat_CommandSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[1] != "$(date)" {
 		t.Errorf("oil $(): Words = %v, want [echo $(date)]", words)
 	}
@@ -99,7 +99,7 @@ func TestOilFormat_ArithmeticExpansion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[1] != "$((1+2))" {
 		t.Errorf("oil $((): Words = %v, want [echo $((1+2))]", words)
 	}
@@ -110,7 +110,7 @@ func TestOilFormat_ProcessSubstitution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[1] != "<(grep foo)" {
 		t.Errorf("oil <(): Words = %v, want [echo <(grep foo)]", words)
 	}

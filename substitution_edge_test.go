@@ -105,7 +105,7 @@ func TestSubstitution_EmptyClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[1] != "$()" {
 		t.Errorf("Words = %v, want [echo $()]", words)
 	}
@@ -133,12 +133,12 @@ func TestSubstitution_OpenAtEOF(t *testing.T) {
 
 func TestSubstitution_StrayClosePipeline(t *testing.T) {
 	// ) echo | test — stray ) should not cause depth to go negative
-	// and mask the pipe in Pipelines().
+	// and mask the pipe in pipelines().
 	tokens, err := Split("echo ) | grep foo", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("Pipelines = %d, want 2", len(pipelines))
 	}
@@ -168,7 +168,7 @@ func TestSubstitution_NestedCommandSubWithArithmetic(t *testing.T) {
 	if scope >= 0 {
 		t.Errorf("innermostUnclosedCommandScope = %d, want -1 (both closed)", scope)
 	}
-	words := tokens.WordsWithSubstitutions().Strings()
+	words := tokens.wordsWithSubstitutions().Strings()
 	if len(words) != 2 || words[1] != "$( $((1+2)) )" {
 		t.Errorf("Words = %v, want [echo $( $((1+2)) )]", words)
 	}

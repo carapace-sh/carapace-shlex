@@ -29,8 +29,8 @@ func TestOilFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("oil pipe: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("oil pipe: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -39,8 +39,8 @@ func TestOilFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("oil semicolon: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("oil semicolon: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -49,7 +49,7 @@ func TestOilFormat_DoubleAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("oil &&: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("oil &&: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }

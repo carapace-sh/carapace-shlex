@@ -14,7 +14,7 @@ func (t TokenSlice) Strings() []string {
 	return s
 }
 
-func (t TokenSlice) Pipelines() []TokenSlice {
+func (t TokenSlice) pipelines() []TokenSlice {
 	pipelines := make([]TokenSlice, 0)
 
 	pipeline := make(TokenSlice, 0)
@@ -42,7 +42,7 @@ func (t TokenSlice) Pipelines() []TokenSlice {
 }
 
 func (t TokenSlice) CurrentPipeline() TokenSlice {
-	pipelines := t.Pipelines()
+	pipelines := t.pipelines()
 	return pipelines[len(pipelines)-1]
 }
 
@@ -96,13 +96,13 @@ func (t TokenSlice) FilterRedirects() TokenSlice {
 	return filtered
 }
 
-// WordsWithSubstitutions merges tokens into words, treating closed
+// wordsWithSubstitutions merges tokens into words, treating closed
 // substitution scopes as single words. When a WORDBREAK_SUBSTITUTION_OPEN
 // is encountered, all tokens until the matching WORDBREAK_SUBSTITUTION_CLOSE
 // are merged into one word. Unclosed substitution scopes (cursor inside)
 // are left as separate tokens — the caller should use the inner tokens
 // to build a separate completion context.
-func (t TokenSlice) WordsWithSubstitutions() TokenSlice {
+func (t TokenSlice) wordsWithSubstitutions() TokenSlice {
 	words := make(TokenSlice, 0)
 	depth := 0
 	var sub *Token
@@ -185,7 +185,7 @@ func (t TokenSlice) WordsWithSubstitutions() TokenSlice {
 	return words
 }
 
-func (t TokenSlice) CurrentToken() (token Token) {
+func (t TokenSlice) currentToken() (token Token) {
 	if len(t) > 0 {
 		token = t[len(t)-1]
 	}

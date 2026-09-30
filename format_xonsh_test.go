@@ -57,7 +57,7 @@ func TestXonshFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("xonsh pipe: %d pipelines, want 2", len(pipelines))
 	}
@@ -85,8 +85,8 @@ func TestXonshFormat_DoubleAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("xonsh &&: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("xonsh &&: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -95,8 +95,8 @@ func TestXonshFormat_DoubleOr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("xonsh ||: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("xonsh ||: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -105,8 +105,8 @@ func TestXonshFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("xonsh semicolon: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("xonsh semicolon: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -115,7 +115,7 @@ func TestXonshFormat_OpenSingleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_STATE {
 		t.Errorf("xonsh open single: State = %v, want QUOTING_STATE", last.State)
 	}
@@ -126,8 +126,8 @@ func TestXonshFormat_KeywordAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("xonsh and: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("xonsh and: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -136,8 +136,8 @@ func TestXonshFormat_KeywordOr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("xonsh or: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("xonsh or: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -302,7 +302,7 @@ func TestXonshFormat_TripleQuoteUnclosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_TRIPLE_STATE {
 		t.Errorf("xonsh unclosed triple: State = %v, want QUOTING_TRIPLE_STATE", last.State)
 	}
@@ -415,8 +415,8 @@ func TestXonshFormat_KeywordAndInsideWord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 1 {
-		t.Errorf("xonsh fooand: %d pipelines, want 1", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 1 {
+		t.Errorf("xonsh fooand: %d pipelines, want 1", len(tokens.pipelines()))
 	}
 }
 

@@ -33,7 +33,7 @@ ctx := shlex.Complete(`echo foo | grep hel`, shlex.Bash)
 // ctx.IsRedirect    = false
 ```
 
-Returns a `CompletionContext` with the current word, quoting state, prefix, pipeline words, and redirect detection; `ctx.Span` locates the current word in the input and `ctx.Tokens` carries the raw tokens. — replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains.
+Returns a `CompletionContext` with the current word, quoting state, prefix, pipeline words, and redirect detection; `ctx.Span` locates the current word in the input and `ctx.Tokens` carries the raw tokens. — replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().currentToken()` chains.
 
 ### Variable references
 

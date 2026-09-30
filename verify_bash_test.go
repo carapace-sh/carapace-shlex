@@ -486,7 +486,7 @@ func TestVerify_CommandSeparators(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Split(%q): %v", input, err)
 		}
-		pipelines := tokens.Pipelines()
+		pipelines := tokens.pipelines()
 		if len(pipelines) < 2 {
 			t.Errorf("command separator %q: got %d pipelines, want >= 2", sep, len(pipelines))
 		}

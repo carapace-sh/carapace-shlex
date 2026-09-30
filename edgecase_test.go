@@ -28,8 +28,8 @@ func TestEdgeCase_StopParsingNewlineOnly(t *testing.T) {
 	if len(words) != 3 || words[0] != "echo" || words[1] != "--%" || words[2] != "foo" {
 		t.Errorf("stop-parsing newline: Words = %v, want [echo --%% foo]", words)
 	}
-	if len(tokens.Pipelines()) != 1 {
-		t.Errorf("stop-parsing newline: %d pipelines, want 1", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 1 {
+		t.Errorf("stop-parsing newline: %d pipelines, want 1", len(tokens.pipelines()))
 	}
 }
 
@@ -39,8 +39,8 @@ func TestEdgeCase_StopParsingPipeInDoubleQuotes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 1 {
-		t.Errorf("stop-parsing pipe in quotes: %d pipelines, want 1", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 1 {
+		t.Errorf("stop-parsing pipe in quotes: %d pipelines, want 1", len(tokens.pipelines()))
 	}
 }
 
@@ -102,8 +102,8 @@ func TestEdgeCase_BlockCommentAfterWordbreak(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("block comment after wordbreak: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("block comment after wordbreak: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -328,8 +328,8 @@ func TestEdgeCase_PipeNoSpaceAfter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("pipe no space: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("pipe no space: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 

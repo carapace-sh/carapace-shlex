@@ -133,7 +133,7 @@ func TestBashFormat_CaseTerminator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("bash ;;: Pipelines = %d, want 2", len(pipelines))
 	}

@@ -88,7 +88,7 @@ type Token struct {
 
 ### WordbreakType drives TokenSlice operations
 
-`WordbreakType.IsPipelineDelimiter()` and `IsRedirect()` determine how `Pipelines()`, `CurrentPipeline()`, `FilterRedirects()`, and `WordbreakPrefix()` behave. When adding a new operator type, decide deliberately whether it should split pipelines or be filtered as a redirect — `WORDBREAK_LAMBDA_PIPE` intentionally returns false for both so elvish lambda parameter lists don't break pipeline splitting.
+`WordbreakType.IsPipelineDelimiter()` and `IsRedirect()` determine how `pipelines()`, `CurrentPipeline()`, `FilterRedirects()`, and `WordbreakPrefix()` behave. When adding a new operator type, decide deliberately whether it should split pipelines or be filtered as a redirect — `WORDBREAK_LAMBDA_PIPE` intentionally returns false for both so elvish lambda parameter lists don't break pipeline splitting.
 
 `FilterRedirects()` has a special case: a numeric token (e.g. `2`) immediately adjoining a redirect operator (e.g. `>`) is filtered out as the fd prefix. Don't break this when touching redirect logic.
 

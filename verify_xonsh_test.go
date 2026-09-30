@@ -205,7 +205,7 @@ func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("xonsh 'and': %d pipelines, want 2", len(pipelines))
 	}
@@ -215,7 +215,7 @@ func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines = tokens.Pipelines()
+	pipelines = tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("xonsh 'or': %d pipelines, want 2", len(pipelines))
 	}
@@ -226,7 +226,7 @@ func TestVerify_XonshKeywordOperatorPipelineSplit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines = tokens.Pipelines()
+	pipelines = tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("xonsh 'not': %d pipelines, want 1 (not is not a subprocess separator)", len(pipelines))
 	}
@@ -240,8 +240,8 @@ func TestVerify_XonshKeywordOperatorNoSplitWithoutWhitespace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 1 {
-		t.Errorf("xonsh fooand: %d pipelines, want 1 (keyword needs whitespace)", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 1 {
+		t.Errorf("xonsh fooand: %d pipelines, want 1 (keyword needs whitespace)", len(tokens.pipelines()))
 	}
 }
 
@@ -703,7 +703,7 @@ func TestVerify_XonshSubstitutionDoesntSplitPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("xonsh subst pipeline: %d pipelines, want 1 (pipe inside () shouldn't split)", len(pipelines))
 	}

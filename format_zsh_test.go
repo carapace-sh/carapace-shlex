@@ -118,7 +118,7 @@ func TestZshFormat_FallthroughIsPipelineDelimiter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("zsh ;&: Pipelines = %d, want 2", len(pipelines))
 	}

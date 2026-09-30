@@ -141,10 +141,10 @@ These are format-agnostic and work on the token stream produced by any format's 
 | `Split(s)` / `Split(s, format)` | Entry point — lexes a string into tokens |
 | `Words()` | Merges adjoining tokens (contiguous `Span`) into single words |
 | `CurrentPipeline()` | Returns the last pipeline (splits on `\|`, `&&`, `;`, etc.) |
-| `Pipelines()` | Splits into all pipelines (used by `CurrentPipeline`) |
+| `pipelines()` | Splits into all pipelines (used by `CurrentPipeline`) |
 | `FilterRedirects()` | Removes redirect operators and their targets |
 | `WordbreakPrefix()` | Extracts the completion prefix up to the cursor |
-| `CurrentToken()` | Returns the last token |
+| `currentToken()` | Returns the last token |
 | `Strings()` | Returns word values as `[]string` |
 | `Equal(other *Token)` | Reports whether two tokens are equal |
 
@@ -182,7 +182,7 @@ const (
 
 ## CompletionContext
 
-The `Complete` function provides a structured completion context, replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains that carapace used with v1:
+The `Complete` function provides a structured completion context, replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().currentToken()` chains that carapace used with v1:
 
 ```go
 // completion.go

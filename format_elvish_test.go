@@ -55,7 +55,7 @@ func TestElvishFormat_AmpNotListOperator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("elvish &: %d pipelines, want 1 (& is not a separator)", len(pipelines))
 	}
@@ -66,8 +66,8 @@ func TestElvishFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("elvish pipe: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("elvish pipe: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -76,8 +76,8 @@ func TestElvishFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("elvish semicolon: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("elvish semicolon: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -86,7 +86,7 @@ func TestElvishFormat_OpenSingleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_STATE {
 		t.Errorf("elvish open single: State = %v, want QUOTING_STATE", last.State)
 	}
@@ -228,7 +228,7 @@ func TestElvishFormat_LambdaPipeDoesNotSplitPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("elvish lambda pipeline split: %d pipelines, want 2 (bat and {|a)", len(pipelines))
 	}
@@ -321,7 +321,7 @@ func TestElvishFormat_OutputCaptureDoesNotSplitPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	// The | inside (...) is within a substitution scope, so we get 1 pipeline
 	if len(pipelines) != 1 {
 		t.Errorf("elvish output capture pipeline: %d pipelines, want 1 (pipe inside substitution scope)", len(pipelines))
@@ -385,7 +385,7 @@ func TestElvishFormat_BracketDoesNotSplitPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("elvish bracket pipeline: %d pipelines, want 1 (brackets are not pipeline delimiters)", len(pipelines))
 	}

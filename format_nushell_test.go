@@ -77,7 +77,7 @@ func TestNushellFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("nushell pipe: %d pipelines, want 2", len(pipelines))
 	}
@@ -88,8 +88,8 @@ func TestNushellFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("nushell semicolon: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("nushell semicolon: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -98,7 +98,7 @@ func TestNushellFormat_OpenSingleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_STATE {
 		t.Errorf("nushell open single: State = %v, want QUOTING_STATE", last.State)
 	}
@@ -109,7 +109,7 @@ func TestNushellFormat_OpenDoubleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_ESCAPING_STATE {
 		t.Errorf("nushell open double: State = %v, want QUOTING_ESCAPING_STATE", last.State)
 	}
@@ -191,7 +191,7 @@ func TestNushellFormat_OpenDoubleQuoteWithEscape(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != ESCAPING_QUOTED_STATE {
 		t.Errorf("nushell open double with escape: State = %v, want ESCAPING_QUOTED_STATE", last.State)
 	}
@@ -264,7 +264,7 @@ func TestNushellFormat_StreamPipe_EPipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("nushell e>|: %d pipelines, want 2", len(pipelines))
 	}
@@ -275,7 +275,7 @@ func TestNushellFormat_StreamPipe_OEPipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("nushell o+e>|: %d pipelines, want 2", len(pipelines))
 	}
@@ -286,7 +286,7 @@ func TestNushellFormat_StreamPipe_ErrPipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("nushell err>|: %d pipelines, want 2", len(pipelines))
 	}
@@ -474,7 +474,7 @@ func TestNushellFormat_StreamPipe_OutPipeIsPlainPipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("nushell out>|: %d pipelines, want 2", len(pipelines))
 	}
@@ -501,7 +501,7 @@ func TestNushellFormat_StreamPipe_AllPipeVariants(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			pipelines := tokens.Pipelines()
+			pipelines := tokens.pipelines()
 			if len(pipelines) != 2 {
 				t.Errorf("%s: %d pipelines, want 2", tc.name, len(pipelines))
 			}

@@ -51,7 +51,7 @@ func TestCmdFormat_DoubleCaretOutsideQuotes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("Pipelines = %d, want 2 (^^ = literal ^, then & splits)", len(pipelines))
 	}

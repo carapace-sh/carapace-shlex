@@ -66,7 +66,7 @@ func TestCmdFormat_AmpSeparator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("cmd &: %d pipelines, want 2", len(pipelines))
 	}
@@ -89,7 +89,7 @@ func TestCmdFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("cmd pipe: %d pipelines, want 2", len(pipelines))
 	}
@@ -101,7 +101,7 @@ func TestCmdFormat_DoubleAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("cmd &&: %d pipelines, want 2", len(pipelines))
 	}
@@ -144,8 +144,8 @@ func TestCmdFormat_DoubleOr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("cmd ||: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("cmd ||: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -164,7 +164,7 @@ func TestCmdFormat_OpenDoubleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_ESCAPING_STATE {
 		t.Errorf("cmd open double: State = %v, want QUOTING_ESCAPING_STATE", last.State)
 	}
@@ -175,7 +175,7 @@ func TestCmdFormat_CaretAtEOF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != ESCAPING_STATE {
 		t.Errorf("cmd caret EOF: State = %v, want ESCAPING_STATE", last.State)
 	}
@@ -239,7 +239,7 @@ func TestCmdFormat_ParenGrouping(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("cmd parens: %d pipelines, want 2", len(pipelines))
 	}
@@ -290,7 +290,7 @@ func TestCmdFormat_StreamRedirect2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("cmd 2>: %d pipelines, want 1", len(pipelines))
 	}
@@ -307,7 +307,7 @@ func TestCmdFormat_StreamRedirectMerge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("cmd 2>&1: %d pipelines, want 1", len(pipelines))
 	}
@@ -334,7 +334,7 @@ func TestCmdFormat_CaretLineContinuationAtEOF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != ESCAPING_STATE {
 		t.Errorf("cmd caret EOF: State = %v, want ESCAPING_STATE", last.State)
 	}

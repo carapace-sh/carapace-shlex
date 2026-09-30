@@ -65,7 +65,7 @@ Carapace's zsh action uses `shlex.Split(env.Compline())` and reads `RawValue` of
 
 ```go
 // carapace internal/shell/zsh/action.go
-rawValue := splitted.CurrentToken().RawValue
+rawValue := splitted.currentToken().RawValue
 switch {
 case regexp.MustCompile(`^'$|^'.*[^']$`).MatchString(rawValue):
     state = QUOTING_STATE

@@ -492,7 +492,7 @@ func TestVerify_PowershellStopParsingPipeDelim(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("stop-parsing pipe: %d pipelines, want 2", len(pipelines))
 	}
@@ -635,7 +635,7 @@ func TestVerify_PowershellCommandSeparators(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Split(%q): %v", input, err)
 		}
-		pipelines := tokens.Pipelines()
+		pipelines := tokens.pipelines()
 		if len(pipelines) < 2 {
 			t.Errorf("command separator %q: got %d pipelines, want >= 2", sep, len(pipelines))
 		}
@@ -651,7 +651,7 @@ func TestVerify_PowershellOpenQuoteState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_STATE {
 		t.Errorf("open single: State = %v, want QUOTING_STATE", last.State)
 	}
@@ -661,7 +661,7 @@ func TestVerify_PowershellOpenQuoteState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last = tokens.Words().CurrentToken()
+	last = tokens.Words().currentToken()
 	if last.State != QUOTING_ESCAPING_STATE {
 		t.Errorf("open double: State = %v, want QUOTING_ESCAPING_STATE", last.State)
 	}

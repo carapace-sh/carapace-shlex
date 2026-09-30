@@ -65,8 +65,8 @@ func TestPowershellFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("powershell pipe: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("powershell pipe: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -75,8 +75,8 @@ func TestPowershellFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("powershell semicolon: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("powershell semicolon: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -85,8 +85,8 @@ func TestPowershellFormat_DoubleAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tokens.Pipelines()) != 2 {
-		t.Errorf("powershell &&: %d pipelines, want 2", len(tokens.Pipelines()))
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("powershell &&: %d pipelines, want 2", len(tokens.pipelines()))
 	}
 }
 
@@ -95,7 +95,7 @@ func TestPowershellFormat_OpenSingleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_STATE {
 		t.Errorf("powershell open single: State = %v, want QUOTING_STATE", last.State)
 	}
@@ -106,7 +106,7 @@ func TestPowershellFormat_OpenDoubleQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	last := tokens.Words().CurrentToken()
+	last := tokens.Words().currentToken()
 	if last.State != QUOTING_ESCAPING_STATE {
 		t.Errorf("powershell open double: State = %v, want QUOTING_ESCAPING_STATE", last.State)
 	}
@@ -198,7 +198,7 @@ func TestPowershellFormat_StopParsingPipeDelim(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("powershell --%% pipe: %d pipelines, want 2", len(pipelines))
 	}

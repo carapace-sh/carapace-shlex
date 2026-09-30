@@ -37,7 +37,7 @@ func TestFishFormat_KeywordOperators(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish keyword operators: %d pipelines, want 2 (and splits)", len(pipelines))
 	}
@@ -101,7 +101,7 @@ func TestFishFormat_Pipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish pipe: %d pipelines, want 2", len(pipelines))
 	}
@@ -112,7 +112,7 @@ func TestFishFormat_Semicolon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish semicolon: %d pipelines, want 2", len(pipelines))
 	}
@@ -180,7 +180,7 @@ func TestFishFormat_AndAnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish &&: %d pipelines, want 2", len(pipelines))
 	}
@@ -195,7 +195,7 @@ func TestFishFormat_OrOr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish ||: %d pipelines, want 2", len(pipelines))
 	}
@@ -206,7 +206,7 @@ func TestFishFormat_Background(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish &: %d pipelines, want 2", len(pipelines))
 	}
@@ -217,7 +217,7 @@ func TestFishFormat_PipeWithStderrMerge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish |&: %d pipelines, want 2", len(pipelines))
 	}
@@ -232,7 +232,7 @@ func TestFishFormat_AmpPipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish &|: %d pipelines, want 2", len(pipelines))
 	}
@@ -244,7 +244,7 @@ func TestFishFormat_ExplicitFdPipe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 2 {
 		t.Errorf("fish >|: %d pipelines, want 2", len(pipelines))
 	}

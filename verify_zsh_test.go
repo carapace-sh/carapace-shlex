@@ -655,7 +655,7 @@ func TestVerify_ZshSubstitutionDoesntSplitPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pipelines := tokens.Pipelines()
+	pipelines := tokens.pipelines()
 	if len(pipelines) != 1 {
 		t.Errorf("zsh subst pipeline: %d pipelines, want 1 (pipe inside $() shouldn't split)", len(pipelines))
 	}
