@@ -103,7 +103,16 @@ type Token struct {
 - `Join(s, format)` → quoted string (unknown formats fall back to `Default`)
 - `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `Variable` (lexical variable-reference detection; `Insert` composes the replacement word), `Quote` (insertion quoting per format and quoting state), `Span` (current word position), and `Tokens` (raw token escape hatch)
 
-`Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — nested lambdas are a known limitation).
+`Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — see known limitations).
+
+## Known Limitations
+
+Parked deliberately; revisit when a consumer actually hits them.
+
+- **`InLambdaParams`**: the odd-pipe-count toggle heuristic breaks on nested elvish lambdas. A real fix means lambda-scope tracking in elvish's `PostProcess`.
+- **Variable detection coverage**: fish allows almost any variable name but only `[A-Za-z0-9_]` is matched; elvish namespaces (`$edit:`) and nushell paths (`$env.FOO`) truncate at `:`/`.`; PowerShell (`$env:VAR`) and cmd (`%VAR%`) use different sigil machinery and have no detection at all.
+- **Insertion quoting**: zsh's full-word-quoting distinction (`ActionRawValues` in carapace's zsh integration) is not covered by `Quote` — it needs a "raw word starts and ends with a quote" notion, derivable from `RawCurrentWord`.
+- **`Token.WordbreakIndex`**: public field with a conditional contract ("only correct when in quoting state"); it feeds `WordbreakPrefix` and could be folded into it.
 
 ## Adding a New Shell Format
 
