@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 
 		switch {
 		case cmd.Flag("completion-context").Changed:
-			ctx := shlex.SplitForCompletion(args[0], format)
+			ctx := shlex.Complete(args[0], format)
 			encoder := json.NewEncoder(cmd.OutOrStdout())
 			encoder.SetEscapeHTML(false)
 			encoder.SetIndent("", "  ")

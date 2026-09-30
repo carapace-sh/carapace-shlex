@@ -37,7 +37,7 @@ func TestOilFormat_RedirectOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := SplitForCompletion("echo foo > file.txt", Oil)
+	ctx := Complete("echo foo > file.txt", Oil)
 	if !ctx.IsRedirect {
 		t.Error("oil >: IsRedirect = false, want true")
 	}
@@ -45,7 +45,7 @@ func TestOilFormat_RedirectOutput(t *testing.T) {
 }
 
 func TestOilFormat_RedirectAppend(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >> file.txt", Oil)
+	ctx := Complete("echo foo >> file.txt", Oil)
 	if !ctx.IsRedirect {
 		t.Error("oil >>: IsRedirect = false, want true")
 	}

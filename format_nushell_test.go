@@ -298,7 +298,7 @@ func TestNushellFormat_StreamRedirect_IsRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := SplitForCompletion("cat foo out> ", Nushell)
+	ctx := Complete("cat foo out> ", Nushell)
 	if !ctx.IsRedirect {
 		t.Errorf("nushell out> completion: IsRedirect = false, want true")
 	}
@@ -512,14 +512,14 @@ func TestNushellFormat_StreamPipe_AllPipeVariants(t *testing.T) {
 // --- Completion context redirect detection ---
 
 func TestNushellFormat_CompletionRedirectAfterErr(t *testing.T) {
-	ctx := SplitForCompletion("cat foo err> ", Nushell)
+	ctx := Complete("cat foo err> ", Nushell)
 	if !ctx.IsRedirect {
 		t.Errorf("nushell err> completion: IsRedirect = false, want true")
 	}
 }
 
 func TestNushellFormat_CompletionRedirectAfterOutAppend(t *testing.T) {
-	ctx := SplitForCompletion("cat foo out>> ", Nushell)
+	ctx := Complete("cat foo out>> ", Nushell)
 	if !ctx.IsRedirect {
 		t.Errorf("nushell out>> completion: IsRedirect = false, want true")
 	}

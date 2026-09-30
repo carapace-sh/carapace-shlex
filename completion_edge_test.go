@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestCompletion_MultipleWordbreaks(t *testing.T) {
-	ctx := SplitForCompletion("echo a=b=c", Bash)
+	ctx := Complete("echo a=b=c", Bash)
 	if ctx.CurrentWord != "a=b=c" {
 		t.Errorf("CurrentWord = %q, want a=b=c", ctx.CurrentWord)
 	}
@@ -13,7 +13,7 @@ func TestCompletion_MultipleWordbreaks(t *testing.T) {
 }
 
 func TestCompletion_TrailingWordbreak(t *testing.T) {
-	ctx := SplitForCompletion("echo a=b=", Bash)
+	ctx := Complete("echo a=b=", Bash)
 	if ctx.CurrentWord != "a=b=" {
 		t.Errorf("CurrentWord = %q, want a=b=", ctx.CurrentWord)
 	}
@@ -23,7 +23,7 @@ func TestCompletion_TrailingWordbreak(t *testing.T) {
 }
 
 func TestCompletion_WordbreakWithSpace(t *testing.T) {
-	ctx := SplitForCompletion("echo a= b=c", Bash)
+	ctx := Complete("echo a= b=c", Bash)
 	if ctx.CurrentWord != "b=c" {
 		t.Errorf("CurrentWord = %q, want b=c", ctx.CurrentWord)
 	}
@@ -33,14 +33,14 @@ func TestCompletion_WordbreakWithSpace(t *testing.T) {
 }
 
 func TestCompletion_MultipleAtWordbreaks(t *testing.T) {
-	ctx := SplitForCompletion("echo foo@@bar", Bash)
+	ctx := Complete("echo foo@@bar", Bash)
 	if ctx.Prefix != "foo" {
 		t.Errorf("Prefix = %q, want foo (all @ should be skipped)", ctx.Prefix)
 	}
 }
 
 func TestCompletion_AtAfterOtherWordbreak(t *testing.T) {
-	ctx := SplitForCompletion("echo foo@:bar", Bash)
+	ctx := Complete("echo foo@:bar", Bash)
 	// @ should be skipped, but : is a regular wordbreak and included
 	if ctx.Prefix != "foo:" {
 		t.Errorf("Prefix = %q, want foo: (@ skipped, : included)", ctx.Prefix)
@@ -48,14 +48,14 @@ func TestCompletion_AtAfterOtherWordbreak(t *testing.T) {
 }
 
 func TestCompletion_ColonWordbreak(t *testing.T) {
-	ctx := SplitForCompletion("echo foo:bar", Bash)
+	ctx := Complete("echo foo:bar", Bash)
 	if ctx.Prefix != "foo:" {
 		t.Errorf("Prefix = %q, want foo:", ctx.Prefix)
 	}
 }
 
 func TestCompletion_FdPrefix(t *testing.T) {
-	ctx := SplitForCompletion("echo 2> file", Bash)
+	ctx := Complete("echo 2> file", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
@@ -65,7 +65,7 @@ func TestCompletion_FdPrefix(t *testing.T) {
 }
 
 func TestCompletion_MultiDigitFd(t *testing.T) {
-	ctx := SplitForCompletion("echo 10> file", Bash)
+	ctx := Complete("echo 10> file", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
@@ -75,14 +75,14 @@ func TestCompletion_MultiDigitFd(t *testing.T) {
 }
 
 func TestCompletion_FdRedirectNoSpace(t *testing.T) {
-	ctx := SplitForCompletion("echo 2>file", Bash)
+	ctx := Complete("echo 2>file", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
 }
 
 func TestCompletion_RedirectAtEOF(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >", Bash)
+	ctx := Complete("echo foo >", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
@@ -92,21 +92,21 @@ func TestCompletion_RedirectAtEOF(t *testing.T) {
 }
 
 func TestCompletion_FdRedirectAtEOF(t *testing.T) {
-	ctx := SplitForCompletion("echo 2>", Bash)
+	ctx := Complete("echo 2>", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
 }
 
 func TestCompletion_FdDuplication(t *testing.T) {
-	ctx := SplitForCompletion("echo 2>&1", Bash)
+	ctx := Complete("echo 2>&1", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
 }
 
 func TestCompletion_WordbreakBeforeDoubleQuote(t *testing.T) {
-	ctx := SplitForCompletion(`echo foo="bar`, Bash)
+	ctx := Complete(`echo foo="bar`, Bash)
 	if ctx.QuotingState != QUOTING_ESCAPING_STATE {
 		t.Errorf("QuotingState = %v, want QUOTING_ESCAPING_STATE", ctx.QuotingState)
 	}
@@ -116,7 +116,7 @@ func TestCompletion_WordbreakBeforeDoubleQuote(t *testing.T) {
 }
 
 func TestCompletion_WordbreakBeforeSingleQuote(t *testing.T) {
-	ctx := SplitForCompletion("echo foo='bar", Bash)
+	ctx := Complete("echo foo='bar", Bash)
 	if ctx.QuotingState != QUOTING_STATE {
 		t.Errorf("QuotingState = %v, want QUOTING_STATE", ctx.QuotingState)
 	}
@@ -126,7 +126,7 @@ func TestCompletion_WordbreakBeforeSingleQuote(t *testing.T) {
 }
 
 func TestCompletion_MidWordQuoteOpening(t *testing.T) {
-	ctx := SplitForCompletion("echo foo=bar'baz", Bash)
+	ctx := Complete("echo foo=bar'baz", Bash)
 	if ctx.QuotingState != QUOTING_STATE {
 		t.Errorf("QuotingState = %v, want QUOTING_STATE", ctx.QuotingState)
 	}
@@ -136,7 +136,7 @@ func TestCompletion_MidWordQuoteOpening(t *testing.T) {
 }
 
 func TestCompletion_WordbreakCharInsideQuotes(t *testing.T) {
-	ctx := SplitForCompletion(`echo "foo=bar`, Bash)
+	ctx := Complete(`echo "foo=bar`, Bash)
 	if ctx.QuotingState != QUOTING_ESCAPING_STATE {
 		t.Errorf("QuotingState = %v, want QUOTING_ESCAPING_STATE", ctx.QuotingState)
 	}
@@ -146,7 +146,7 @@ func TestCompletion_WordbreakCharInsideQuotes(t *testing.T) {
 }
 
 func TestCompletion_CommentOnlyInput(t *testing.T) {
-	ctx := SplitForCompletion("# comment", Bash)
+	ctx := Complete("# comment", Bash)
 	if ctx.QuotingState != START_STATE {
 		t.Errorf("QuotingState = %v, want START_STATE", ctx.QuotingState)
 	}
@@ -156,7 +156,7 @@ func TestCompletion_CommentOnlyInput(t *testing.T) {
 }
 
 func TestCompletion_WhitespaceOnlyInput(t *testing.T) {
-	ctx := SplitForCompletion("   ", Bash)
+	ctx := Complete("   ", Bash)
 	if ctx.QuotingState != START_STATE {
 		t.Errorf("QuotingState = %v, want START_STATE", ctx.QuotingState)
 	}
@@ -166,14 +166,14 @@ func TestCompletion_WhitespaceOnlyInput(t *testing.T) {
 }
 
 func TestCompletion_BareRedirect(t *testing.T) {
-	ctx := SplitForCompletion(">", Bash)
+	ctx := Complete(">", Bash)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}
 }
 
 func TestCompletion_BarePipe(t *testing.T) {
-	ctx := SplitForCompletion("|", Bash)
+	ctx := Complete("|", Bash)
 	if ctx.CurrentWord != "" {
 		t.Errorf("CurrentWord = %q, want empty", ctx.CurrentWord)
 	}
@@ -181,7 +181,7 @@ func TestCompletion_BarePipe(t *testing.T) {
 
 func TestCompletion_AtBetweenWordsThenWordbreak(t *testing.T) {
 	// user@host:bar — @ between two WORD tokens should be in prefix
-	ctx := SplitForCompletion("echo user@host:bar", Bash)
+	ctx := Complete("echo user@host:bar", Bash)
 	if ctx.Prefix != "user@host:" {
 		t.Errorf("Prefix = %q, want user@host: (@ between words preserved)", ctx.Prefix)
 	}
@@ -189,7 +189,7 @@ func TestCompletion_AtBetweenWordsThenWordbreak(t *testing.T) {
 
 func TestCompletion_AtAfterWordbreakThenWord(t *testing.T) {
 	// foo:@bar — @ adjacent to : wordbreak should be skipped
-	ctx := SplitForCompletion("echo foo:@bar", Bash)
+	ctx := Complete("echo foo:@bar", Bash)
 	if ctx.Prefix != "foo:" {
 		t.Errorf("Prefix = %q, want foo: (@ adjacent to : skipped)", ctx.Prefix)
 	}
@@ -197,7 +197,7 @@ func TestCompletion_AtAfterWordbreakThenWord(t *testing.T) {
 
 func TestCompletion_AtBetweenWordbreakAndWord(t *testing.T) {
 	// :@bar — @ adjacent to : (wordbreak side) should be skipped
-	ctx := SplitForCompletion("echo foo:=@bar", Bash)
+	ctx := Complete("echo foo:=@bar", Bash)
 	if ctx.Prefix != "foo:=" {
 		t.Errorf("Prefix = %q, want foo:= (@ adjacent to = skipped)", ctx.Prefix)
 	}

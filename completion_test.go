@@ -2,7 +2,7 @@ package shlex
 
 import "testing"
 
-func TestSplitForCompletion(t *testing.T) {
+func TestComplete(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        string
@@ -90,7 +90,7 @@ func TestSplitForCompletion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := SplitForCompletion(tt.input, tt.format)
+			ctx := Complete(tt.input, tt.format)
 			if ctx.CurrentWord != tt.wantWord {
 				t.Errorf("CurrentWord = %q, want %q", ctx.CurrentWord, tt.wantWord)
 			}

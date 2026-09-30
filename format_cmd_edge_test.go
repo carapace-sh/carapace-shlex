@@ -134,7 +134,7 @@ func TestCmdFormat_ParensInQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_CommaAtEOF(t *testing.T) {
-	ctx := SplitForCompletion("echo foo,", Cmd)
+	ctx := Complete("echo foo,", Cmd)
 	if ctx.CurrentWord != "" {
 		t.Errorf("CurrentWord = %q, want empty (comma at EOF)", ctx.CurrentWord)
 	}
@@ -155,7 +155,7 @@ func TestCmdFormat_FdDuplicationAtEOF(t *testing.T) {
 	// 2>&1 is a single merged WORDBREAK_TOKEN at EOF with no
 	// trailing empty word. The completion context recognizes the
 	// redirect from the raw pipeline.
-	ctx := SplitForCompletion("echo foo 2>&1", Cmd)
+	ctx := Complete("echo foo 2>&1", Cmd)
 	// IsRedirect checks pipeline[len-2]. Here pipeline = [echo, foo, 2>&1],
 	// so pipeline[1] = "foo" which is not a redirect. The 2>&1 is the
 	// last token itself — this is a known edge case where the redirect
@@ -167,7 +167,7 @@ func TestCmdFormat_FdDuplicationAtEOF(t *testing.T) {
 }
 
 func TestCmdFormat_MultipleRedirects(t *testing.T) {
-	ctx := SplitForCompletion("echo foo 2>&1 > bar", Cmd)
+	ctx := Complete("echo foo 2>&1 > bar", Cmd)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true")
 	}

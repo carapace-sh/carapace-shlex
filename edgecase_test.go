@@ -265,21 +265,21 @@ func TestEdgeCase_FilterRedirectsNonNumericNotFiltered(t *testing.T) {
 // WordbreakPrefix with multiple wordbreaks.
 
 func TestEdgeCase_WordbreakPrefixMultipleEquals(t *testing.T) {
-	ctx := SplitForCompletion("echo foo=bar=baz", Bash)
+	ctx := Complete("echo foo=bar=baz", Bash)
 	if ctx.Prefix != "foo=bar=" {
 		t.Errorf("multiple = prefix: Prefix = %q, want %q", ctx.Prefix, "foo=bar=")
 	}
 }
 
 func TestEdgeCase_WordbreakPrefixMultipleAt(t *testing.T) {
-	ctx := SplitForCompletion("echo foo@bar@baz", Bash)
+	ctx := Complete("echo foo@bar@baz", Bash)
 	if ctx.Prefix != "foo@bar" {
 		t.Errorf("multiple @ prefix: Prefix = %q, want %q", ctx.Prefix, "foo@bar")
 	}
 }
 
 func TestEdgeCase_WordbreakPrefixMixedEqualsAt(t *testing.T) {
-	ctx := SplitForCompletion("echo foo=bar@baz", Bash)
+	ctx := Complete("echo foo=bar@baz", Bash)
 	if ctx.Prefix != "foo=bar" {
 		t.Errorf("mixed = @ prefix: Prefix = %q, want %q", ctx.Prefix, "foo=bar")
 	}
@@ -310,7 +310,7 @@ func TestEdgeCase_WhitespaceOnly(t *testing.T) {
 				t.Errorf("token Value = %q, want empty", tokens[0].Value)
 			}
 			// Completion context: one empty word (the current cursor position)
-			ctx := SplitForCompletion(tt.input, Bash)
+			ctx := Complete(tt.input, Bash)
 			if ctx.QuotingState != START_STATE {
 				t.Errorf("QuotingState = %v, want START_STATE", ctx.QuotingState)
 			}
@@ -334,7 +334,7 @@ func TestEdgeCase_PipeNoSpaceAfter(t *testing.T) {
 }
 
 func TestEdgeCase_PipeNoSpaceCompletion(t *testing.T) {
-	ctx := SplitForCompletion("echo foo|grep bar", Bash)
+	ctx := Complete("echo foo|grep bar", Bash)
 	if len(ctx.Words) != 2 || ctx.Words[0] != "grep" || ctx.Words[1] != "bar" {
 		t.Errorf("pipe no space completion: Words = %v, want [grep bar]", ctx.Words)
 	}
@@ -342,7 +342,7 @@ func TestEdgeCase_PipeNoSpaceCompletion(t *testing.T) {
 
 func TestEdgeCase_PipeEOFCompletion(t *testing.T) {
 	// After a pipe at EOF, the cursor is in a new (empty) pipeline
-	ctx := SplitForCompletion("echo foo |", Bash)
+	ctx := Complete("echo foo |", Bash)
 	if ctx.CurrentWord != "" {
 		t.Errorf("pipe EOF completion: CurrentWord = %q, want empty", ctx.CurrentWord)
 	}

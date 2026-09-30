@@ -130,7 +130,7 @@ func TestFishFormat_DoubleQuote(t *testing.T) {
 }
 
 func TestFishFormat_CompletionContext(t *testing.T) {
-	ctx := SplitForCompletion("echo foo and grep hel", Fish)
+	ctx := Complete("echo foo and grep hel", Fish)
 	if ctx.CurrentWord != "hel" {
 		t.Errorf("fish completion: CurrentWord = %q, want %q", ctx.CurrentWord, "hel")
 	}
@@ -259,7 +259,7 @@ func TestFishFormat_AmpRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := SplitForCompletion("echo foo &> file.txt", Fish)
+	ctx := Complete("echo foo &> file.txt", Fish)
 	if !ctx.IsRedirect {
 		t.Errorf("fish &>: IsRedirect = false, want true")
 	}
@@ -270,7 +270,7 @@ func TestFishFormat_AmpRedirectAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := SplitForCompletion("echo foo &>> file.txt", Fish)
+	ctx := Complete("echo foo &>> file.txt", Fish)
 	if !ctx.IsRedirect {
 		t.Errorf("fish &>>: IsRedirect = false, want true")
 	}
@@ -297,28 +297,28 @@ func TestFishFormat_FdRedirect(t *testing.T) {
 }
 
 func TestFishFormat_InputOutputRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo <> ", Fish)
+	ctx := Complete("echo foo <> ", Fish)
 	if !ctx.IsRedirect {
 		t.Errorf("fish <>: IsRedirect = false, want true")
 	}
 }
 
 func TestFishFormat_NoclobberRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >? ", Fish)
+	ctx := Complete("echo foo >? ", Fish)
 	if !ctx.IsRedirect {
 		t.Errorf("fish >?: IsRedirect = false, want true")
 	}
 }
 
 func TestFishFormat_NoclobberAppendRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >>? ", Fish)
+	ctx := Complete("echo foo >>? ", Fish)
 	if !ctx.IsRedirect {
 		t.Errorf("fish >>?: IsRedirect = false, want true")
 	}
 }
 
 func TestFishFormat_TryInputRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo <? ", Fish)
+	ctx := Complete("echo foo <? ", Fish)
 	if !ctx.IsRedirect {
 		t.Errorf("fish <?: IsRedirect = false, want true")
 	}
@@ -417,7 +417,7 @@ func TestFishFormat_QuoteWordSafe(t *testing.T) {
 }
 
 func TestFishFormat_CompletionAndAnd(t *testing.T) {
-	ctx := SplitForCompletion("echo foo && echo bar hel", Fish)
+	ctx := Complete("echo foo && echo bar hel", Fish)
 	if ctx.CurrentWord != "hel" {
 		t.Errorf("fish && completion: CurrentWord = %q, want %q", ctx.CurrentWord, "hel")
 	}
@@ -427,7 +427,7 @@ func TestFishFormat_CompletionAndAnd(t *testing.T) {
 }
 
 func TestFishFormat_CompletionBackground(t *testing.T) {
-	ctx := SplitForCompletion("echo foo & echo bar hel", Fish)
+	ctx := Complete("echo foo & echo bar hel", Fish)
 	if ctx.CurrentWord != "hel" {
 		t.Errorf("fish & completion: CurrentWord = %q, want %q", ctx.CurrentWord, "hel")
 	}

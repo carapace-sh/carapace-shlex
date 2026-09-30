@@ -83,7 +83,7 @@ func TestBashFormat_SingleQuoteLiteral(t *testing.T) {
 
 func TestBashFormat_AtWordbreakPrefix(t *testing.T) {
 	// @ is a wordbreak but WordbreakPrefix skips it
-	ctx := SplitForCompletion("echo foo@bar", Bash)
+	ctx := Complete("echo foo@bar", Bash)
 	// @ is a wordbreak, but Words() merges adjoining tokens, so CurrentWord is the full word
 	if ctx.CurrentWord != "foo@bar" {
 		t.Errorf("bash @: CurrentWord = %q, want %q", ctx.CurrentWord, "foo@bar")
@@ -122,7 +122,7 @@ func TestBashFormat_Comment(t *testing.T) {
 }
 
 func TestBashFormat_ForceOutputRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >| bar", Bash)
+	ctx := Complete("echo foo >| bar", Bash)
 	if !ctx.IsRedirect {
 		t.Errorf("bash >|: IsRedirect = false, want true")
 	}

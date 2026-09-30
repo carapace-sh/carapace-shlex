@@ -125,7 +125,7 @@ func TestSubstitution_OpenAtEOF(t *testing.T) {
 	if scope < 0 {
 		t.Error("innermostUnclosedCommandScope = -1, want >= 0 (unclosed $( at EOF)")
 	}
-	ctx := SplitForCompletion("echo $(", Bash)
+	ctx := Complete("echo $(", Bash)
 	if ctx.SubstitutionDepth != 1 {
 		t.Errorf("SubstitutionDepth = %d, want 1", ctx.SubstitutionDepth)
 	}

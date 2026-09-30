@@ -7,7 +7,7 @@ description: >
   word breaks, operators, comments), CompletionContext, and how to add a new shell format.
   Triggers on: "shlex", "shlex v2", "carapace-shlex", "shell lexer", "command line lexer",
   "quotation state", "wordbreak", "WORDBREAK", "COMP_WORDBREAKS", "TokenSlice", "LexerState",
-  "TokenType", "tokenizer", "Split", "Split", "SplitForCompletion", "CompletionContext",
+  "TokenType", "tokenizer", "Split", "Split", "Complete", "CompletionContext",
   "Format", "shlex.Bash", "shlex.Zsh", "shlex.Fish", "shlex.Elvish", "shlex.Powershell",
   "shlex.Nushell", "shlex.Xonsh", "shlex.Tcsh", "shlex.Oil", "shlex.Cmd", "formatImpl",
   "Span", "shell format", "lexical format", "POSIX shell lexing", "non-POSIX shell lexing".
@@ -22,7 +22,7 @@ In-depth reference for the v2 lexer in [carapace-shlex](https://github.com/carap
 
 ```
 command line string
-  → Split(s, format) or SplitForCompletion(s, format)
+  → Split(s, format) or Complete(s, format)
     → format.Classifier() (rune → rune class)
       → tokenizer state machine (rune classes → tokens, format flags for quote behavior)
         → TokenSlice (typed tokens with Span and quotation state)
@@ -37,7 +37,7 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 
 | Keywords | Reference |
 |----------|----------|
-| v2 architecture, Format interface, Span, Token, TokenSlice, tokenizer, tokenClassifier, rune class, runeTokenClass, Split, Split, SplitForCompletion, CompletionContext, QuotingState, IsRedirect, NonEscapingQuoteEscapes, NonEscapingQuoteBackslashEscapes, EscapeNotBareword, KeywordOperators, ClassifyOperator, QuoteWord, Join, bashWordbreakType, Pipelines, Equal, double-quote escape limitation, adding a new format, format registration, implemented formats table, deferred features | [references/architecture.md](references/architecture.md) |
+| v2 architecture, Format interface, Span, Token, TokenSlice, tokenizer, tokenClassifier, rune class, runeTokenClass, Split, Split, Complete, CompletionContext, QuotingState, IsRedirect, NonEscapingQuoteEscapes, NonEscapingQuoteBackslashEscapes, EscapeNotBareword, KeywordOperators, ClassifyOperator, QuoteWord, Join, bashWordbreakType, Pipelines, Equal, double-quote escape limitation, adding a new format, format registration, implemented formats table, deferred features | [references/architecture.md](references/architecture.md) |
 | cross-shell comparison, quoting comparison, escape character comparison, word break comparison, operator comparison, comment syntax comparison, string interpolation, metacharacters table, POSIX vs non-POSIX, shell family | [references/comparison.md](references/comparison.md) |
 | bash format, POSIX lexing, single quotes, double quotes, backslash escape, ANSI-C quoting, $'...', #" comment, COMP_WORDBREAKS, pipe, redirect, list operators, &&, \|\|, ;, &, \|, <, >, >>, <<<, wordbreaks | [references/format-bash.md](references/format-bash.md) |
 | zsh format, zsh lexing, single quotes, double quotes, $'...' ANSI-C, RC_QUOTES, backslash escape, # comment, WORDCHARS, FIGNORE, pipe, redirect, list operators, process substitution, =<(...), glob qualifiers | [references/format-zsh.md](references/format-zsh.md) |

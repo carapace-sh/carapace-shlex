@@ -2,7 +2,7 @@
 
 How the v2 lexer is structured: a common token model and tokenizer state machine that each shell format plugs into via the `Format` interface. V1 was POSIX-only; v2 generalizes to multiple shell formats (including non-POSIX).
 
-> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`, `Split`), `format.go` (`Format` interface, `Span`), `completion.go` (`CompletionContext`, `SplitForCompletion`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
+> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`, `Split`), `format.go` (`Format` interface, `Span`), `completion.go` (`CompletionContext`, `Complete`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
 
 ## V1 Recap (POSIX-Only)
 
@@ -182,7 +182,7 @@ const (
 
 ## CompletionContext
 
-The `SplitForCompletion` function provides a structured completion context, replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains that carapace used with v1:
+The `Complete` function provides a structured completion context, replacing the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` chains that carapace used with v1:
 
 ```go
 // completion.go
@@ -196,7 +196,7 @@ type CompletionContext struct {
 	Pipeline       TokenSlice  // raw pipeline tokens (escape hatch)
 }
 
-func SplitForCompletion(s string, format Format) *CompletionContext
+func Complete(s string, format Format) *CompletionContext
 ```
 
 This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 regexes on `RawValue`) with `ctx.QuotingState` from the tokenizer directly.
@@ -327,7 +327,7 @@ func Join(s []string, format Format) string
 
 // New (v2)
 func Split(s string, format Format) (TokenSlice, error)
-func SplitForCompletion(s string, format Format) *CompletionContext
+func Complete(s string, format Format) *CompletionContext
 func Join(s []string, format Format) string
 
 // Format constants
@@ -354,7 +354,7 @@ See [comparison.md](comparison.md) for the per-shell lexical rules and the `form
 
 - `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `Split`, `Join`, `Join`
 - `format.go` — `Format` constants, `formatImpl` interface, `Span`
-- `completion.go` — `CompletionContext`, `SplitForCompletion`
+- `completion.go` — `CompletionContext`, `Complete`
 - `quote.go` — per-shell `QuoteWord` implementations
 - `tokenslice.go` — `TokenSlice` operations
 - `wordbreak.go` — `WordbreakType`, `bashWordbreakType`, `BASH_WORDBREAKS`

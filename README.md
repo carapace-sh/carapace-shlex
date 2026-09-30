@@ -22,10 +22,10 @@ tokens, err = shlex.Split(`echo foo`, shlex.Default) // Default ("") is the bash
 
 Returns a `TokenSlice` with typed tokens including quotation state. Unknown format names are rejected.
 
-### SplitForCompletion
+### Complete
 
 ```go
-ctx := shlex.SplitForCompletion(`echo foo | grep hel`, shlex.Bash)
+ctx := shlex.Complete(`echo foo | grep hel`, shlex.Bash)
 // ctx.CurrentWord   = "hel"
 // ctx.Words         = ["grep", "hel"]
 // ctx.QuotingState  = IN_WORD_STATE
@@ -38,7 +38,7 @@ Returns a `CompletionContext` with the current word, quoting state, prefix, pipe
 ### Variable references
 
 ```go
-ctx := shlex.SplitForCompletion(`echo "text$HO`, shlex.Bash)
+ctx := shlex.Complete(`echo "text$HO`, shlex.Bash)
 // ctx.VariableRef          = &shlex.VariableRef{Name: "HO"}   (nil when not a reference)
 // ctx.RawReplacementWord   = "text$HO"                        (raw text the shell replaces)
 ```

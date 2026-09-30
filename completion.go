@@ -63,13 +63,13 @@ type CompletionContext struct {
 	SubstitutionDepth int
 }
 
-// SplitForCompletion parses s and returns a CompletionContext describing
+// Complete parses s and returns a CompletionContext describing
 // the completion state at the end of the string, using the given format.
 //
 // When the cursor is inside an unclosed substitution scope (e.g. inside
 // $(...), the context describes the innermost substitution's command,
 // not the outer command.
-func SplitForCompletion(s string, format Format) *CompletionContext {
+func Complete(s string, format Format) *CompletionContext {
 	f, ok := formatImplFor(format)
 	if !ok {
 		return &CompletionContext{QuotingState: START_STATE}

@@ -150,7 +150,7 @@ func TestCmdFormat_DoubleOr(t *testing.T) {
 }
 
 func TestCmdFormat_Redirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo > bar", Cmd)
+	ctx := Complete("echo foo > bar", Cmd)
 	if !ctx.IsRedirect {
 		t.Errorf("cmd redirect: IsRedirect = false, want true")
 	}
@@ -319,7 +319,7 @@ func TestCmdFormat_StreamRedirectMerge(t *testing.T) {
 
 func TestCmdFormat_StreamRedirectCompletion(t *testing.T) {
 	// Cmd: completing after 2> should detect redirect
-	ctx := SplitForCompletion("echo foo 2> bar", Cmd)
+	ctx := Complete("echo foo 2> bar", Cmd)
 	if !ctx.IsRedirect {
 		t.Errorf("cmd 2> completion: IsRedirect = false, want true")
 	}

@@ -128,7 +128,7 @@ func TestVariableRef(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := SplitForCompletion(tt.input, tt.format)
+			ctx := Complete(tt.input, tt.format)
 			if tt.wantRef {
 				if ctx.VariableRef == nil {
 					t.Fatalf("VariableRef = nil, want Name=%q Brace=%v", tt.wantName, tt.wantBrace)
@@ -171,7 +171,7 @@ func TestRawReplacementWord(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := SplitForCompletion(tt.input, Bash)
+			ctx := Complete(tt.input, Bash)
 			if ctx.RawReplacementWord != tt.want {
 				t.Errorf("RawReplacementWord = %q, want %q", ctx.RawReplacementWord, tt.want)
 			}
@@ -180,7 +180,7 @@ func TestRawReplacementWord(t *testing.T) {
 }
 
 func TestZshKeepsWholeRawWord(t *testing.T) {
-	ctx := SplitForCompletion(`echo "text $HO`, Zsh)
+	ctx := Complete(`echo "text $HO`, Zsh)
 	if ctx.RawReplacementWord != ctx.RawCurrentWord {
 		t.Errorf("RawReplacementWord = %q, want RawCurrentWord %q", ctx.RawReplacementWord, ctx.RawCurrentWord)
 	}

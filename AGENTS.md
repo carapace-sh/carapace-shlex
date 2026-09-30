@@ -40,7 +40,7 @@ Go 1.24.0. The CI image is `ghcr.io/carapace-sh/go:1.25.4`. Tags trigger GoRelea
 
 ```
 command line string
-  → Split(s, format) or SplitForCompletion(s, format)
+  → Split(s, format) or Complete(s, format)
     → format.Classifier()           (rune → rune class)
       → tokenizer.scanStream()       (flat state machine, shared across all formats)
         → TokenSlice                 (typed tokens with Span + quotation State)
@@ -94,11 +94,11 @@ type Token struct {
 ### Public API surface
 
 - `Split(s)` / `Split(s, format)` → `TokenSlice, error`
-- `SplitForCompletion(s, format)` → `*CompletionContext` (never errors; returns empty context with `START_STATE` on failure)
+- `Complete(s, format)` → `*CompletionContext` (never errors; returns empty context with `START_STATE` on failure)
 - `Join(s)` / `Join(s, format)` → quoted string
 - `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `VariableRef` (lexical variable-reference detection), `RawReplacementWord`, and `Pipeline` (raw token escape hatch)
 
-`SplitForCompletion` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — nested lambdas are a known limitation).
+`Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — nested lambdas are a known limitation).
 
 ## Adding a New Shell Format
 
@@ -123,7 +123,7 @@ words := tokens.Words().Strings()
 
 Tests assert on **dequoted `Value`** via `Words().Strings()`, and on `State` (e.g. `IN_WORD_STATE`, `QUOTING_STATE`) and `WordbreakType` for quotation/operator behavior. The `Equal` method on `Token` compares all fields — useful for golden-style tests.
 
-`completion_test.go` tests `SplitForCompletion` and the `CompletionContext` fields. `join_test.go` tests `Join` roundtrips. `shlex_test.go` tests the core tokenizer/state machine.
+`completion_test.go` tests `Complete` and the `CompletionContext` fields. `join_test.go` tests `Join` roundtrips. `shlex_test.go` tests the core tokenizer/state machine.
 
 ## Gotchas
 

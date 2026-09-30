@@ -254,7 +254,7 @@ func TestElvishFormat_LambdaPipeDoesNotSplitPipeline(t *testing.T) {
 
 func TestElvishFormat_CompletionInLambdaParams(t *testing.T) {
 	// Cursor after {| — should be in lambda parameter position
-	ctx := SplitForCompletion("bat | {|", Elvish)
+	ctx := Complete("bat | {|", Elvish)
 	if !ctx.InLambdaParams {
 		t.Errorf("elvish completion in lambda params: InLambdaParams = false, want true")
 	}
@@ -262,7 +262,7 @@ func TestElvishFormat_CompletionInLambdaParams(t *testing.T) {
 
 func TestElvishFormat_CompletionInLambdaParamsWithArg(t *testing.T) {
 	// Cursor after {|a — still in parameter list
-	ctx := SplitForCompletion("bat | {|a", Elvish)
+	ctx := Complete("bat | {|a", Elvish)
 	if !ctx.InLambdaParams {
 		t.Errorf("elvish completion in lambda params (with arg): InLambdaParams = false, want true")
 	}
@@ -270,7 +270,7 @@ func TestElvishFormat_CompletionInLambdaParamsWithArg(t *testing.T) {
 
 func TestElvishFormat_CompletionAfterLambdaParams(t *testing.T) {
 	// Cursor after {|a| — parameter list closed, in lambda body
-	ctx := SplitForCompletion("bat | {|a|", Elvish)
+	ctx := Complete("bat | {|a|", Elvish)
 	if ctx.InLambdaParams {
 		t.Errorf("elvish completion after lambda params: InLambdaParams = true, want false (in body)")
 	}
@@ -278,7 +278,7 @@ func TestElvishFormat_CompletionAfterLambdaParams(t *testing.T) {
 
 func TestElvishFormat_CompletionNotInLambda(t *testing.T) {
 	// Cursor after regular pipe — not in lambda
-	ctx := SplitForCompletion("bat | grep ", Elvish)
+	ctx := Complete("bat | grep ", Elvish)
 	if ctx.InLambdaParams {
 		t.Errorf("elvish completion not in lambda: InLambdaParams = true, want false")
 	}
@@ -408,7 +408,7 @@ func TestElvishFormat_NestedOutputCapture(t *testing.T) {
 func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
 	// Cursor inside output capture: echo (ls
 	// The ( opens a substitution scope, so the inner context is "ls"
-	ctx := SplitForCompletion("echo (ls", Elvish)
+	ctx := Complete("echo (ls", Elvish)
 	if len(ctx.Words) != 1 || ctx.Words[0] != "ls" {
 		t.Errorf("elvish output capture completion: Words = %v, want [ls]", ctx.Words)
 	}
@@ -518,7 +518,7 @@ func TestElvishFormat_NestedLambdaThenPipeInBody(t *testing.T) {
 
 func TestElvishFormat_ClosedLambdaCompletion(t *testing.T) {
 	// {|a| echo $a} | grep foo — cursor at end, lambda is closed
-	ctx := SplitForCompletion("{|a| echo $a} | grep foo", Elvish)
+	ctx := Complete("{|a| echo $a} | grep foo", Elvish)
 	if ctx.InLambdaParams {
 		t.Errorf("closed lambda completion: InLambdaParams = true, want false")
 	}

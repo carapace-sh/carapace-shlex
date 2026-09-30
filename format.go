@@ -8,7 +8,7 @@ type Span struct {
 
 // Format identifies a shell's lexical rules. It is the name of one of the
 // supported shells; the lexing behavior itself is internal. Unknown names
-// are rejected by SplitWith and fall back to Default in SplitForCompletion.
+// are rejected by SplitWith and fall back to Default in Complete.
 type Format = string
 
 // Supported formats.

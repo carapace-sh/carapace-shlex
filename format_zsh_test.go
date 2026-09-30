@@ -100,14 +100,14 @@ func TestZshFormat_Operators(t *testing.T) {
 }
 
 func TestZshFormat_ForceRedirectIsRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >| bar", Zsh)
+	ctx := Complete("echo foo >| bar", Zsh)
 	if !ctx.IsRedirect {
 		t.Errorf("zsh >|: IsRedirect = false, want true")
 	}
 }
 
 func TestZshFormat_ForceAppendRedirectIsRedirect(t *testing.T) {
-	ctx := SplitForCompletion("echo foo >>| bar", Zsh)
+	ctx := Complete("echo foo >>| bar", Zsh)
 	if !ctx.IsRedirect {
 		t.Errorf("zsh >>|: IsRedirect = false, want true")
 	}

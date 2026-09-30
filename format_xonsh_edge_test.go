@@ -208,7 +208,7 @@ func TestXonshFormat_KeywordAtEOF(t *testing.T) {
 
 func TestXonshFormat_StreamRedirectAtEOF(t *testing.T) {
 	// e> at EOF — should be recognized as redirect
-	ctx := SplitForCompletion("echo foo e>", Xonsh)
+	ctx := Complete("echo foo e>", Xonsh)
 	if !ctx.IsRedirect {
 		t.Error("IsRedirect = false, want true (e> at EOF)")
 	}
