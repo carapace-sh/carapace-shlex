@@ -64,8 +64,84 @@ func TestVariableRef(t *testing.T) {
 			format: Fish,
 		},
 		{
-			name: "fish without expander", input: "echo $HO",
-			format: Fish,
+			name: "fish detects variables", input: "echo $HO",
+			format: Fish, wantName: "HO", wantRef: true,
+		},
+		{
+			name: "fish quoted dollar expands", input: `echo "text$HO`,
+			format: Fish, wantName: "HO", wantRef: true,
+		},
+		{
+			name: "elvish detects variables", input: "echo $HO",
+			format: Elvish, wantName: "HO", wantRef: true,
+		},
+		{
+			// backslash is a literal bareword character in elvish:
+			// `\$HO` is a backslash followed by the expansion
+			name: "elvish bareword backslash does not escape", input: `echo \$HO`,
+			format: Elvish, wantName: "HO", wantRef: true,
+		},
+		{
+			name: "elvish quoted backslash escapes", input: `echo "\$HO`,
+			format: Elvish,
+		},
+		{
+			name: "elvish single quotes keep dollar literal", input: `echo 'text$HO`,
+			format: Elvish,
+		},
+		{
+			name: "nushell detects variables", input: "echo $HO",
+			format: Nushell, wantName: "HO", wantRef: true,
+		},
+		{
+			name: "nushell hyphenated name", input: "echo $my-var",
+			format: Nushell, wantName: "my-var", wantRef: true,
+		},
+		{
+			// nushell quotes are literal strings, not interpolations
+			name: "nushell double quotes keep dollar literal", input: `echo "text$HO`,
+			format: Nushell,
+		},
+		{
+			name: "nushell single quotes keep dollar literal", input: `echo 'text$HO`,
+			format: Nushell,
+		},
+		{
+			name: "nushell has no brace form", input: "echo ${",
+			format: Nushell,
+		},
+		{
+			name: "xonsh detects variables", input: "echo $HO",
+			format: Xonsh, wantName: "HO", wantRef: true,
+		},
+		{
+			name: "xonsh brace form", input: "echo ${HO",
+			format: Xonsh, wantName: "HO", wantBrace: true, wantRef: true,
+		},
+		{
+			// xonsh strings are Python literals: `$` is literal everywhere
+			name: "xonsh double quotes keep dollar literal", input: `echo "text$HO`,
+			format: Xonsh,
+		},
+		{
+			name: "xonsh triple quotes keep dollar literal", input: `echo '''text$HO'''`,
+			format: Xonsh,
+		},
+		{
+			name: "xonsh command substitution is not a variable", input: `echo $(`,
+			format: Xonsh,
+		},
+		{
+			name: "tcsh detects variables", input: "echo $HO",
+			format: Tcsh, wantName: "HO", wantRef: true,
+		},
+		{
+			name: "tcsh brace form", input: "echo ${HO",
+			format: Tcsh, wantName: "HO", wantBrace: true, wantRef: true,
+		},
+		{
+			name: "tcsh single quotes keep dollar literal", input: `echo 'text$HO`,
+			format: Tcsh,
 		},
 		{
 			name: "zsh quoted", input: `echo "text$HO`,

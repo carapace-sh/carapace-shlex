@@ -148,3 +148,16 @@ func (xonshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	}
 	return final
 }
+
+// VariableRef implements variableExpander. Xonsh strings are Python
+// literals, so `$` expands only in barewords; both `$name` and the
+// expression form `${name` exist.
+func (xonshFormat) VariableRef(word Token) (VariableRef, bool) {
+	return variableRef(word, variableRules{
+		brace:           true,
+		expands:         func(state LexerState) bool { return state == IN_WORD_STATE },
+		barewordEscapes: true,
+		nameStart:       isPosixNameStart,
+		nameRune:        isPosixNameRune,
+	})
+}

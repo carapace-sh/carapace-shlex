@@ -108,3 +108,14 @@ func (fishFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	}
 	return result
 }
+
+// VariableRef implements variableExpander. Fish expands `$name` in barewords
+// and double quotes; there is no `${` form.
+func (fishFormat) VariableRef(word Token) (VariableRef, bool) {
+	return variableRef(word, variableRules{
+		expands:         func(state LexerState) bool { return state != QUOTING_STATE },
+		barewordEscapes: true,
+		nameStart:       isPosixNameStart,
+		nameRune:        isPosixNameRune,
+	})
+}

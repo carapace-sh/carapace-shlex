@@ -61,3 +61,9 @@ func (tcshFormat) IsLineContinuation(r rune) bool {
 func (tcshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return posixSubstitutionPostProcess(tokens)
 }
+
+// VariableRef implements variableExpander. Tcsh expands `$name` and
+// `${name` with POSIX-ish rules; single quotes keep `$` literal.
+func (tcshFormat) VariableRef(word Token) (VariableRef, bool) {
+	return posixVariableRef(word)
+}

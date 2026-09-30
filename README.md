@@ -43,7 +43,7 @@ ctx := shlex.Complete(`echo "text$HO`, shlex.Bash)
 // ctx.VariableRef.Replacement = "text$HO"                    (raw text the shell replaces)
 ```
 
-`VariableRef` is detected on the lexer's final word — quote state, escapes, and the `${` form are handled by the format (`$` inside single quotes or after `\` is literal; closed expansions like `${HOME}` are not references). Its `Replacement` is the raw text the shell's completion interface replaces (bash's naive `COMP_WORDS` split, e.g. `"text $HO` yields `$HO`); insertion replaces the `Name` suffix with the completed name.
+`VariableRef` is detected on the lexer's final word — quote state, escapes, and the sigil forms are handled by the format (bash, zsh, tcsh, fish, elvish, nushell, and xonsh implement detection; `$` inside single quotes or after `\` is literal where the shell says so, closed expansions like `${HOME}` are not references). Its `Replacement` is the raw text the shell's completion interface replaces (bash's naive `COMP_WORDS` split, e.g. `"text $HO` yields `$HO`); insertion replaces the `Name` suffix with the completed name.
 
 ## Supported Formats
 

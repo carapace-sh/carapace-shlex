@@ -41,15 +41,49 @@ type naiveWordSplitter interface {
 	NaiveSplitWord(raw string) string
 }
 
+// variableRules describes a format's variable expansion: which sigil
+// forms exist, which states expand, and how names are spelled.
+type variableRules struct {
+	// brace reports the `${name` form (bash and zsh have it; fish and
+	// elvish do not).
+	brace bool
+
+	// expands reports whether `$` expands in the given lexer state
+	// (nushell and xonsh expand only in barewords).
+	expands func(state LexerState) bool
+
+	// barewordEscapes reports whether the escape character escapes `$` in
+	// barewords. When false (elvish: backslash is a literal bareword
+	// character), escapes are only honored inside escaping quotes.
+	barewordEscapes bool
+
+	// nameStart and nameRune classify the characters of a variable name;
+	// nameStart rejects digit-leading names (`$1x` is the positional
+	// parameter `$1` plus a literal `x` in POSIX shells).
+	nameStart func(r rune) bool
+	nameRune  func(r rune) bool
+}
+
 // posixVariableRef detects a variable reference ending the given word using
 // POSIX expansion rules: `$name` and `${name`, backslash escapes, and no
 // expansion inside single quotes.
+func posixVariableRef(word Token) (VariableRef, bool) {
+	return variableRef(word, variableRules{
+		brace:           true,
+		expands:         func(state LexerState) bool { return state != QUOTING_STATE },
+		barewordEscapes: true,
+		nameStart:       isPosixNameStart,
+		nameRune:        isPosixNameRune,
+	})
+}
+
+// variableRef detects a variable reference ending the given word.
 //
 // The word is parsed left to right so a `$` consumed as the special
 // character of a preceding parameter is not mistaken for an opener
 // (`$$` is the PID parameter, while `$$$HO` still opens `$HO`).
-func posixVariableRef(word Token) (VariableRef, bool) {
-	if word.State == QUOTING_STATE { // single quotes: `$` is literal
+func variableRef(word Token, rules variableRules) (VariableRef, bool) {
+	if !rules.expands(word.State) {
 		return VariableRef{}, false
 	}
 
@@ -63,7 +97,7 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 		for k := i; k > 0 && runes[k-1] == '\\'; k-- {
 			escaped = !escaped
 		}
-		if escaped {
+		if escaped && (rules.barewordEscapes || word.State == QUOTING_ESCAPING_STATE) {
 			continue
 		}
 		if i == len(runes)-1 { // trailing sigil
@@ -71,16 +105,16 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 			break
 		}
 		switch next := runes[i+1]; {
-		case next == '{':
+		case next == '{' && rules.brace:
 			if end := closedBraceEnd(runes, i+1); end >= 0 {
 				i = end
 				continue
 			}
 			opener = i // unclosed brace: the rest is the name region
 			i = len(runes)
-		case isPosixNameRune(next):
+		case rules.nameRune(next):
 			j := i + 1
-			for j < len(runes) && isPosixNameRune(runes[j]) {
+			for j < len(runes) && rules.nameRune(runes[j]) {
 				j++
 			}
 			if j == len(runes) { // name runs to the end: trailing opener
@@ -100,13 +134,11 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 	if brace {
 		rest = rest[1:]
 	}
-	if len(rest) > 0 && !isPosixNameStart(rest[0]) {
-		// `$1x` is the positional parameter `$1` plus a literal `x`;
-		// POSIX names cannot start with a digit
+	if len(rest) > 0 && !rules.nameStart(rest[0]) {
 		return VariableRef{}, false
 	}
 	for _, r := range rest {
-		if !isPosixNameRune(r) {
+		if !rules.nameRune(r) {
 			return VariableRef{}, false
 		}
 	}
