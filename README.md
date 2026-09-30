@@ -1,7 +1,7 @@
 # carapace-shlex
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/carapace-sh/carapace-shlex)](https://pkg.go.dev/github.com/carapace-sh/carapace-shlex)
-[![Coverage Status](https://coveralls.io/repos/github/github.com/carapace-sh/carapace-shlex/badge.svg?branch=master)](https://coveralls.io/github.com/carapace-sh/carapace-shlex?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/carapace-sh/carapace-shlex/badge.svg?branch=master)](https://coveralls.io/github/carapace-sh/carapace-shlex?branch=master)
 
 Fork of [go-shlex](https://github.com/google/shlex) aimed to enable completion of complex commands passed as single argument with [Split] in [carapace].
 
