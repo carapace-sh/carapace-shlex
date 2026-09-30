@@ -2,7 +2,7 @@
 
 How the v2 lexer is structured: a common token model and tokenizer state machine that each shell format plugs into via the `Format` interface. V1 was POSIX-only; v2 generalizes to multiple shell formats (including non-POSIX).
 
-> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`, `Split`), `format.go` (`Format` interface, `Span`), `completion.go` (`CompletionContext`, `Complete`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
+> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`), `format.go` (`Format` constants, `formatImpl` interface, `Span`), `completion.go` (`CompletionContext`, `Complete`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
 
 ## V1 Recap (POSIX-Only)
 
@@ -187,17 +187,23 @@ The `Complete` function provides a structured completion context, replacing the 
 ```go
 // completion.go
 type CompletionContext struct {
-	Words          []string    // pipeline words (redirects filtered)
-	CurrentWord    string      // word at cursor (dequoted)
-	RawCurrentWord string      // raw source of current word (with quotes)
-	Prefix         string      // wordbreak prefix up to cursor
-	QuotingState   LexerState  // IN_WORD / QUOTING / QUOTING_ESCAPING / ESCAPING
-	IsRedirect     bool        // true when completing a redirect target
-	Tokens         TokenSlice  // raw tokens of the whole input (escape hatch)
+	Words             []string     // current pipeline's words (redirects filtered)
+	CurrentWord       string       // word at cursor (dequoted)
+	RawCurrentWord    string       // raw source of current word (with quotes)
+	Prefix            string       // wordbreak prefix up to cursor
+	QuotingState      LexerState   // IN_WORD / QUOTING / QUOTING_ESCAPING / ESCAPING
+	IsRedirect        bool         // true when completing a redirect target
+	InLambdaParams    bool         // elvish lambda parameter list (omitempty)
+	VariableRef       *VariableRef // variable reference ending the word (omitempty)
+	Span              Span         // current word's position in the input
+	Tokens            TokenSlice   // raw tokens of the whole input (escape hatch)
+	SubstitutionDepth int          // unclosed substitution scopes (omitempty)
 }
 
 func Complete(s string, format Format) *CompletionContext
 ```
+
+`Complete` never fails: lexer errors and unknown format names yield an empty context with `START_STATE`.
 
 This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 regexes on `RawValue`) with `ctx.QuotingState` from the tokenizer directly.
 
@@ -338,7 +344,7 @@ const (
 )
 ```
 
-`Split(s)` delegates to `Split(s, Default)`, preserving v1 behavior. Existing carapace code using `Split` and `TokenSlice` methods works unchanged (the only breaking change is `Token.Index` → `Token.Span.Start`).
+`Split(s, Default)` matches v1's default bash lexing. `Token.Index` became `Token.Span` (rune offsets), and `Split`/`Join` now take the format explicitly.
 
 ## Adding a New Shell Format
 

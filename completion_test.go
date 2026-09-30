@@ -115,3 +115,17 @@ func TestComplete(t *testing.T) {
 		})
 	}
 }
+
+func TestUnknownFormat(t *testing.T) {
+	if _, err := Split("echo hi", "nosuch"); err == nil {
+		t.Error("Split with unknown format = nil error, want error")
+	}
+
+	ctx := Complete("echo hi", "nosuch")
+	if ctx.QuotingState != START_STATE {
+		t.Errorf("QuotingState = %v, want START_STATE", ctx.QuotingState)
+	}
+	if len(ctx.Words) != 0 || ctx.Tokens != nil {
+		t.Errorf("Complete with unknown format = %+v, want empty context", ctx)
+	}
+}

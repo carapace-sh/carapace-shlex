@@ -433,7 +433,7 @@ func TestVerify_Comment(t *testing.T) {
 	}
 }
 
-// Quoting for JoinWith — from lib/sh/shquote.c sh_backslash_quote:
+// Quoting for Join — from lib/sh/shquote.c sh_backslash_quote:
 // Double-quote wrapping with \ escaping for CBSDQUOTE chars (minus \n).
 // shlex's posixQuoteWord should match this behavior.
 func TestVerify_QuoteWord(t *testing.T) {

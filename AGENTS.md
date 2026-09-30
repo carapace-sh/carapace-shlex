@@ -31,7 +31,7 @@ Go 1.24.0. The CI image is `ghcr.io/carapace-sh/go:1.25.4`. Tags trigger GoRelea
 
 - **Root package `shlex`** — the library: tokenizer state machine (`shlex.go`), `Format` name type and `formatImpl` interface (`format.go`), per-shell formats (`format_<shell>.go`), token slice operations (`tokenslice.go`), wordbreak types (`wordbreak.go`), quoting helpers (`quote.go`), completion context (`completion.go`).
 - **`cmd/carapace-shlex/`** — a **separate Go module** (`cmd/go.mod`) that imports the library and wraps it as a cobra CLI. It depends on `carapace` and `carapace-bridge` for its own completion.
-- **`go.work`** — workspace including both the root module and `./cmd`. Contains a `replace` directive: `github.com/carapace-sh/carapace v1.11.0 => ../carapace`. This means local development expects a sibling `../carapace` checkout. The `cmd/go.mod` has its own `replace ... => ../` for the shlex library itself.
+- **`go.work`** — workspace including both the root module and `./cmd`. Contains a `replace` directive: `github.com/carapace-sh/carapace v1.11.0 => ../carapace`. This means local development expects a sibling `../carapace` checkout.
 - **`skills/shlex/`** — in-depth reference docs (architecture, cross-shell comparison, per-format references). Load these via the `shlex` skill when doing substantial format work.
 
 ## Architecture
@@ -41,11 +41,12 @@ Go 1.24.0. The CI image is `ghcr.io/carapace-sh/go:1.25.4`. Tags trigger GoRelea
 ```
 command line string
   → Split(s, format) or Complete(s, format)
-    → format.Classifier()           (rune → rune class)
-      → tokenizer.scanStream()       (flat state machine, shared across all formats)
-        → TokenSlice                 (typed tokens with Span + quotation State)
-          → [optional] format.PostProcess(tokens)   (post-pass reclassification)
-            → CompletionContext       (current word, prefix, quoting state, pipeline)
+    → formatImplFor(format)          (name → behavior)
+      → formatImpl.Classifier()      (rune → rune class)
+        → tokenizer.scanStream()     (flat state machine, shared across all formats)
+          → TokenSlice               (typed tokens with Span + quotation State)
+            → [optional] PostProcess (post-pass reclassification)
+              → CompletionContext   (current word, prefix, quoting state, ...)
 ```
 
 ### The tokenizer is a flat state machine
