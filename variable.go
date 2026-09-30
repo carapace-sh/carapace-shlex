@@ -9,8 +9,12 @@ type VariableRef struct {
 	// Brace reports the `${` form (as opposed to the plain `$` form).
 	Brace bool
 
-	// Span is the rune span of the `$`/`${` opener in the input.
-	Span Span
+	// Replacement is the raw text the shell's completion interface
+	// replaces on insertion. It equals the raw current word unless the
+	// format has a naive word interface (bash: the COMP_WORDS suffix, so
+	// `"text $HO` yields `$HO`); shells whose completion API resolves
+	// quoting themselves receive the whole raw word and strip the prefix.
+	Replacement string
 }
 
 // variableExpander is implemented by formats whose variable references can
@@ -107,16 +111,9 @@ func posixVariableRef(word Token) (VariableRef, bool) {
 		}
 	}
 
-	span := word.Span
-	start := span.Start + opener
-	end := start + 1
-	if brace {
-		end++
-	}
 	return VariableRef{
 		Name:  string(rest),
 		Brace: brace,
-		Span:  Span{Start: start, End: end},
 	}, true
 }
 

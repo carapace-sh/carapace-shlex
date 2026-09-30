@@ -31,25 +31,13 @@ type CompletionContext struct {
 	// InLambdaParams is true when the cursor is inside a lambda parameter
 	// list (e.g. after "{|" in elvish). The completion caller should
 	// complete parameter names, not commands or arguments.
-	InLambdaParams bool
+	InLambdaParams bool `json:",omitempty"`
 
 	// VariableRef describes a variable reference ending the current word,
 	// detected lexically on the lexer's final word. Nil when the word does
 	// not end in a variable reference, or when the format does not
 	// implement variableExpander.
-	//
-	// For insertion, shells with a naive word interface (see
-	// RawReplacementWord) replace the typed name suffix of
-	// RawReplacementWord (VariableRef.Name) with the completed name;
-	// shells whose completion API resolves quoting handle the prefix
-	// themselves.
-	VariableRef *VariableRef
-
-	// RawReplacementWord is the raw text the shell replaces on insertion.
-	// It equals RawCurrentWord unless the format implements
-	// naiveWordSplitter (bash: the naive COMP_WORDS suffix, so
-	// `"text $HO` yields `$HO` while the lexer word is `text $HO`).
-	RawReplacementWord string
+	VariableRef *VariableRef `json:",omitempty"`
 
 	// Span is the rune span of the current word in the input. Offsets
 	// refer to the full input, also when the context describes the
@@ -66,7 +54,7 @@ type CompletionContext struct {
 	// derived fields (Words, CurrentWord, etc.) describe the innermost
 	// substitution's command; Span and Tokens still refer to the full
 	// input.
-	SubstitutionDepth int
+	SubstitutionDepth int `json:",omitempty"`
 }
 
 // Complete parses s and returns a CompletionContext describing
@@ -137,9 +125,11 @@ func buildCompletionContext(tokens TokenSlice, format formatImpl) *CompletionCon
 		}
 	}
 
-	ctx.RawReplacementWord = ctx.RawCurrentWord
-	if splitter, ok := format.(naiveWordSplitter); ok {
-		ctx.RawReplacementWord = splitter.NaiveSplitWord(ctx.RawReplacementWord)
+	if ctx.VariableRef != nil {
+		ctx.VariableRef.Replacement = ctx.RawCurrentWord
+		if splitter, ok := format.(naiveWordSplitter); ok {
+			ctx.VariableRef.Replacement = splitter.NaiveSplitWord(ctx.RawCurrentWord)
+		}
 	}
 
 	ctx.Prefix = pipeline.WordbreakPrefix()

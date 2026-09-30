@@ -10,19 +10,16 @@ func TestVariableRef(t *testing.T) {
 		wantName  string
 		wantBrace bool
 		wantRef   bool
-		wantSpan  bool
-		wantStart int // rune offset of the opener in the input
-		wantEnd   int
 	}{
 		{name: "empty input", input: "", format: Bash},
 		{name: "no dollar", input: "echo text", format: Bash},
 		{name: "dollar only", input: "echo $", format: Bash, wantName: "", wantRef: true},
-		{name: "dollar with name", input: "echo $HO", format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 6},
+		{name: "dollar with name", input: "echo $HO", format: Bash, wantName: "HO", wantRef: true},
 		{name: "brace only", input: "echo ${", format: Bash, wantName: "", wantBrace: true, wantRef: true},
-		{name: "brace with name", input: "echo ${HO", format: Bash, wantName: "HO", wantBrace: true, wantRef: true, wantSpan: true, wantStart: 5, wantEnd: 7},
+		{name: "brace with name", input: "echo ${HO", format: Bash, wantName: "HO", wantBrace: true, wantRef: true},
 		{
 			name: "quoted text then dollar", input: `echo "text$HO`,
-			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 10, wantEnd: 11,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "quoted text then brace", input: `echo "test${`,
@@ -76,11 +73,11 @@ func TestVariableRef(t *testing.T) {
 		},
 		{
 			name: "redirect target", input: "echo >$HO",
-			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 6, wantEnd: 7,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "pid parameter then reference", input: "echo $$$HO",
-			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 7, wantEnd: 8,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			name: "positional parameter", input: "echo $1",
@@ -100,7 +97,7 @@ func TestVariableRef(t *testing.T) {
 		},
 		{
 			name: "inside substitution uses absolute span", input: "echo $(echo $HO",
-			format: Bash, wantName: "HO", wantRef: true, wantSpan: true, wantStart: 12, wantEnd: 13,
+			format: Bash, wantName: "HO", wantRef: true,
 		},
 		{
 			// `#` mid-word is not a bash wordbreak; the reference is
@@ -136,12 +133,6 @@ func TestVariableRef(t *testing.T) {
 				if ctx.VariableRef.Name != tt.wantName || ctx.VariableRef.Brace != tt.wantBrace {
 					t.Errorf("VariableRef = %+v, want Name=%q Brace=%v", *ctx.VariableRef, tt.wantName, tt.wantBrace)
 				}
-				if tt.wantSpan {
-					span := ctx.VariableRef.Span
-					if span.Start != tt.wantStart || span.End != tt.wantEnd {
-						t.Errorf("VariableRef.Span = %+v, want {%d %d}", span, tt.wantStart, tt.wantEnd)
-					}
-				}
 				return
 			}
 			if ctx.VariableRef != nil {
@@ -151,7 +142,7 @@ func TestVariableRef(t *testing.T) {
 	}
 }
 
-func TestRawReplacementWord(t *testing.T) {
+func TestVariableRefReplacement(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -163,17 +154,18 @@ func TestRawReplacementWord(t *testing.T) {
 		{name: "quoted word with space", input: `echo "text $HO`, want: "$HO"},
 		{name: "plain word", input: "echo $HO", want: "$HO"},
 		{name: "brace form", input: `echo "test${HO`, want: "test${HO"},
-		{name: "single quoted word", input: `echo 'text$HO`, want: "text$HO"},
 		{name: "hash mid-word is not a wordbreak", input: "echo a#c$HO", want: "a#c$HO"},
 		{name: "redirect target", input: "echo >$HO", want: "$HO"},
-		{name: "wordbreak suffix is empty", input: "echo $@", want: ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := Complete(tt.input, Bash)
-			if ctx.RawReplacementWord != tt.want {
-				t.Errorf("RawReplacementWord = %q, want %q", ctx.RawReplacementWord, tt.want)
+			if ctx.VariableRef == nil {
+				t.Fatalf("VariableRef = nil, want Replacement %q", tt.want)
+			}
+			if ctx.VariableRef.Replacement != tt.want {
+				t.Errorf("VariableRef.Replacement = %q, want %q", ctx.VariableRef.Replacement, tt.want)
 			}
 		})
 	}
@@ -181,7 +173,10 @@ func TestRawReplacementWord(t *testing.T) {
 
 func TestZshKeepsWholeRawWord(t *testing.T) {
 	ctx := Complete(`echo "text $HO`, Zsh)
-	if ctx.RawReplacementWord != ctx.RawCurrentWord {
-		t.Errorf("RawReplacementWord = %q, want RawCurrentWord %q", ctx.RawReplacementWord, ctx.RawCurrentWord)
+	if ctx.VariableRef == nil {
+		t.Fatal("VariableRef = nil")
+	}
+	if ctx.VariableRef.Replacement != ctx.RawCurrentWord {
+		t.Errorf("VariableRef.Replacement = %q, want RawCurrentWord %q", ctx.VariableRef.Replacement, ctx.RawCurrentWord)
 	}
 }
