@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/carapace-sh/carapace v1.16.4-0.20260930123217-cb6bcc38658f
-	github.com/carapace-sh/carapace-bridge v1.6.4
+	github.com/carapace-sh/carapace-bridge v1.7.0
 	github.com/carapace-sh/carapace-shlex/v2 v2.0.0-20260930122814-3264fae00e3d
 	github.com/spf13/cobra v1.10.2
 )
