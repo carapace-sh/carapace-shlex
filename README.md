@@ -3,9 +3,7 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/carapace-sh/carapace-shlex)](https://pkg.go.dev/github.com/carapace-sh/carapace-shlex)
 [![Coverage Status](https://coveralls.io/repos/github/github.com/carapace-sh/carapace-shlex/badge.svg?branch=master)](https://coveralls.io/github.com/carapace-sh/carapace-shlex?branch=master)
 
-A command-line lexer that splits and re-joins command lines with quotation-state information for shell completion. Fork of [go-shlex](https://github.com/google/shlex).
-
-V1 was POSIX-only. V2 supports multiple shell formats (including non-POSIX) via `Format` constants.
+Fork of [go-shlex](https://github.com/google/shlex) aimed to enable completion of complex commands passed as single argument with [Split] in [carapace].
 
 [![asciicast](https://asciinema.org/a/599580.svg)](https://asciinema.org/a/599580)
 
@@ -114,7 +112,5 @@ type Token struct {
 - Completion consumers replace the manual `tokens.CurrentPipeline().FilterRedirects().Words().CurrentToken()` composition with `shlex.Complete(s, format)`; the current word's position is `ctx.Span` instead of `CurrentToken().Index`
 - Formats are a closed set of constants — new lexing behavior lands as a format in this repository, not as an outside implementation
 
-## Links
-
-- [carapace](https://github.com/carapace-sh/carapace) — shell completion framework that uses this library
-- [Split action](https://carapace-sh.github.io/carapace/carapace/action/split.html) — carapace action using `Split`
+[Split]:https://carapace-sh.github.io/carapace/carapace/action/split.html
+[carapace]:https://github.com/carapace-sh/carapace
