@@ -46,7 +46,8 @@ ctx := shlex.Complete(`echo "text$HO`, shlex.Bash)
 
 ```go
 ctx := shlex.Complete(`echo "he`, shlex.Bash)
-ctx.Quote(`llo world`) // `"llo world"` - closes the open double quote
+// the completion candidate for the current word (`he`) is `hello world`:
+ctx.Quote(`hello world`) // `"hello world"` - replaces the raw word `"he`
 ```
 
 `Quote` returns the value quoted so it can replace the raw current word: an open quote is closed with the format's own escape rules (per shell: bash `'"'"'`, fish `\'`, zsh/elvish `''`, cmd `""`, PowerShell backtick), and barewords are quoted as complete words. Stop-parsing mode (PowerShell `--%`) passes values through raw.

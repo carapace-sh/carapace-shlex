@@ -62,7 +62,8 @@ type CompletionContext struct {
 // Quote returns value quoted for insertion at the cursor position
 // described by the context: an open quote is closed with the format's
 // own escape rules and a bareword is quoted as a complete word, so the
-// result can replace the whole raw current word. Values meant to be
+// result can replace the whole raw current word. value is a full
+// completion candidate matching the current word's typed prefix. Values meant to be
 // inserted without a trailing space (nospace completions) may be passed
 // as-is by the caller when quoting is not wanted.
 func (c *CompletionContext) Quote(value string) string {
