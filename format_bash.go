@@ -1,0 +1,70 @@
+package shlex
+
+import "os"
+
+// bashFormat implements Format for POSIX/bash lexing.
+// This is the default format. The Classifier reads COMP_WORDBREAKS from
+// the environment at call time.
+type bashFormat struct{}
+
+func (bashFormat) Classifier() tokenClassifier {
+	t := newBaseClassifier(escapeRunes)
+
+	wordbreakRunes := BASH_WORDBREAKS
+	if wordbreaks := os.Getenv("COMP_WORDBREAKS"); wordbreaks != "" {
+		wordbreakRunes = wordbreaks
+	}
+	t.addWordbreaks(wordbreakRunes)
+
+	return t
+}
+
+func (bashFormat) ClassifyOperator(raw string) WordbreakType {
+	return bashWordbreakType(raw)
+}
+
+func (bashFormat) KeywordOperators() map[string]WordbreakType { return nil }
+
+func (bashFormat) NonEscapingQuoteEscapes() bool { return false }
+
+func (bashFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
+func (bashFormat) EscapeNotBareword() bool                { return true }
+func (bashFormat) EscapeNotInEscapingQuote() bool         { return false }
+func (bashFormat) EscapingQuoteEscapeChars() map[rune]bool {
+	return map[rune]bool{
+		'\\': true,
+		'`':  true,
+		'$':  true,
+		'"':  true,
+		'\n': true,
+	}
+}
+func (bashFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
+func (bashFormat) TripleQuoteSupport() bool  { return false }
+func (bashFormat) RawPrefixSupport() bool    { return false }
+
+// IsLineContinuation implements lineContinuationEscaper. In POSIX shells,
+// backslash followed by \n or \r is a line continuation — both the backslash
+// and the newline are consumed (removed from the token value).
+func (bashFormat) IsLineContinuation(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
+// PostProcess reclassifies ( and ) as substitution delimiters and merges
+// $ + ( into a single opener token for POSIX command substitution.
+func (bashFormat) PostProcess(tokens TokenSlice) TokenSlice {
+	return posixSubstitutionPostProcess(tokens)
+}
+
+// Variable implements variableExpander. Bash expands `$name` and
+// `${name`; `$` is literal inside single quotes and when escaped.
+func (bashFormat) Variable(word Token) (Variable, bool) {
+	return posixVariableRef(word)
+}
+
+// NaiveSplitWord implements naiveWordSplitter. Bash's COMP_WORDS interface
+// splits naively on wordbreak characters, quotes included, so the shell
+// replaces only the raw text after the last such character.
+func (f bashFormat) NaiveSplitWord(raw string) string {
+	return naiveSplitWord(f.Classifier(), raw)
+}

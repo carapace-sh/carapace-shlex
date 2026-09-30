@@ -1,0 +1,323 @@
+package shlex
+
+import "testing"
+
+func TestTcshFormat(t *testing.T) {
+	tokens, err := Split("echo foo | grep bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.pipelines()
+	if len(pipelines) != 2 {
+		t.Errorf("TcshFormat: %d pipelines, want 2", len(pipelines))
+	}
+}
+
+func TestTcshFormat_BackslashQuote(t *testing.T) {
+	tokens, err := Split("echo $'hello'", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "$hello" {
+		t.Errorf("TcshFormat $'': Words = %v, want [echo $hello]", words)
+	}
+}
+
+func TestTcshFormat_SingleQuoteLiteral(t *testing.T) {
+	tokens, err := Split("echo '$HOME'", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "$HOME" {
+		t.Errorf("tcsh single literal: Words = %v, want [echo $HOME]", words)
+	}
+}
+
+func TestTcshFormat_BacktickLiteralInSingleQuotes(t *testing.T) {
+	tokens, err := Split("echo '`cmd`'", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "`cmd`" {
+		t.Errorf("tcsh backtick in single: Words = %v, want [echo `cmd`]", words)
+	}
+}
+
+func TestTcshFormat_EscapedDoubleQuoteOutside(t *testing.T) {
+	tokens, err := Split(`echo \"hello\"`, Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != `"hello"` {
+		t.Errorf("tcsh escaped double: Words = %v, want [echo \"hello\"]", words)
+	}
+}
+
+func TestTcshFormat_DoubleAnd(t *testing.T) {
+	tokens, err := Split("echo foo && echo bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh &&: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestTcshFormat_DoubleOr(t *testing.T) {
+	tokens, err := Split("echo foo || echo bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh ||: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestTcshFormat_Semicolon(t *testing.T) {
+	tokens, err := Split("echo foo ; echo bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh semicolon: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestTcshFormat_Background(t *testing.T) {
+	tokens, err := Split("echo foo &", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var amp Token
+	for _, tok := range tokens {
+		if tok.RawValue == "&" {
+			amp = tok
+		}
+	}
+	if amp.Type != WORDBREAK_TOKEN || amp.WordbreakType != WORDBREAK_LIST_ASYNC {
+		t.Errorf("tcsh &: Type=%v WT=%v, want WORDBREAK_TOKEN/LIST_ASYNC", amp.Type, amp.WordbreakType)
+	}
+}
+
+func TestTcshFormat_OpenSingleQuote(t *testing.T) {
+	tokens, err := Split("echo 'hel", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tokens.Words().currentToken()
+	if last.State != QUOTING_STATE {
+		t.Errorf("tcsh open single: State = %v, want QUOTING_STATE", last.State)
+	}
+}
+
+func TestTcshFormat_BangNotWordbreak(t *testing.T) {
+	tokens, err := Split("echo !$", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "!$" {
+		t.Errorf("tcsh !$: Words = %v, want [echo !$]", words)
+	}
+}
+
+func TestTcshFormat_BangInWord(t *testing.T) {
+	tokens, err := Split("echo foo!bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foo!bar" {
+		t.Errorf("tcsh foo!bar: Words = %v, want [echo foo!bar]", words)
+	}
+}
+
+func TestTcshFormat_RedirectBothStdoutStderr(t *testing.T) {
+	tokens, err := Split("echo foo >& /tmp/bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var op Token
+	for _, tok := range tokens {
+		if tok.RawValue == ">&" {
+			op = tok
+		}
+	}
+	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_OUTPUT_BOTH {
+		t.Errorf("tcsh >&: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT_BOTH", op.Type, op.WordbreakType)
+	}
+}
+
+func TestTcshFormat_PipeWithStderr(t *testing.T) {
+	tokens, err := Split("echo foo |& grep bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var op Token
+	for _, tok := range tokens {
+		if tok.RawValue == "|&" {
+			op = tok
+		}
+	}
+	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_PIPE_WITH_STDERR {
+		t.Errorf("tcsh |&: Type=%v WT=%v, want WORDBREAK_TOKEN/PIPE_WITH_STDERR", op.Type, op.WordbreakType)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("tcsh |&: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestTcshFormat_HereDoc(t *testing.T) {
+	tokens, err := Split("cat << EOF", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var op Token
+	for _, tok := range tokens {
+		if tok.RawValue == "<<" {
+			op = tok
+		}
+	}
+	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_HERE_DOC {
+		t.Errorf("tcsh <<: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_HERE_DOC", op.Type, op.WordbreakType)
+	}
+}
+
+func TestTcshFormat_InputDuplicate(t *testing.T) {
+	tokens, err := Split("cmd <& 0", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var op Token
+	for _, tok := range tokens {
+		if tok.RawValue == "<&" {
+			op = tok
+		}
+	}
+	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_INPUT_DUPLICATE {
+		t.Errorf("tcsh <&: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_INPUT_DUPLICATE", op.Type, op.WordbreakType)
+	}
+}
+
+func TestTcshFormat_EqualsNotWordbreak(t *testing.T) {
+	tokens, err := Split("set foo=bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foo=bar" {
+		t.Errorf("tcsh = not wordbreak: Words = %v, want [set foo=bar]", words)
+	}
+}
+
+func TestTcshFormat_AtNotWordbreak(t *testing.T) {
+	tokens, err := Split("echo @foo", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "@foo" {
+		t.Errorf("tcsh @ not wordbreak: Words = %v, want [echo @foo]", words)
+	}
+}
+
+func TestTcshFormat_GreaterBangIsRedirectPlusWord(t *testing.T) {
+	tokens, err := Split("echo foo >!bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var redirect Token
+	var word Token
+	for _, tok := range tokens {
+		if tok.RawValue == ">" {
+			redirect = tok
+		}
+		if tok.Type == WORD_TOKEN && tok.RawValue == "!bar" {
+			word = tok
+		}
+	}
+	if redirect.Type != WORDBREAK_TOKEN || redirect.WordbreakType != WORDBREAK_REDIRECT_OUTPUT {
+		t.Errorf("tcsh >!bar: redirect Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT", redirect.Type, redirect.WordbreakType)
+	}
+	if word.Type != WORD_TOKEN {
+		t.Errorf("tcsh >!bar: expected !bar as WORD_TOKEN, got Type=%v", word.Type)
+	}
+}
+
+func TestTcshFormat_NoBashPipeForceOperator(t *testing.T) {
+	tokens, err := Split("echo foo >| /tmp/bar", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var op Token
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && (tok.WordbreakType == WORDBREAK_REDIRECT_OUTPUT_FORCE || tok.WordbreakType == WORDBREAK_PIPE) {
+			op = tok
+		}
+	}
+	if op.Type == WORDBREAK_TOKEN && op.WordbreakType == WORDBREAK_REDIRECT_OUTPUT_FORCE {
+		t.Errorf("tcsh >|: should not be classified as bash REDIRECT_OUTPUT_FORCE")
+	}
+}
+
+func TestTcshFormat_NoHereStringOperator(t *testing.T) {
+	tokens, err := Split("cmd <<< foo", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var foundHereString bool
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.WordbreakType == WORDBREAK_REDIRECT_INPUT_STRING {
+			foundHereString = true
+		}
+	}
+	if foundHereString {
+		t.Errorf("tcsh <<<: should not be classified as REDIRECT_INPUT_STRING (tcsh has no here-string)")
+	}
+}
+
+func TestTcshFormat_NoBashBothRedirect(t *testing.T) {
+	tokens, err := Split("cmd &> /tmp/out", Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var foundBashBoth bool
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.WordbreakType == WORDBREAK_REDIRECT_OUTPUT_BOTH && tok.RawValue == "&>" {
+			foundBashBoth = true
+		}
+	}
+	if foundBashBoth {
+		t.Errorf("tcsh &>: should not be classified as REDIRECT_OUTPUT_BOTH (tcsh uses >&)")
+	}
+}
+
+func TestTcshFormat_LineContinuationOutsideQuotes(t *testing.T) {
+	// tcsh: \<newline> outside quotes is a line continuation — both consumed.
+	input := "echo foo" + "\\" + "\n" + "bar"
+	tokens, err := Split(input, Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("tcsh line continuation outside: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestTcshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// tcsh: \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := Split(input, Tcsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("tcsh line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}

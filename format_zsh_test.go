@@ -1,0 +1,151 @@
+package shlex
+
+import "testing"
+
+func TestZshFormat_RCQuotes(t *testing.T) {
+	// With RC_QUOTES, '' inside single quotes → literal '
+	tokens, err := Split("echo 'it''s'", Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words()
+	last := words[len(words)-1]
+	if last.Value != "it's" {
+		t.Errorf("RC_QUOTES: Value = %q, want %q", last.Value, "it's")
+	}
+	if last.State != IN_WORD_STATE {
+		t.Errorf("RC_QUOTES: State = %v, want IN_WORD_STATE", last.State)
+	}
+}
+
+func TestZshFormat_NoRCQuotes(t *testing.T) {
+	// Without RC_QUOTES (bash), '' closes then reopens → words merge to "its"
+	tokens, err := Split("echo 'it''s'", Bash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words()
+	last := words[len(words)-1]
+	if last.Value != "its" {
+		t.Errorf("bash: Value = %q, want %q", last.Value, "its")
+	}
+}
+
+func TestZshFormat_OpenQuote(t *testing.T) {
+	tokens, err := Split("echo 'hel", Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words()
+	last := words[len(words)-1]
+	if last.State != QUOTING_STATE {
+		t.Errorf("open quote: State = %v, want QUOTING_STATE", last.State)
+	}
+}
+
+func TestZshFormat_DoubleQuoteEscape(t *testing.T) {
+	tokens, err := Split(`echo "say \"hello\""`, Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != `say "hello"` {
+		t.Errorf("zsh double escape: Words = %v, want [echo say \"hello\"]", words)
+	}
+}
+
+func TestZshFormat_RCQuotesLonger(t *testing.T) {
+	tokens, err := Split("echo 'it''s a test'", Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "it's a test" {
+		t.Errorf("zsh RC_QUOTES longer: Words = %v, want [echo it's a test]", words)
+	}
+}
+
+func TestZshFormat_Operators(t *testing.T) {
+	tests := []struct {
+		input    string
+		wantType WordbreakType
+		wantRaw  string
+	}{
+		{"echo foo >| bar", WORDBREAK_REDIRECT_OUTPUT_FORCE, ">|"},
+		{"echo foo >>| bar", WORDBREAK_REDIRECT_OUTPUT_APPEND_FORCE, ">>|"},
+		{"echo foo ;& bar", WORDBREAK_LIST_FALLTHROUGH, ";&"},
+		{"echo foo ;| bar", WORDBREAK_LIST_FALLTHROUGH_RETRY, ";|"},
+		{"echo foo &| bar", WORDBREAK_LIST_ASYNC_ERRCHECK, "&|"},
+		{"echo foo ;; bar", WORDBREAK_LIST_SEQUENTIAL_DOUBLE, ";;"},
+	}
+	for _, tt := range tests {
+		tokens, err := Split(tt.input, Zsh)
+		if err != nil {
+			t.Fatalf("zsh operator %q: %v", tt.wantRaw, err)
+		}
+		var found *Token
+		for i := range tokens {
+			if tokens[i].Type == WORDBREAK_TOKEN && tokens[i].RawValue == tt.wantRaw {
+				found = &tokens[i]
+				break
+			}
+		}
+		if found == nil {
+			t.Fatalf("zsh operator %q: not found in tokens %v", tt.wantRaw, tokens)
+		}
+		if found.WordbreakType != tt.wantType {
+			t.Errorf("zsh operator %q: WordbreakType = %v, want %v", tt.wantRaw, found.WordbreakType, tt.wantType)
+		}
+	}
+}
+
+func TestZshFormat_ForceRedirectIsRedirect(t *testing.T) {
+	ctx := Complete("echo foo >| bar", Zsh)
+	if !ctx.IsRedirect {
+		t.Errorf("zsh >|: IsRedirect = false, want true")
+	}
+}
+
+func TestZshFormat_ForceAppendRedirectIsRedirect(t *testing.T) {
+	ctx := Complete("echo foo >>| bar", Zsh)
+	if !ctx.IsRedirect {
+		t.Errorf("zsh >>|: IsRedirect = false, want true")
+	}
+}
+
+func TestZshFormat_FallthroughIsPipelineDelimiter(t *testing.T) {
+	tokens, err := Split("echo foo ;& bar", Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.pipelines()
+	if len(pipelines) != 2 {
+		t.Errorf("zsh ;&: Pipelines = %d, want 2", len(pipelines))
+	}
+}
+
+func TestZshFormat_LineContinuationOutsideQuotes(t *testing.T) {
+	// zsh: \<newline> outside quotes is a line continuation — both consumed.
+	input := "echo foo" + "\\" + "\n" + "bar"
+	tokens, err := Split(input, Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("zsh line continuation outside: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestZshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
+	// zsh: \<newline> inside "..." is a line continuation — both consumed.
+	input := "echo \"line1" + "\\" + "\n" + "line2\""
+	tokens, err := Split(input, Zsh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "line1line2" {
+		t.Errorf("zsh line continuation in double: Words = %v, want [echo line1line2]", words)
+	}
+}

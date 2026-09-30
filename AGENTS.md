@@ -1,0 +1,150 @@
+# AGENTS.md
+
+Guide for agents working in the `carapace-shlex` repository — a multi-shell command-line lexer (fork of go-shlex) that splits and re-joins command lines while tracking quotation state for shell completion.
+
+## Commands
+
+```bash
+# Build everything (library + CLI)
+go build -v ./...
+
+# Run tests with coverage (matches CI)
+go test -v -coverprofile=profile.cov ./...
+
+# Formatting check enforced by CI — note the -s (simplify) flag
+gofmt -d -s .
+
+# Static analysis enforced by CI
+go install honnef.co/go/tools/cmd/staticcheck@latest && staticcheck ./...
+
+# Run the CLI directly (no build step needed)
+go run ./cmd/carapace-shlex --format bash --completion-context "echo foo | grep hel"
+go run ./cmd/carapace-shlex --format elvish --current-pipeline --words "bat | {|"
+
+# Test a single format
+go test -run TestElvish -v ./...
+```
+
+Go 1.24.0. The CI image is `ghcr.io/carapace-sh/go:1.25.4`. Tags trigger GoReleaser builds (see `.goreleaser.yml`).
+
+## Repository Layout
+
+- **Root package `shlex`** — the library: tokenizer state machine (`shlex.go`), `Format` name type and `formatImpl` interface (`format.go`), per-shell formats (`format_<shell>.go`), token slice operations (`tokenslice.go`), wordbreak types (`wordbreak.go`), quoting helpers (`quote.go`), completion context (`completion.go`).
+- **`cmd/carapace-shlex/`** — a **separate Go module** (`cmd/go.mod`) that imports the library and wraps it as a cobra CLI. It depends on `carapace` and `carapace-bridge` for its own completion.
+- **`go.work`** — workspace including both the root module and `./cmd`. Contains a `replace` directive pointing `carapace` at the sibling `../carapace` checkout, which local development expects.
+- **`skills/shlex/`** — in-depth reference docs (architecture, cross-shell comparison, per-format references). Load these via the `shlex` skill when doing substantial format work.
+
+## Architecture
+
+### Data flow
+
+```
+command line string
+  → Split(s, format) or Complete(s, format)
+    → formatImplFor(format)          (name → behavior)
+      → formatImpl.Classifier()      (rune → rune class)
+        → tokenizer.scanStream()     (flat state machine, shared across all formats)
+          → TokenSlice               (typed tokens with Span + quotation State)
+            → [optional] PostProcess (post-pass reclassification)
+              → CompletionContext   (current word, prefix, quoting state, ...)
+```
+
+### The tokenizer is a flat state machine
+
+The core state machine in `shlex.go` (`scanStream`) has **no nesting awareness**. It classifies runes one at a time into `TokenType`s (WORD/SPACE/COMMENT/WORDBREAK) and tracks quotation state via `LexerState`. Every shell format plugs into the **same** machine via the `formatImpl` interface — there is no per-shell parser.
+
+**Consequence**: format-specific behavior that requires context the flat machine can't track (e.g. elvish `|` inside `{|params|}` being a parameter delimiter, not a pipeline pipe) is handled via the optional `postProcessor` interface, which runs a post-pass over the `TokenSlice` after tokenization. Do **not** add nesting/brace tracking into `scanStream` — add a `PostProcess` method on the format instead.
+
+### `Format` and `formatImpl`
+
+`format.go` defines:
+
+- **`Format`** — a string type naming a supported shell (`shlex.Bash`, `shlex.Zsh`, ..., `shlex.Default` for the empty name used by spec macros). Formats are a closed set: the lexing behavior lives behind the unexported `formatImpl` interface, resolved by the `formatImpls` map. Adding a format means adding a constant and a map entry, not implementing an interface from outside the package.
+- **`formatImpl`** (required, unexported): `Classifier`, `ClassifyOperator`, `KeywordOperators`, quote-behavior flags (`NonEscapingQuoteEscapes`, `NonEscapingQuoteBackslashEscapes`, `EscapeNotBareword`, `EscapeNotInEscapingQuote`, `EscapingQuoteEscapeChars`), `TripleQuoteSupport`, `RawPrefixSupport`, `QuoteWord`.
+- **Optional interfaces** (asserted via type assertion in `tokenizer.Next` / `Split`):
+  - `postProcessor` — post-pass token reclassification (elvish, nushell)
+  - `blockCommenter` — multi-line block comments (PowerShell `<# #>`)
+  - `stopParsingToken` — raw lexing mode after a token (PowerShell `--%`)
+  - `lineContinuationEscaper` — escape+newline as line continuation (PowerShell backtick)
+  - `escapingQuoteUnescaper` — custom unescape inside double quotes beyond simple backslash-dropping
+  - `lineContinuationWhitespace` — a non-escape char followed by newline acting as a word break (elvish)
+  - `variableExpander` — lexical variable-reference detection (bash, zsh, tcsh, fish, elvish, nushell, xonsh)
+  - `naiveWordSplitter` — the shell's naive word-splitting for insertion (bash COMP_WORDS)
+  - `quoteInserter` — insertion quoting deviating from the POSIX-style default (PowerShell backtick, cmd doubling)
+
+When adding a new format, implement `formatImpl` plus whichever optional interfaces apply. No-op returns (e.g. `KeywordOperators() nil`) are the norm for formats that don't need a feature.
+
+### Token model
+
+```go
+type Token struct {
+    Type           TokenType     // WORD_TOKEN, WORDBREAK_TOKEN, etc.
+    Value          string        // dequoted value
+    RawValue       string        // raw source text including quotes/escapes
+    Span           Span          // rune offsets {Start, End} — NOT byte offsets
+    State          LexerState    // quotation state after this token
+    WordbreakType  WordbreakType // operator type for WORDBREAK_TOKENs
+    WordbreakIndex int           // index of last opening quote in Value (prefix boundary)
+}
+```
+
+`Span` offsets are **rune offsets**, not byte offsets — relevant when inspecting multi-byte input. `TokenSlice.Words()` merges tokens by `Span` adjacency (End==Start), so quote-openers, wordbreaks, and word fragments that touch get merged into one word.
+
+### WordbreakType drives TokenSlice operations
+
+`WordbreakType.IsPipelineDelimiter()` and `IsRedirect()` determine how `pipelines()`, `CurrentPipeline()`, `FilterRedirects()`, and `WordbreakPrefix()` behave. When adding a new operator type, decide deliberately whether it should split pipelines or be filtered as a redirect — `WORDBREAK_LAMBDA_PIPE` intentionally returns false for both so elvish lambda parameter lists don't break pipeline splitting.
+
+`FilterRedirects()` has a special case: a numeric token (e.g. `2`) immediately adjoining a redirect operator (e.g. `>`) is filtered out as the fd prefix. Don't break this when touching redirect logic.
+
+### Public API surface
+
+- `Split(s, format)` → `TokenSlice, error` (unknown formats are rejected)
+- `Complete(s, format)` → `*CompletionContext` (never errors; returns empty context with `START_STATE` on failure)
+- `Join(s, format)` → quoted string (unknown formats fall back to `Default`)
+- `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `Variable` (lexical variable-reference detection; `Insert` composes the replacement word), `Quote` (insertion quoting per format and quoting state), `Span` (current word position), and `Tokens` (raw token escape hatch)
+
+`Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — see known limitations).
+
+## Known Limitations
+
+Parked deliberately; revisit when a consumer actually hits them.
+
+- **`InLambdaParams`**: the odd-pipe-count toggle heuristic breaks on nested elvish lambdas. A real fix means lambda-scope tracking in elvish's `PostProcess`.
+- **Variable detection coverage**: fish allows almost any variable name but only `[A-Za-z0-9_]` is matched; elvish namespaces (`$edit:`) and nushell paths (`$env.FOO`) truncate at `:`/`.`; PowerShell (`$env:VAR`) and cmd (`%VAR%`) use different sigil machinery and have no detection at all.
+- **Insertion quoting**: zsh's full-word-quoting distinction (`ActionRawValues` in carapace's zsh integration) is not covered by `Quote` — it needs a "raw word starts and ends with a quote" notion, derivable from `RawCurrentWord`.
+- **`Token.WordbreakIndex`**: public field with a conditional contract ("only correct when in quoting state"); it feeds `WordbreakPrefix` and could be folded into it.
+
+## Adding a New Shell Format
+
+1. Create `format_<shell>.go` implementing `formatImpl` (+ optional interfaces as needed).
+2. Add a `<shell>QuoteWord` function in `quote.go` and reference it from the format's `QuoteWord` method. Quoting helpers are kept in `quote.go`, not in the format file.
+3. If the shell has operators that differ from the bash grammar, add a `<shell>WordbreakType` function in `wordbreak.go` (see `bashWordbreakType`, `tcshWordbreakType` as templates).
+4. Add a `Format` constant and a `formatImpls` map entry in `format.go`, and add the format name to the `--format` flag's completion values in `cmd/carapace-shlex/cmd/root.go`.
+5. Add the format to the table in `README.md`.
+6. Create `format_<shell>_test.go` (see existing test files for the pattern).
+7. If the shell needs behavior the flat state machine can't express, implement `postProcessor` rather than modifying `scanStream`.
+
+## Testing Patterns
+
+Tests live alongside their format: `format_<shell>_test.go`. The established pattern:
+
+```go
+tokens, err := Split(input, SomeFormat)
+if err != nil { t.Fatal(err) }
+words := tokens.Words().Strings()
+// assert on words, and on token State / WordbreakType for quoting/operator cases
+```
+
+Tests assert on **dequoted `Value`** via `Words().Strings()`, and on `State` (e.g. `IN_WORD_STATE`, `QUOTING_STATE`) and `WordbreakType` for quotation/operator behavior. The `Equal` method on `Token` compares all fields — useful for golden-style tests.
+
+`completion_test.go` tests `Complete` and the `CompletionContext` fields. `join_test.go` tests `Join` roundtrips. `shlex_test.go` tests the core tokenizer/state machine.
+
+## Gotchas
+
+- **The `carapace` dependency is pinned to its `shlex-v2` branch** (in `cmd/go.mod`), with `go.work` and that pin expecting the sibling `../carapace` checkout for local development. The root module itself has no carapace dependency.
+- **`cmd/carapace-shlex` is a separate module** with its own `go.mod`. It replaces the library with the parent checkout (`replace .../carapace-shlex/v2 => ../`), so CLI builds always exercise the working tree — the `require` pin only matters to external consumers.
+- **gofmt `-s` (simplify) is enforced**, not just plain gofmt. Run `gofmt -d -s .` before committing.
+- **`staticcheck` is enforced** in CI. Install and run it locally — it's not in the standard toolchain.
+- **`bufio.Reader` only supports one `UnreadRune`**. The triple-quote peek helpers (`checkTripleQuote`, `checkTripleClose`) handle this constraint by returning a `consumedRune` when the second peek fails to match — the first peeked rune can't be unread, so callers must add it to `RawValue`. Preserve this pattern when extending peek-based logic.
+- **The bash `Classifier` reads `COMP_WORDBREAKS`** from the environment at call time, not at init. Tests that assert on bash wordbreaks should set/unset `COMP_WORDBREAKS` explicitly or they inherit the ambient value.
+- **Don't add comments to code** unless explaining *why* (and only when non-obvious). The codebase uses minimal comments; match that style.

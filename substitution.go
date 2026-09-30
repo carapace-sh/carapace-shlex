@@ -1,0 +1,68 @@
+package shlex
+
+// innermostUnclosedCommandScope returns the TokenSlice index of the opener
+// of the innermost unclosed command substitution scope, or -1 if the cursor
+// is at top level. Arithmetic ($((...))) and backtick scopes are not
+// command scopes — they don't produce an inner completion context.
+func innermostUnclosedCommandScope(tokens TokenSlice) int {
+	depth := 0
+	var openStack []int
+
+	for i, t := range tokens {
+		switch t.WordbreakType {
+		case WORDBREAK_SUBSTITUTION_OPEN:
+			if isArithmeticOpener(t) {
+				continue
+			}
+			depth++
+			openStack = append(openStack, i)
+		case WORDBREAK_SUBSTITUTION_CLOSE:
+			if isArithmeticCloser(t) {
+				continue
+			}
+			if depth > 0 {
+				depth--
+				openStack = openStack[:len(openStack)-1]
+			}
+		}
+	}
+
+	if depth > 0 && len(openStack) > 0 {
+		return openStack[len(openStack)-1]
+	}
+	return -1
+}
+
+func isArithmeticOpener(t Token) bool {
+	return len(t.RawValue) >= 2 && t.RawValue[len(t.RawValue)-2] == '('
+}
+
+func isArithmeticCloser(t Token) bool {
+	return len(t.RawValue) >= 2 && t.RawValue[0] == ')' && t.RawValue[1] == ')'
+}
+
+// countUnclosedCommandScopes returns the number of unclosed command
+// substitution scopes in the token slice. Arithmetic scopes are excluded.
+func countUnclosedCommandScopes(tokens TokenSlice) int {
+	depth := 0
+	for _, t := range tokens {
+		switch t.WordbreakType {
+		case WORDBREAK_SUBSTITUTION_OPEN:
+			if isArithmeticOpener(t) {
+				continue
+			}
+			depth++
+		case WORDBREAK_SUBSTITUTION_CLOSE:
+			if isArithmeticCloser(t) {
+				continue
+			}
+			if depth > 0 {
+				depth--
+			}
+		}
+	}
+	if depth > 0 {
+		return depth
+	}
+	return 0
+}

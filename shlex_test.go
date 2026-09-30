@@ -10,7 +10,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
+See the License for the specific governing permissions and
 limitations under the License.
 */
 
@@ -28,21 +28,6 @@ var (
 	testString = "one two \"three four\" \"five \\\"six\\\"\" seven#eight # nine # ten\n eleven 'twelve\\' thirteen=13 fourteen/14 | || |after before| & ;"
 )
 
-func TestClassifier(t *testing.T) {
-	classifier := newDefaultClassifier()
-	tests := map[rune]runeTokenClass{
-		' ':  spaceRuneClass,
-		'"':  escapingQuoteRuneClass,
-		'\'': nonEscapingQuoteRuneClass,
-		'#':  commentRuneClass}
-	for runeChar, want := range tests {
-		got := classifier.ClassifyRune(runeChar)
-		if got != want {
-			t.Errorf("ClassifyRune(%v) -> %v. Want: %v", runeChar, got, want)
-		}
-	}
-}
-
 func init() {
 	os.Unsetenv("COMP_WORDBREAKS")
 }
@@ -50,30 +35,30 @@ func init() {
 func TestTokenizer(t *testing.T) {
 	testInput := strings.NewReader(testString)
 	expectedTokens := []*Token{
-		{WORD_TOKEN, "one", "one", 0, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "two", "two", 4, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "three four", "\"three four\"", 8, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", 21, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "seven#eight", "seven#eight", 36, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{COMMENT_TOKEN, " nine # ten", "# nine # ten", 48, START_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "eleven", "eleven", 62, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "twelve\\", "'twelve\\'", 69, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "thirteen", "thirteen", 79, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORDBREAK_TOKEN, "=", "=", 87, WORDBREAK_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "13", "13", 88, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "fourteen/14", "fourteen/14", 91, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORDBREAK_TOKEN, "|", "|", 103, WORDBREAK_STATE, WORDBREAK_PIPE, 0},
-		{WORDBREAK_TOKEN, "||", "||", 105, WORDBREAK_STATE, WORDBREAK_LIST_OR, 0},
-		{WORDBREAK_TOKEN, "|", "|", 108, WORDBREAK_STATE, WORDBREAK_PIPE, 0},
-		{WORD_TOKEN, "after", "after", 109, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORD_TOKEN, "before", "before", 115, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
-		{WORDBREAK_TOKEN, "|", "|", 121, WORDBREAK_STATE, WORDBREAK_PIPE, 0},
-		{WORDBREAK_TOKEN, "&", "&", 123, WORDBREAK_STATE, WORDBREAK_LIST_ASYNC, 0},
-		{WORDBREAK_TOKEN, ";", ";", 125, WORDBREAK_STATE, WORDBREAK_LIST_SEQUENTIAL, 0},
-		{WORD_TOKEN, "", "", 126, START_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "one", "one", Span{Start: 0, End: 3}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "two", "two", Span{Start: 4, End: 7}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "three four", "\"three four\"", Span{Start: 8, End: 20}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "five \"six\"", "\"five \\\"six\\\"\"", Span{Start: 21, End: 35}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "seven#eight", "seven#eight", Span{Start: 36, End: 47}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{COMMENT_TOKEN, " nine # ten", "# nine # ten", Span{Start: 48, End: 60}, START_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "eleven", "eleven", Span{Start: 62, End: 68}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "twelve\\", "'twelve\\'", Span{Start: 69, End: 78}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "thirteen", "thirteen", Span{Start: 79, End: 87}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORDBREAK_TOKEN, "=", "=", Span{Start: 87, End: 88}, WORDBREAK_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "13", "13", Span{Start: 88, End: 90}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "fourteen/14", "fourteen/14", Span{Start: 91, End: 102}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORDBREAK_TOKEN, "|", "|", Span{Start: 103, End: 104}, WORDBREAK_STATE, WORDBREAK_PIPE, 0},
+		{WORDBREAK_TOKEN, "||", "||", Span{Start: 105, End: 107}, WORDBREAK_STATE, WORDBREAK_LIST_OR, 0},
+		{WORDBREAK_TOKEN, "|", "|", Span{Start: 108, End: 109}, WORDBREAK_STATE, WORDBREAK_PIPE, 0},
+		{WORD_TOKEN, "after", "after", Span{Start: 109, End: 114}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORD_TOKEN, "before", "before", Span{Start: 115, End: 121}, IN_WORD_STATE, WORDBREAK_UNKNOWN, 0},
+		{WORDBREAK_TOKEN, "|", "|", Span{Start: 121, End: 122}, WORDBREAK_STATE, WORDBREAK_PIPE, 0},
+		{WORDBREAK_TOKEN, "&", "&", Span{Start: 123, End: 124}, WORDBREAK_STATE, WORDBREAK_LIST_ASYNC, 0},
+		{WORDBREAK_TOKEN, ";", ";", Span{Start: 125, End: 126}, WORDBREAK_STATE, WORDBREAK_LIST_SEQUENTIAL, 0},
+		{WORD_TOKEN, "", "", Span{Start: 126, End: 126}, START_STATE, WORDBREAK_UNKNOWN, 0},
 	}
 
-	tokenizer := newTokenizer(testInput)
+	tokenizer := newTokenizer(testInput, bashFormat{})
 	for i, want := range expectedTokens {
 		got, err := tokenizer.Next()
 		if err != nil {
@@ -89,7 +74,7 @@ func TestLexer(t *testing.T) {
 	testInput := strings.NewReader(testString)
 	expectedStrings := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen", "=", "13", "fourteen/14"}
 
-	lexer := newLexer(testInput)
+	lexer := newLexer(testInput, bashFormat{})
 	for i, want := range expectedStrings {
 		got, err := lexer.Next()
 		if err != nil {
@@ -103,7 +88,7 @@ func TestLexer(t *testing.T) {
 
 func TestSplit(t *testing.T) {
 	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen", "=", "13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";", ""}
-	got, err := Split(testString)
+	got, err := Split(testString, Default)
 	if err != nil {
 		t.Error(err)
 	}
@@ -127,16 +112,16 @@ func TestJoin(t *testing.T) {
 		"echo \"\\`ls\\`\"":         {"echo", "`ls`"},
 		`ls /tmp | xargs -n 1 echo`: {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
 
-		`echo "with\"doubleQuote"`:    {"echo", "with\"doubleQuote"},
-		`echo "with'singleQuote"`:     {"echo", "with'singleQuote"},
-		`echo "with space"`:           {"echo", "with space"},
-		"echo \"with\\`backtick\"":    {"echo", "with`backtick"},
-		`echo "with\$dollar"`:         {"echo", "with$dollar"},
-		`echo "with\nlinefeed"`:       {"echo", "with\nlinefeed"},
-		`echo "with\rcarriageReturn"`: {"echo", "with\rcarriageReturn"},
-		`echo "with\ttab"`:            {"echo", "with\ttab"},
+		`echo "with\"doubleQuote"`:      {"echo", "with\"doubleQuote"},
+		`echo "with'singleQuote"`:       {"echo", "with'singleQuote"},
+		`echo "with space"`:             {"echo", "with space"},
+		"echo \"with\\`backtick\"":      {"echo", "with`backtick"},
+		`echo "with\$dollar"`:           {"echo", "with$dollar"},
+		"echo \"with\\\nlinefeed\"":     {"echo", "with\nlinefeed"},
+		"echo \"with\rcarriageReturn\"": {"echo", "with\rcarriageReturn"},
+		"echo \"with\ttab\"":            {"echo", "with\ttab"},
 	} {
-		if actual := Join(words); actual != expected {
+		if actual := Join(words, Default); actual != expected {
 			t.Errorf("joined words don't match\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}

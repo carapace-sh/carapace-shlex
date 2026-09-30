@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/carapace-sh/go:1.25.4
+    container: ghcr.io/carapace-sh/go:1.27.0
     steps:
     - name: shallow clone
       uses: actions/checkout@v7

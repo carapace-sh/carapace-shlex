@@ -1,0 +1,580 @@
+package shlex
+
+import "testing"
+
+func TestElvishFormat_BarewordBackslash(t *testing.T) {
+	// Elvish: \ is a bareword character outside quotes (not an escape)
+	tokens, err := Split(`echo C:\path`, Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != `C:\path` {
+		t.Errorf("elvish bareword \\: Words = %v, want [echo C:\\path]", words)
+	}
+}
+
+func TestElvishFormat_DoubleQuoteEscape(t *testing.T) {
+	// Elvish: \ IS an escape inside double quotes
+	tokens, err := Split(`echo "hello\nworld"`, Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words()
+	last := words[len(words)-1]
+	if last.State != IN_WORD_STATE {
+		t.Errorf("elvish double-quote escape: State = %v, want IN_WORD_STATE", last.State)
+	}
+}
+
+func TestElvishFormat_DoubledQuoteSplit(t *testing.T) {
+	tokens, err := Split("echo 'it''s a test'", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "it's a test" {
+		t.Errorf("elvish '' split: Words = %v, want [echo it's a test]", words)
+	}
+}
+
+func TestElvishFormat_DoubleQuoteValue(t *testing.T) {
+	tokens, err := Split(`echo "say \"hello\""`, Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != `say "hello"` {
+		t.Errorf("elvish double value: Words = %v, want [echo say \"hello\"]", words)
+	}
+}
+
+func TestElvishFormat_AmpNotListOperator(t *testing.T) {
+	// & is for map literals in elvish, not a list operator
+	tokens, err := Split("echo foo & echo bar", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.pipelines()
+	if len(pipelines) != 1 {
+		t.Errorf("elvish &: %d pipelines, want 1 (& is not a separator)", len(pipelines))
+	}
+}
+
+func TestElvishFormat_Pipe(t *testing.T) {
+	tokens, err := Split("echo foo | grep bar", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("elvish pipe: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestElvishFormat_Semicolon(t *testing.T) {
+	tokens, err := Split("echo foo ; echo bar", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("elvish semicolon: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestElvishFormat_OpenSingleQuote(t *testing.T) {
+	tokens, err := Split("echo 'hel", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tokens.Words().currentToken()
+	if last.State != QUOTING_STATE {
+		t.Errorf("elvish open single: State = %v, want QUOTING_STATE", last.State)
+	}
+}
+
+func TestElvishFormat_LambdaPipe(t *testing.T) {
+	// {| — the | after { is a lambda parameter delimiter, not a pipeline pipe
+	tokens, err := Split("bat | {|", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Find the second | (after {) — it should be WORDBREAK_LAMBDA_PIPE
+	lambdaPipes := 0
+	realPipes := 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 1 {
+		t.Errorf("elvish lambda pipe: %d lambda pipes, want 1", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("elvish lambda pipe: %d real pipes, want 1", realPipes)
+	}
+}
+
+func TestElvishFormat_LambdaPipeParams(t *testing.T) {
+	// {|a b| — both | are lambda parameter delimiters
+	tokens, err := Split("bat | {|a b|", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes := 0
+	realPipes := 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 2 {
+		t.Errorf("elvish lambda params: %d lambda pipes, want 2", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("elvish lambda params: %d real pipes, want 1 (the bat pipe)", realPipes)
+	}
+}
+
+func TestElvishFormat_LambdaBodyPipe(t *testing.T) {
+	// {|a| cmd1 | cmd2} — first two | are lambda delimiters, third is a real pipe in the body
+	tokens, err := Split("{|a| cmd1 | cmd2}", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes := 0
+	realPipes := 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 2 {
+		t.Errorf("elvish lambda body: %d lambda pipes, want 2", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("elvish lambda body: %d real pipes, want 1 (the body pipe)", realPipes)
+	}
+}
+
+func TestElvishFormat_BracedListNotLambda(t *testing.T) {
+	// {a,b} is a braced list, not a lambda — no | to reclassify
+	tokens, err := Split("echo {a,b}", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes := 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.WordbreakType == WORDBREAK_LAMBDA_PIPE {
+			lambdaPipes++
+		}
+	}
+	if lambdaPipes != 0 {
+		t.Errorf("elvish braced list: %d lambda pipes, want 0", lambdaPipes)
+	}
+}
+
+func TestElvishFormat_LambdaNoParams(t *testing.T) {
+	// { body } — lambda with no params (space after {), no | at all
+	tokens, err := Split("var f = { echo hi }", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes := 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.WordbreakType == WORDBREAK_LAMBDA_PIPE {
+			lambdaPipes++
+		}
+	}
+	if lambdaPipes != 0 {
+		t.Errorf("elvish lambda no params: %d lambda pipes, want 0", lambdaPipes)
+	}
+}
+
+func TestElvishFormat_NestedLambda(t *testing.T) {
+	// {|a| {|b| echo $a $b }} — nested lambdas
+	tokens, err := Split("{|a| {|b| echo $a $b }}", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes := 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.WordbreakType == WORDBREAK_LAMBDA_PIPE {
+			lambdaPipes++
+		}
+	}
+	if lambdaPipes != 4 {
+		t.Errorf("elvish nested lambda: %d lambda pipes, want 4 (2 per lambda)", lambdaPipes)
+	}
+}
+
+func TestElvishFormat_LambdaPipeDoesNotSplitPipeline(t *testing.T) {
+	// The lambda | should not split CurrentPipeline — only the real pipe before {|
+	tokens, err := Split("bat | {|a", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.pipelines()
+	if len(pipelines) != 2 {
+		t.Errorf("elvish lambda pipeline split: %d pipelines, want 2 (bat and {|a)", len(pipelines))
+	}
+	current := tokens.CurrentPipeline()
+	// Current pipeline should contain {|a — not split at the lambda |
+	// The {, lambda |, and a adjoin so Words() merges them into {|a
+	words := current.Words().Strings()
+	if len(words) == 0 {
+		t.Errorf("elvish lambda pipeline: current pipeline is empty, want non-empty")
+	}
+	// The pipeline should not be split at the lambda |, so it should contain
+	// the lambda tokens (not just an empty slice after a second pipe split)
+	hasLambdaPipe := false
+	for _, tok := range current {
+		if tok.Type == WORDBREAK_TOKEN && tok.WordbreakType == WORDBREAK_LAMBDA_PIPE {
+			hasLambdaPipe = true
+		}
+	}
+	if !hasLambdaPipe {
+		t.Errorf("elvish lambda pipeline: current pipeline has no lambda pipe, want one")
+	}
+}
+
+func TestElvishFormat_CompletionInLambdaParams(t *testing.T) {
+	// Cursor after {| — should be in lambda parameter position
+	ctx := Complete("bat | {|", Elvish)
+	if !ctx.InLambdaParams {
+		t.Errorf("elvish completion in lambda params: InLambdaParams = false, want true")
+	}
+}
+
+func TestElvishFormat_CompletionInLambdaParamsWithArg(t *testing.T) {
+	// Cursor after {|a — still in parameter list
+	ctx := Complete("bat | {|a", Elvish)
+	if !ctx.InLambdaParams {
+		t.Errorf("elvish completion in lambda params (with arg): InLambdaParams = false, want true")
+	}
+}
+
+func TestElvishFormat_CompletionAfterLambdaParams(t *testing.T) {
+	// Cursor after {|a| — parameter list closed, in lambda body
+	ctx := Complete("bat | {|a|", Elvish)
+	if ctx.InLambdaParams {
+		t.Errorf("elvish completion after lambda params: InLambdaParams = true, want false (in body)")
+	}
+}
+
+func TestElvishFormat_CompletionNotInLambda(t *testing.T) {
+	// Cursor after regular pipe — not in lambda
+	ctx := Complete("bat | grep ", Elvish)
+	if ctx.InLambdaParams {
+		t.Errorf("elvish completion not in lambda: InLambdaParams = true, want false")
+	}
+}
+
+func TestElvishFormat_OutputCapture(t *testing.T) {
+	// ( and ) are word breaks — output capture delimiters
+	tokens, err := Split("echo (ls)", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "(ls)" {
+		t.Errorf("elvish output capture: Words = %v, want [echo (ls)]", words)
+	}
+}
+
+func TestElvishFormat_OutputCaptureWordbreakType(t *testing.T) {
+	tokens, err := Split("echo (ls)", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "(" {
+			if tok.WordbreakType != WORDBREAK_SUBSTITUTION_OPEN {
+				t.Errorf("elvish output capture: WordbreakType = %v for %q, want WORDBREAK_SUBSTITUTION_OPEN", tok.WordbreakType, tok.Value)
+			}
+		}
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == ")" {
+			if tok.WordbreakType != WORDBREAK_SUBSTITUTION_CLOSE {
+				t.Errorf("elvish output capture: WordbreakType = %v for %q, want WORDBREAK_SUBSTITUTION_CLOSE", tok.WordbreakType, tok.Value)
+			}
+		}
+	}
+}
+
+func TestElvishFormat_OutputCaptureDoesNotSplitPipeline(t *testing.T) {
+	// ( and ) create a substitution scope — | inside does not split the outer pipeline
+	tokens, err := Split("echo (ls | grep foo)", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.pipelines()
+	// The | inside (...) is within a substitution scope, so we get 1 pipeline
+	if len(pipelines) != 1 {
+		t.Errorf("elvish output capture pipeline: %d pipelines, want 1 (pipe inside substitution scope)", len(pipelines))
+	}
+}
+
+func TestElvishFormat_ListLiteral(t *testing.T) {
+	// [ and ] are word breaks at word start — list literal
+	tokens, err := Split("[a b]", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	// [a, b] — [ and a adjoin, b and ] adjoin, but a and b don't (space)
+	if len(words) != 2 || words[0] != "[a" || words[1] != "b]" {
+		t.Errorf("elvish list literal: Words = %v, want [[a b]]", words)
+	}
+}
+
+func TestElvishFormat_ListLiteralWordbreakType(t *testing.T) {
+	tokens, err := Split("[a b]", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && (tok.Value == "[" || tok.Value == "]") {
+			if tok.WordbreakType != WORDBREAK_BRACKET {
+				t.Errorf("elvish list literal: WordbreakType = %v for %q, want WORDBREAK_BRACKET", tok.WordbreakType, tok.Value)
+			}
+		}
+	}
+}
+
+func TestElvishFormat_Indexing(t *testing.T) {
+	// [ after a word char is indexing — Words() should merge $var[0] back together
+	tokens, err := Split("echo $var[0]", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "$var[0]" {
+		t.Errorf("elvish indexing: Words = %v, want [echo $var[0]]", words)
+	}
+}
+
+func TestElvishFormat_IndexingRange(t *testing.T) {
+	// $var[0:3] — indexing with range
+	tokens, err := Split("echo $var[0:3]", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "$var[0:3]" {
+		t.Errorf("elvish indexing range: Words = %v, want [echo $var[0:3]]", words)
+	}
+}
+
+func TestElvishFormat_BracketDoesNotSplitPipeline(t *testing.T) {
+	// [ and ] are not pipeline delimiters
+	tokens, err := Split("echo [a b]", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pipelines := tokens.pipelines()
+	if len(pipelines) != 1 {
+		t.Errorf("elvish bracket pipeline: %d pipelines, want 1 (brackets are not pipeline delimiters)", len(pipelines))
+	}
+}
+
+func TestElvishFormat_NestedOutputCapture(t *testing.T) {
+	// Nested output capture: echo (echo (ls))
+	// The inner ( is a word break, so (echo and (ls)) are separate words
+	tokens, err := Split("echo (echo (ls))", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	// (echo and (ls)) don't adjoin (space between echo and (ls))
+	if len(words) != 3 || words[0] != "echo" || words[1] != "(echo" || words[2] != "(ls))" {
+		t.Errorf("elvish nested output capture: Words = %v, want [echo (echo (ls))]", words)
+	}
+}
+
+func TestElvishFormat_OutputCaptureCompletion(t *testing.T) {
+	// Cursor inside output capture: echo (ls
+	// The ( opens a substitution scope, so the inner context is "ls"
+	ctx := Complete("echo (ls", Elvish)
+	if len(ctx.Words) != 1 || ctx.Words[0] != "ls" {
+		t.Errorf("elvish output capture completion: Words = %v, want [ls]", ctx.Words)
+	}
+}
+
+func TestElvishFormat_ClosedLambdaThenPipe(t *testing.T) {
+	// {|a| echo $a} | grep foo — } is embedded in "$a}" word.
+	// The | after } should be WORDBREAK_PIPE, not WORDBREAK_LAMBDA_PIPE.
+	tokens, err := Split("{|a| echo $a} | grep foo", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 2 {
+		t.Errorf("closed lambda then pipe: %d lambda pipes, want 2", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("closed lambda then pipe: %d real pipes, want 1", realPipes)
+	}
+}
+
+func TestElvishFormat_LambdaNoParamsBodyPipe(t *testing.T) {
+	// { echo foo | grep bar } — lambda with no params, body has a pipe.
+	// The | should be WORDBREAK_PIPE, not WORDBREAK_LAMBDA_PIPE.
+	tokens, err := Split("{ echo foo | grep bar }", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 0 {
+		t.Errorf("lambda no params body pipe: %d lambda pipes, want 0", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("lambda no params body pipe: %d real pipes, want 1", realPipes)
+	}
+}
+
+func TestElvishFormat_MultipleLambdasWithPipeBetween(t *testing.T) {
+	// {|a| echo $a} | {|b| echo $b} — pipe between two closed lambdas
+	tokens, err := Split("{|a| echo $a} | {|b| echo $b}", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 4 {
+		t.Errorf("multiple lambdas: %d lambda pipes, want 4 (2 per lambda)", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("multiple lambdas: %d real pipes, want 1 (between lambdas)", realPipes)
+	}
+}
+
+func TestElvishFormat_NestedLambdaThenPipeInBody(t *testing.T) {
+	// {|a| {|b| echo $b} | grep foo} — inner lambda closed, then real pipe in outer body
+	tokens, err := Split("{|a| {|b| echo $b} | grep foo}", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lambdaPipes, realPipes := 0, 0
+	for _, tok := range tokens {
+		if tok.Type == WORDBREAK_TOKEN && tok.Value == "|" {
+			switch tok.WordbreakType {
+			case WORDBREAK_LAMBDA_PIPE:
+				lambdaPipes++
+			case WORDBREAK_PIPE:
+				realPipes++
+			}
+		}
+	}
+	if lambdaPipes != 4 {
+		t.Errorf("nested lambda then pipe: %d lambda pipes, want 4 (2 per lambda)", lambdaPipes)
+	}
+	if realPipes != 1 {
+		t.Errorf("nested lambda then pipe: %d real pipes, want 1 (in outer body)", realPipes)
+	}
+}
+
+func TestElvishFormat_ClosedLambdaCompletion(t *testing.T) {
+	// {|a| echo $a} | grep foo — cursor at end, lambda is closed
+	ctx := Complete("{|a| echo $a} | grep foo", Elvish)
+	if ctx.InLambdaParams {
+		t.Errorf("closed lambda completion: InLambdaParams = true, want false")
+	}
+	if ctx.CurrentWord != "foo" {
+		t.Errorf("closed lambda completion: CurrentWord = %q, want %q", ctx.CurrentWord, "foo")
+	}
+}
+
+func TestElvishFormat_CaretLineContinuation(t *testing.T) {
+	// elvish: ^<newline> is whitespace (word break) — like a space.
+	// foo^\nbar → foo bar (two words)
+	input := "echo foo" + "^" + "\n" + "bar"
+	tokens, err := Split(input, Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "echo" || words[1] != "foo" || words[2] != "bar" {
+		t.Errorf("elvish ^<newline>: Words = %v, want [echo foo bar]", words)
+	}
+}
+
+func TestElvishFormat_CaretLineContinuationCRLF(t *testing.T) {
+	// elvish: ^<CR><LF> is whitespace (word break)
+	input := "echo foo" + "^" + "\r\n" + "bar"
+	tokens, err := Split(input, Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "echo" || words[1] != "foo" || words[2] != "bar" {
+		t.Errorf("elvish ^<CRLF>: Words = %v, want [echo foo bar]", words)
+	}
+}
+
+func TestElvishFormat_CaretAloneIsBareword(t *testing.T) {
+	// elvish: ^ without a following newline is a regular bareword character
+	tokens, err := Split("echo foo^bar", Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foo^bar" {
+		t.Errorf("elvish ^ bareword: Words = %v, want [echo foo^bar]", words)
+	}
+}
+
+func TestElvishFormat_CaretNewlineAtWordStart(t *testing.T) {
+	// elvish: ^<newline> at start of word — pure whitespace
+	input := "echo " + "^" + "\n" + "bar"
+	tokens, err := Split(input, Elvish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[0] != "echo" || words[1] != "bar" {
+		t.Errorf("elvish ^<newline> at word start: Words = %v, want [echo bar]", words)
+	}
+}
