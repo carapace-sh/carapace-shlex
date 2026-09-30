@@ -1,7 +1,6 @@
 # carapace-shlex
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/carapace-sh/carapace-shlex)](https://pkg.go.dev/github.com/carapace-sh/carapace-shlex)
-[![GoReportCard](https://goreportcard.com/badge/github.com/carapace-sh/carapace-shlex)](https://goreportcard.com/report/github.com/carapace-sh/carapace-shlex)
 [![Coverage Status](https://coveralls.io/repos/github/github.com/carapace-sh/carapace-shlex/badge.svg?branch=master)](https://coveralls.io/github.com/carapace-sh/carapace-shlex?branch=master)
 
 A command-line lexer that splits and re-joins command lines with quotation-state information for shell completion. Fork of [go-shlex](https://github.com/google/shlex).
