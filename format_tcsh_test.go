@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestTcshFormat(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", Tcsh)
+	tokens, err := Split("echo foo | grep bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestTcshFormat(t *testing.T) {
 }
 
 func TestTcshFormat_BackslashQuote(t *testing.T) {
-	tokens, err := SplitWith("echo $'hello'", Tcsh)
+	tokens, err := Split("echo $'hello'", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestTcshFormat_BackslashQuote(t *testing.T) {
 }
 
 func TestTcshFormat_SingleQuoteLiteral(t *testing.T) {
-	tokens, err := SplitWith("echo '$HOME'", Tcsh)
+	tokens, err := Split("echo '$HOME'", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestTcshFormat_SingleQuoteLiteral(t *testing.T) {
 }
 
 func TestTcshFormat_BacktickLiteralInSingleQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo '`cmd`'", Tcsh)
+	tokens, err := Split("echo '`cmd`'", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestTcshFormat_BacktickLiteralInSingleQuotes(t *testing.T) {
 }
 
 func TestTcshFormat_EscapedDoubleQuoteOutside(t *testing.T) {
-	tokens, err := SplitWith(`echo \"hello\"`, Tcsh)
+	tokens, err := Split(`echo \"hello\"`, Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestTcshFormat_EscapedDoubleQuoteOutside(t *testing.T) {
 }
 
 func TestTcshFormat_DoubleAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo && echo bar", Tcsh)
+	tokens, err := Split("echo foo && echo bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestTcshFormat_DoubleAnd(t *testing.T) {
 }
 
 func TestTcshFormat_DoubleOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo || echo bar", Tcsh)
+	tokens, err := Split("echo foo || echo bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestTcshFormat_DoubleOr(t *testing.T) {
 }
 
 func TestTcshFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", Tcsh)
+	tokens, err := Split("echo foo ; echo bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestTcshFormat_Semicolon(t *testing.T) {
 }
 
 func TestTcshFormat_Background(t *testing.T) {
-	tokens, err := SplitWith("echo foo &", Tcsh)
+	tokens, err := Split("echo foo &", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestTcshFormat_Background(t *testing.T) {
 }
 
 func TestTcshFormat_OpenSingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", Tcsh)
+	tokens, err := Split("echo 'hel", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestTcshFormat_OpenSingleQuote(t *testing.T) {
 }
 
 func TestTcshFormat_BangNotWordbreak(t *testing.T) {
-	tokens, err := SplitWith("echo !$", Tcsh)
+	tokens, err := Split("echo !$", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestTcshFormat_BangNotWordbreak(t *testing.T) {
 }
 
 func TestTcshFormat_BangInWord(t *testing.T) {
-	tokens, err := SplitWith("echo foo!bar", Tcsh)
+	tokens, err := Split("echo foo!bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestTcshFormat_BangInWord(t *testing.T) {
 }
 
 func TestTcshFormat_RedirectBothStdoutStderr(t *testing.T) {
-	tokens, err := SplitWith("echo foo >& /tmp/bar", Tcsh)
+	tokens, err := Split("echo foo >& /tmp/bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestTcshFormat_RedirectBothStdoutStderr(t *testing.T) {
 }
 
 func TestTcshFormat_PipeWithStderr(t *testing.T) {
-	tokens, err := SplitWith("echo foo |& grep bar", Tcsh)
+	tokens, err := Split("echo foo |& grep bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestTcshFormat_PipeWithStderr(t *testing.T) {
 }
 
 func TestTcshFormat_HereDoc(t *testing.T) {
-	tokens, err := SplitWith("cat << EOF", Tcsh)
+	tokens, err := Split("cat << EOF", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestTcshFormat_HereDoc(t *testing.T) {
 }
 
 func TestTcshFormat_InputDuplicate(t *testing.T) {
-	tokens, err := SplitWith("cmd <& 0", Tcsh)
+	tokens, err := Split("cmd <& 0", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestTcshFormat_InputDuplicate(t *testing.T) {
 }
 
 func TestTcshFormat_EqualsNotWordbreak(t *testing.T) {
-	tokens, err := SplitWith("set foo=bar", Tcsh)
+	tokens, err := Split("set foo=bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestTcshFormat_EqualsNotWordbreak(t *testing.T) {
 }
 
 func TestTcshFormat_AtNotWordbreak(t *testing.T) {
-	tokens, err := SplitWith("echo @foo", Tcsh)
+	tokens, err := Split("echo @foo", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestTcshFormat_AtNotWordbreak(t *testing.T) {
 }
 
 func TestTcshFormat_GreaterBangIsRedirectPlusWord(t *testing.T) {
-	tokens, err := SplitWith("echo foo >!bar", Tcsh)
+	tokens, err := Split("echo foo >!bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func TestTcshFormat_GreaterBangIsRedirectPlusWord(t *testing.T) {
 }
 
 func TestTcshFormat_NoBashPipeForceOperator(t *testing.T) {
-	tokens, err := SplitWith("echo foo >| /tmp/bar", Tcsh)
+	tokens, err := Split("echo foo >| /tmp/bar", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestTcshFormat_NoBashPipeForceOperator(t *testing.T) {
 }
 
 func TestTcshFormat_NoHereStringOperator(t *testing.T) {
-	tokens, err := SplitWith("cmd <<< foo", Tcsh)
+	tokens, err := Split("cmd <<< foo", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func TestTcshFormat_NoHereStringOperator(t *testing.T) {
 }
 
 func TestTcshFormat_NoBashBothRedirect(t *testing.T) {
-	tokens, err := SplitWith("cmd &> /tmp/out", Tcsh)
+	tokens, err := Split("cmd &> /tmp/out", Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestTcshFormat_NoBashBothRedirect(t *testing.T) {
 func TestTcshFormat_LineContinuationOutsideQuotes(t *testing.T) {
 	// tcsh: \<newline> outside quotes is a line continuation — both consumed.
 	input := "echo foo" + "\\" + "\n" + "bar"
-	tokens, err := SplitWith(input, Tcsh)
+	tokens, err := Split(input, Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +312,7 @@ func TestTcshFormat_LineContinuationOutsideQuotes(t *testing.T) {
 func TestTcshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 	// tcsh: \<newline> inside "..." is a line continuation — both consumed.
 	input := "echo \"line1" + "\\" + "\n" + "line2\""
-	tokens, err := SplitWith(input, Tcsh)
+	tokens, err := Split(input, Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}

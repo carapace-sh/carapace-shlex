@@ -102,7 +102,7 @@ Fish performs expansions in order: command substitution â†’ variable expansion â
 - **Limited double-quote escapes**: fish only recognizes `\"`, `\$`, `\\`, and `\`+newline as escapes inside double quotes. All other `\X` sequences are literal (both `\` and `X` emitted). The `EscapingQuoteEscapeChars` method returns the allowed set; the state machine checks it in `ESCAPING_QUOTED_STATE`.
 - **`(...)` command substitution**: parentheses are not word breaks in fish (they're part of command substitution syntax). The lexer treats `(` and `)` as regular word characters.
 - **No `COMP_WORDBREAKS`**: fish has no equivalent of bash's `COMP_WORDBREAKS` env var. The wordbreak set is fixed by the format.
-- **QuoteWord**: fish uses double-quote wrapping with `\"`, `\$`, `\\`, and `\`+newline escapes for `JoinWith`. Backtick is not special in fish (not command substitution), so it doesn't trigger quoting.
+- **QuoteWord**: fish uses double-quote wrapping with `\"`, `\$`, `\\`, and `\`+newline escapes for `Join`. Backtick is not special in fish (not command substitution), so it doesn't trigger quoting.
 
 ## References
 

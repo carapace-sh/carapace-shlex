@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestOilFormat(t *testing.T) {
-	tokens, err := SplitWith(`echo "hello" world`, Oil)
+	tokens, err := Split(`echo "hello" world`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestOilFormat(t *testing.T) {
 }
 
 func TestOilFormat_SingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hello world'", Oil)
+	tokens, err := Split("echo 'hello world'", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestOilFormat_SingleQuote(t *testing.T) {
 }
 
 func TestOilFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", Oil)
+	tokens, err := Split("echo foo | grep bar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestOilFormat_Pipe(t *testing.T) {
 }
 
 func TestOilFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", Oil)
+	tokens, err := Split("echo foo ; echo bar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestOilFormat_Semicolon(t *testing.T) {
 }
 
 func TestOilFormat_DoubleAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo && echo bar", Oil)
+	tokens, err := Split("echo foo && echo bar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}

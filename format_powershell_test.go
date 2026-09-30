@@ -4,7 +4,7 @@ import "testing"
 
 func TestPowershellFormat_DoubledDoubleQuote(t *testing.T) {
 	// PowerShell: "" inside double quotes → literal "
-	tokens, err := SplitWith(`echo "say ""hello"""`, Powershell)
+	tokens, err := Split(`echo "say ""hello"""`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,7 +17,7 @@ func TestPowershellFormat_DoubledDoubleQuote(t *testing.T) {
 
 func TestPowershellFormat_BacktickNotBackslash(t *testing.T) {
 	// PowerShell: \ is NOT an escape (backtick is). So \ should be a literal word char.
-	tokens, err := SplitWith(`echo C:\path`, Powershell)
+	tokens, err := Split(`echo C:\path`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestPowershellFormat_BacktickNotBackslash(t *testing.T) {
 }
 
 func TestPowershellFormat_DoubledSingleQuoteSplit(t *testing.T) {
-	tokens, err := SplitWith("echo 'don''t'", Powershell)
+	tokens, err := Split("echo 'don''t'", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestPowershellFormat_DoubledSingleQuoteSplit(t *testing.T) {
 }
 
 func TestPowershellFormat_BacktickEscapeOutside(t *testing.T) {
-	tokens, err := SplitWith("echo `$HOME", Powershell)
+	tokens, err := Split("echo `$HOME", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestPowershellFormat_BacktickEscapeOutside(t *testing.T) {
 }
 
 func TestPowershellFormat_BacktickInDoubleQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo \"say `\"hello`\"\"", Powershell)
+	tokens, err := Split("echo \"say `\"hello`\"\"", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestPowershellFormat_BacktickInDoubleQuotes(t *testing.T) {
 }
 
 func TestPowershellFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", Powershell)
+	tokens, err := Split("echo foo | grep bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestPowershellFormat_Pipe(t *testing.T) {
 }
 
 func TestPowershellFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", Powershell)
+	tokens, err := Split("echo foo ; echo bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestPowershellFormat_Semicolon(t *testing.T) {
 }
 
 func TestPowershellFormat_DoubleAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo && echo bar", Powershell)
+	tokens, err := Split("echo foo && echo bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestPowershellFormat_DoubleAnd(t *testing.T) {
 }
 
 func TestPowershellFormat_OpenSingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", Powershell)
+	tokens, err := Split("echo 'hel", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestPowershellFormat_OpenSingleQuote(t *testing.T) {
 }
 
 func TestPowershellFormat_OpenDoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "hel`, Powershell)
+	tokens, err := Split(`echo "hel`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestPowershellFormat_OpenDoubleQuote(t *testing.T) {
 
 func TestPowershellFormat_BacktickLineContinuation(t *testing.T) {
 	// backtick + newline should be consumed as line continuation, not part of word
-	tokens, err := SplitWith("echo foo`\nbar", Powershell)
+	tokens, err := Split("echo foo`\nbar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestPowershellFormat_BacktickLineContinuation(t *testing.T) {
 }
 
 func TestPowershellFormat_BacktickLineContinuationCRLF(t *testing.T) {
-	tokens, err := SplitWith("echo foo`\r\nbar", Powershell)
+	tokens, err := Split("echo foo`\r\nbar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestPowershellFormat_BacktickLineContinuationCRLF(t *testing.T) {
 
 func TestPowershellFormat_BacktickLineContinuationStartOfWord(t *testing.T) {
 	// backtick + newline at start of word — word continues on next line
-	tokens, err := SplitWith("echo `\nbar", Powershell)
+	tokens, err := Split("echo `\nbar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestPowershellFormat_BacktickLineContinuationStartOfWord(t *testing.T) {
 }
 
 func TestPowershellFormat_BlockComment(t *testing.T) {
-	tokens, err := SplitWith("echo <# multi\nline\ncomment #> foo", Powershell)
+	tokens, err := Split("echo <# multi\nline\ncomment #> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestPowershellFormat_BlockComment(t *testing.T) {
 }
 
 func TestPowershellFormat_BlockCommentSingleLine(t *testing.T) {
-	tokens, err := SplitWith("echo <# inline comment #> foo", Powershell)
+	tokens, err := Split("echo <# inline comment #> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestPowershellFormat_BlockCommentSingleLine(t *testing.T) {
 
 func TestPowershellFormat_StopParsingToken(t *testing.T) {
 	// After --%, everything is literal until newline or |
-	tokens, err := SplitWith("echo --% /grant Dom\\HVAdmin:(CI)(OI)F", Powershell)
+	tokens, err := Split("echo --% /grant Dom\\HVAdmin:(CI)(OI)F", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestPowershellFormat_StopParsingToken(t *testing.T) {
 
 func TestPowershellFormat_StopParsingPipeDelim(t *testing.T) {
 	// After --%, | is still a pipeline delimiter
-	tokens, err := SplitWith("echo --% foo | Select-String bar", Powershell)
+	tokens, err := Split("echo --% foo | Select-String bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func TestPowershellFormat_StopParsingPipeDelim(t *testing.T) {
 
 func TestPowershellFormat_StopParsingRawContent(t *testing.T) {
 	// After --%, content like (CI) should be literal, not split
-	tokens, err := SplitWith("icacls X: --% /grant Dom\\HVAdmin:(CI)(OI)F", Powershell)
+	tokens, err := Split("icacls X: --% /grant Dom\\HVAdmin:(CI)(OI)F", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestPowershellFormat_StopParsingRawContent(t *testing.T) {
 
 func TestPowershellFormat_StreamRedirect2(t *testing.T) {
 	// 2> should be recognized as a stream redirect
-	tokens, err := SplitWith("echo foo 2> error.txt", Powershell)
+	tokens, err := Split("echo foo 2> error.txt", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +246,7 @@ func TestPowershellFormat_StreamRedirect2(t *testing.T) {
 }
 
 func TestPowershellFormat_StreamRedirect2Append(t *testing.T) {
-	tokens, err := SplitWith("echo foo 2>> error.txt", Powershell)
+	tokens, err := Split("echo foo 2>> error.txt", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestPowershellFormat_StreamRedirect2Append(t *testing.T) {
 
 func TestPowershellFormat_StreamRedirectMerge(t *testing.T) {
 	// 2>&1 should be recognized as a merged stream redirect
-	tokens, err := SplitWith("echo foo 2>&1", Powershell)
+	tokens, err := Split("echo foo 2>&1", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func TestPowershellFormat_StreamRedirectMerge(t *testing.T) {
 
 func TestPowershellFormat_StreamRedirectStar(t *testing.T) {
 	// *> should be recognized as all-streams redirect
-	tokens, err := SplitWith("echo foo *> output.txt", Powershell)
+	tokens, err := Split("echo foo *> output.txt", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}

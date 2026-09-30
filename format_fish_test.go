@@ -4,7 +4,7 @@ import "testing"
 
 func TestFishFormat_SingleQuoteEscape(t *testing.T) {
 	// Fish: \' inside single quotes → literal '
-	tokens, err := SplitWith("echo 'it\\'s'", Fish)
+	tokens, err := Split("echo 'it\\'s'", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestFishFormat_SingleQuoteEscape(t *testing.T) {
 
 func TestFishFormat_SingleQuoteBackslashEscape(t *testing.T) {
 	// Fish: \\ inside single quotes → literal \
-	tokens, err := SplitWith("echo 'C:\\\\path'", Fish)
+	tokens, err := Split("echo 'C:\\\\path'", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestFishFormat_SingleQuoteBackslashEscape(t *testing.T) {
 
 func TestFishFormat_KeywordOperators(t *testing.T) {
 	// Fish: "and" and "or" are keyword operators that split pipelines
-	tokens, err := SplitWith("echo foo and echo bar", Fish)
+	tokens, err := Split("echo foo and echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestFishFormat_KeywordOperators(t *testing.T) {
 }
 
 func TestFishFormat_KeywordOperatorAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo and", Fish)
+	tokens, err := Split("echo foo and", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestFishFormat_KeywordOperatorAnd(t *testing.T) {
 }
 
 func TestFishFormat_KeywordOperatorOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo or", Fish)
+	tokens, err := Split("echo foo or", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestFishFormat_KeywordOperatorOr(t *testing.T) {
 
 func TestFishFormat_NotNotKeywordOperator(t *testing.T) {
 	// "not" is a prefix keyword but NOT a pipeline delimiter
-	tokens, err := SplitWith("echo foo not", Fish)
+	tokens, err := Split("echo foo not", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestFishFormat_NotNotKeywordOperator(t *testing.T) {
 }
 
 func TestFishFormat_OpenSingleQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", Fish)
+	tokens, err := Split("echo 'hel", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestFishFormat_OpenSingleQuote(t *testing.T) {
 }
 
 func TestFishFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | grep bar", Fish)
+	tokens, err := Split("echo foo | grep bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestFishFormat_Pipe(t *testing.T) {
 }
 
 func TestFishFormat_Semicolon(t *testing.T) {
-	tokens, err := SplitWith("echo foo ; echo bar", Fish)
+	tokens, err := Split("echo foo ; echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestFishFormat_Semicolon(t *testing.T) {
 }
 
 func TestFishFormat_DoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "hello world"`, Fish)
+	tokens, err := Split(`echo "hello world"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestFishFormat_CompletionContext(t *testing.T) {
 
 func TestFishFormat_DollarNotEscapeInSingleQuotes(t *testing.T) {
 	// \$ is NOT an escape in fish single quotes — only \' and \\ are
-	tokens, err := SplitWith(`echo 'cost: \$5'`, Fish)
+	tokens, err := Split(`echo 'cost: \$5'`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestFishFormat_DollarNotEscapeInSingleQuotes(t *testing.T) {
 }
 
 func TestFishFormat_EscapedSpace(t *testing.T) {
-	tokens, err := SplitWith(`echo a\ b`, Fish)
+	tokens, err := Split(`echo a\ b`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func TestFishFormat_EscapedSpace(t *testing.T) {
 func TestFishFormat_ParensNotWordbreak(t *testing.T) {
 	// Fish: () are command substitution, not word breaks.
 	// Spaces still split words, but parens are part of the words.
-	tokens, err := SplitWith("echo (echo test)", Fish)
+	tokens, err := Split("echo (echo test)", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestFishFormat_ParensNotWordbreak(t *testing.T) {
 }
 
 func TestFishFormat_AndAnd(t *testing.T) {
-	tokens, err := SplitWith("echo foo && echo bar", Fish)
+	tokens, err := Split("echo foo && echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestFishFormat_AndAnd(t *testing.T) {
 }
 
 func TestFishFormat_OrOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo || echo bar", Fish)
+	tokens, err := Split("echo foo || echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestFishFormat_OrOr(t *testing.T) {
 }
 
 func TestFishFormat_Background(t *testing.T) {
-	tokens, err := SplitWith("echo foo & echo bar", Fish)
+	tokens, err := Split("echo foo & echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +213,7 @@ func TestFishFormat_Background(t *testing.T) {
 }
 
 func TestFishFormat_PipeWithStderrMerge(t *testing.T) {
-	tokens, err := SplitWith("echo foo |& cat bar", Fish)
+	tokens, err := Split("echo foo |& cat bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +228,7 @@ func TestFishFormat_PipeWithStderrMerge(t *testing.T) {
 }
 
 func TestFishFormat_AmpPipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo &| cat bar", Fish)
+	tokens, err := Split("echo foo &| cat bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestFishFormat_AmpPipe(t *testing.T) {
 
 func TestFishFormat_ExplicitFdPipe(t *testing.T) {
 	// >| is a pipe with explicit fd in fish (e.g. echo foo >| bar)
-	tokens, err := SplitWith("echo foo >| cat bar", Fish)
+	tokens, err := Split("echo foo >| cat bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestFishFormat_ExplicitFdPipe(t *testing.T) {
 }
 
 func TestFishFormat_AmpRedirect(t *testing.T) {
-	_, err := SplitWith("echo foo &> file.txt", Fish)
+	_, err := Split("echo foo &> file.txt", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestFishFormat_AmpRedirect(t *testing.T) {
 }
 
 func TestFishFormat_AmpRedirectAppend(t *testing.T) {
-	_, err := SplitWith("echo foo &>> file.txt", Fish)
+	_, err := Split("echo foo &>> file.txt", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +280,7 @@ func TestFishFormat_FdRedirect(t *testing.T) {
 	// >&2 is a fd redirect: >& is the operator, 2 is the fd number.
 	// After >&2, the cursor is at a new word (not a redirect target).
 	// Test that >& is classified as a redirect operator.
-	tokens, err := SplitWith("echo foo >&2", Fish)
+	tokens, err := Split("echo foo >&2", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,7 +325,7 @@ func TestFishFormat_TryInputRedirect(t *testing.T) {
 }
 
 func TestFishFormat_DoubleQuoteEscapedQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "say \"hello\""`, Fish)
+	tokens, err := Split(`echo "say \"hello\""`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +336,7 @@ func TestFishFormat_DoubleQuoteEscapedQuote(t *testing.T) {
 }
 
 func TestFishFormat_DoubleQuoteEscapedDollar(t *testing.T) {
-	tokens, err := SplitWith(`echo "cost: \$5"`, Fish)
+	tokens, err := Split(`echo "cost: \$5"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestFishFormat_DoubleQuoteEscapedDollar(t *testing.T) {
 }
 
 func TestFishFormat_DoubleQuoteEscapedBackslash(t *testing.T) {
-	tokens, err := SplitWith(`echo "C:\\path"`, Fish)
+	tokens, err := Split(`echo "C:\\path"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +359,7 @@ func TestFishFormat_DoubleQuoteEscapedBackslash(t *testing.T) {
 
 func TestFishFormat_DoubleQuoteNonEscapeBackslash(t *testing.T) {
 	// \n inside fish double quotes is NOT an escape — both \ and n are literal
-	tokens, err := SplitWith(`echo "hello\nworld"`, Fish)
+	tokens, err := Split(`echo "hello\nworld"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +371,7 @@ func TestFishFormat_DoubleQuoteNonEscapeBackslash(t *testing.T) {
 
 func TestFishFormat_DoubleQuoteNonEscapeBackslashOther(t *testing.T) {
 	// \t inside fish double quotes is NOT an escape — both \ and t are literal
-	tokens, err := SplitWith(`echo "a\tb"`, Fish)
+	tokens, err := Split(`echo "a\tb"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestFishFormat_DoubleQuoteNonEscapeBackslashOther(t *testing.T) {
 func TestFishFormat_DoubleQuoteEscapedNewline(t *testing.T) {
 	// \<newline> is a line continuation escape inside fish double quotes.
 	// Both the backslash and the newline are consumed (removed).
-	tokens, err := SplitWith("echo \"hello\\\nworld\"", Fish)
+	tokens, err := Split("echo \"hello\\\nworld\"", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -439,7 +439,7 @@ func TestFishFormat_CompletionBackground(t *testing.T) {
 func TestFishFormat_LineContinuationOutsideQuotes(t *testing.T) {
 	// fish: \<newline> outside quotes is a line continuation — both consumed.
 	input := "echo foo" + "\\" + "\n" + "bar"
-	tokens, err := SplitWith(input, Fish)
+	tokens, err := Split(input, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestFishFormat_LineContinuationOutsideQuotes(t *testing.T) {
 func TestFishFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 	// fish: \<newline> inside "..." is a line continuation — both consumed.
 	input := "echo \"line1" + "\\" + "\n" + "line2\""
-	tokens, err := SplitWith(input, Fish)
+	tokens, err := Split(input, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -465,7 +465,7 @@ func TestFishFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 func TestFishFormat_LineContinuationCRLFInDoubleQuotes(t *testing.T) {
 	// fish: \<CR><LF> inside "..." is a line continuation — all three consumed.
 	input := "echo \"line1" + "\\" + "\r\n" + "line2\""
-	tokens, err := SplitWith(input, Fish)
+	tokens, err := Split(input, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}

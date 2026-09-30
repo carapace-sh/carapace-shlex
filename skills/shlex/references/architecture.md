@@ -2,7 +2,7 @@
 
 How the v2 lexer is structured: a common token model and tokenizer state machine that each shell format plugs into via the `Format` interface. V1 was POSIX-only; v2 generalizes to multiple shell formats (including non-POSIX).
 
-> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`, `SplitWith`), `format.go` (`Format` interface, `Span`), `completion.go` (`CompletionContext`, `SplitForCompletion`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
+> **Source of truth**: `shlex.go` (state machine, `Token`, `Split`, `Split`), `format.go` (`Format` interface, `Span`), `completion.go` (`CompletionContext`, `SplitForCompletion`), `tokenslice.go` (`TokenSlice` operations), `wordbreak.go` (`WordbreakType`), `format_*.go` (per-shell formats). For how shells differ lexically, see [comparison.md](comparison.md).
 
 ## V1 Recap (POSIX-Only)
 
@@ -65,7 +65,7 @@ type formatImpl interface {
 	EscapeNotBareword() bool
 
 	// QuoteWord quotes a single word for safe insertion into a command line.
-	// Used by JoinWith. Each format uses its shell's preferred quoting style.
+	// Used by Join. Each format uses its shell's preferred quoting style.
 	QuoteWord(s string) string
 }
 ```
@@ -138,7 +138,7 @@ These are format-agnostic and work on the token stream produced by any format's 
 
 | Method | Purpose |
 |--------|---------|
-| `Split(s)` / `SplitWith(s, format)` | Entry point — lexes a string into tokens |
+| `Split(s)` / `Split(s, format)` | Entry point — lexes a string into tokens |
 | `Words()` | Merges adjoining tokens (contiguous `Span`) into single words |
 | `CurrentPipeline()` | Returns the last pipeline (splits on `\|`, `&&`, `;`, etc.) |
 | `Pipelines()` | Splits into all pipelines (used by `CurrentPipeline`) |
@@ -201,9 +201,9 @@ func SplitForCompletion(s string, format Format) *CompletionContext
 
 This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 regexes on `RawValue`) with `ctx.QuotingState` from the tokenizer directly.
 
-## JoinWith and QuoteWord
+## Join and QuoteWord
 
-`JoinWith(s []string, format Format) string` joins words using the format's `QuoteWord` method. Each format implements `QuoteWord` with its shell's preferred quoting style:
+`Join(s []string, format Format) string` joins words using the format's `QuoteWord` method. Each format implements `QuoteWord` with its shell's preferred quoting style:
 
 | Format | Quoting style |
 |--------|--------------|
@@ -215,7 +215,7 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 | xonsh | Python single-quote wrapping with `\' \\` escapes |
 | cmd | double-quote wrapping with `^"` for literal `"` |
 
-`Join(s []string) string` delegates to `JoinWith(s, shlex.Default)` for backward compatibility. The old v1 `Join` that used Go's `%#v` quoting is gone.
+`Join(s []string, format Format) string` joins words using the format's `QuoteWord` method; `shlex.Default` selects the bash rules.
 
 ## Implemented Formats
 
@@ -322,13 +322,13 @@ When `KeywordOperators()` returns a non-nil map, the `tokenizer.Next()` method r
 
 ```go
 // Backward compatible (v1)
-func Split(s string) (TokenSlice, error)    // defaults to Bash
-func Join(s []string) string                // defaults to Bash
+func Split(s string, format Format) (TokenSlice, error)
+func Join(s []string, format Format) string
 
 // New (v2)
-func SplitWith(s string, format Format) (TokenSlice, error)
+func Split(s string, format Format) (TokenSlice, error)
 func SplitForCompletion(s string, format Format) *CompletionContext
-func JoinWith(s []string, format Format) string
+func Join(s []string, format Format) string
 
 // Format constants
 const (
@@ -338,7 +338,7 @@ const (
 )
 ```
 
-`Split(s)` delegates to `SplitWith(s, Default)`, preserving v1 behavior. Existing carapace code using `Split` and `TokenSlice` methods works unchanged (the only breaking change is `Token.Index` → `Token.Span.Start`).
+`Split(s)` delegates to `Split(s, Default)`, preserving v1 behavior. Existing carapace code using `Split` and `TokenSlice` methods works unchanged (the only breaking change is `Token.Index` → `Token.Span.Start`).
 
 ## Adding a New Shell Format
 
@@ -352,7 +352,7 @@ See [comparison.md](comparison.md) for the per-shell lexical rules and the `form
 
 ## References
 
-- `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `SplitWith`, `Join`, `JoinWith`
+- `shlex.go` — tokenizer state machine, `Token`, `LexerState`, `Split`, `Split`, `Join`, `Join`
 - `format.go` — `Format` constants, `formatImpl` interface, `Span`
 - `completion.go` — `CompletionContext`, `SplitForCompletion`
 - `quote.go` — per-shell `QuoteWord` implementations

@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestPowershellFormat_UnclosedBlockComment(t *testing.T) {
-	tokens, err := SplitWith("echo <# unclosed comment", Powershell)
+	tokens, err := Split("echo <# unclosed comment", Powershell)
 	if err != nil {
 		t.Fatalf("Unclosed block comment should not error: %v", err)
 	}
@@ -14,7 +14,7 @@ func TestPowershellFormat_UnclosedBlockComment(t *testing.T) {
 }
 
 func TestPowershellFormat_BlockCommentAtStart(t *testing.T) {
-	tokens, err := SplitWith("<# comment #> echo foo", Powershell)
+	tokens, err := Split("<# comment #> echo foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestPowershellFormat_BlockCommentAtStart(t *testing.T) {
 }
 
 func TestPowershellFormat_ZeroLengthBlockComment(t *testing.T) {
-	tokens, err := SplitWith("echo <##> foo", Powershell)
+	tokens, err := Split("echo <##> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestPowershellFormat_ZeroLengthBlockComment(t *testing.T) {
 }
 
 func TestPowershellFormat_StopParsingAtEOF(t *testing.T) {
-	tokens, err := SplitWith("echo --%", Powershell)
+	tokens, err := Split("echo --%", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestPowershellFormat_StopParsingAtEOF(t *testing.T) {
 }
 
 func TestPowershellFormat_StopParsingPipeInQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo --% "foo | bar"`, Powershell)
+	tokens, err := Split(`echo --% "foo | bar"`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestPowershellFormat_StopParsingPipeInQuotes(t *testing.T) {
 }
 
 func TestPowershellFormat_StopParsingUnclosedQuotePipe(t *testing.T) {
-	tokens, err := SplitWith(`echo --% "foo | bar`, Powershell)
+	tokens, err := Split(`echo --% "foo | bar`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestPowershellFormat_StopParsingUnclosedQuotePipe(t *testing.T) {
 }
 
 func TestPowershellFormat_BacktickAtEOFInDoubleQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo \"hel`", Powershell)
+	tokens, err := Split("echo \"hel`", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestPowershellFormat_BacktickAtEOFInDoubleQuotes(t *testing.T) {
 }
 
 func TestPowershellFormat_BacktickEscapePipe(t *testing.T) {
-	tokens, err := SplitWith("echo `|", Powershell)
+	tokens, err := Split("echo `|", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestPowershellFormat_BacktickEscapeOperators(t *testing.T) {
 	ops := []string{"&", ";", ">", "<", "(", ")"}
 	for _, op := range ops {
 		t.Run(op, func(t *testing.T) {
-			tokens, err := SplitWith("echo `"+op, Powershell)
+			tokens, err := Split("echo `"+op, Powershell)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -110,7 +110,7 @@ func TestPowershellFormat_BacktickEscapeOperators(t *testing.T) {
 }
 
 func TestPowershellFormat_DoubleBacktick(t *testing.T) {
-	tokens, err := SplitWith("echo ``foo", Powershell)
+	tokens, err := Split("echo ``foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestPowershellFormat_DoubleBacktick(t *testing.T) {
 }
 
 func TestPowershellFormat_BacktickLineContinuationInDoubleQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo \"foo`\nbar\"", Powershell)
+	tokens, err := Split("echo \"foo`\nbar\"", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestPowershellFormat_BacktickLineContinuationInDoubleQuotes(t *testing.T) {
 }
 
 func TestPowershellFormat_TripleDoubleQuoteAtStart(t *testing.T) {
-	tokens, err := SplitWith(`echo """hello"`, Powershell)
+	tokens, err := Split(`echo """hello"`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestPowershellFormat_TripleDoubleQuoteAtStart(t *testing.T) {
 func TestPowershellFormat_QuadrupleDoubleQuote(t *testing.T) {
 	// """" → 1st opens, 2nd peeks 3rd (match) → literal ", 3rd consumed by peek,
 	// 4th peeks EOF → close. Value = one literal ".
-	tokens, err := SplitWith(`echo """"`, Powershell)
+	tokens, err := Split(`echo """"`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestPowershellFormat_QuadrupleDoubleQuote(t *testing.T) {
 }
 
 func TestPowershellFormat_TripleSingleQuoteAtStart(t *testing.T) {
-	tokens, err := SplitWith("echo '''hello'", Powershell)
+	tokens, err := Split("echo '''hello'", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestPowershellFormat_TripleSingleQuoteAtStart(t *testing.T) {
 }
 
 func TestPowershellFormat_DoubleOrPipelineSplit(t *testing.T) {
-	tokens, err := SplitWith("echo foo || echo bar", Powershell)
+	tokens, err := Split("echo foo || echo bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}

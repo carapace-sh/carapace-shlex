@@ -88,7 +88,7 @@ func TestLexer(t *testing.T) {
 
 func TestSplit(t *testing.T) {
 	want := []string{"one", "two", "three four", "five \"six\"", "seven#eight", "eleven", "twelve\\", "thirteen", "=", "13", "fourteen/14", "|", "||", "|", "after", "before", "|", "&", ";", ""}
-	got, err := Split(testString)
+	got, err := Split(testString, Default)
 	if err != nil {
 		t.Error(err)
 	}
@@ -121,7 +121,7 @@ func TestJoin(t *testing.T) {
 		"echo \"with\rcarriageReturn\"": {"echo", "with\rcarriageReturn"},
 		"echo \"with\ttab\"":            {"echo", "with\ttab"},
 	} {
-		if actual := Join(words); actual != expected {
+		if actual := Join(words, Default); actual != expected {
 			t.Errorf("joined words don't match\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}

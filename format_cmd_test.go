@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestCmdFormat_DoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "hello world"`, Cmd)
+	tokens, err := Split(`echo "hello world"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -15,7 +15,7 @@ func TestCmdFormat_DoubleQuote(t *testing.T) {
 
 func TestCmdFormat_NoSingleQuote(t *testing.T) {
 	// Cmd: ' is a literal character, not a quote
-	tokens, err := SplitWith("echo 'hello'", Cmd)
+	tokens, err := Split("echo 'hello'", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestCmdFormat_NoSingleQuote(t *testing.T) {
 
 func TestCmdFormat_CaretEscape(t *testing.T) {
 	// Cmd: ^ escapes the next character
-	tokens, err := SplitWith("echo hello^&world", Cmd)
+	tokens, err := Split("echo hello^&world", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestCmdFormat_CaretEscape(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapePipe(t *testing.T) {
-	tokens, err := SplitWith("echo ^|", Cmd)
+	tokens, err := Split("echo ^|", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestCmdFormat_CaretEscapePipe(t *testing.T) {
 
 func TestCmdFormat_BackslashLiteral(t *testing.T) {
 	// Cmd: \ is a literal character (Windows paths)
-	tokens, err := SplitWith(`echo C:\path\to\file`, Cmd)
+	tokens, err := Split(`echo C:\path\to\file`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestCmdFormat_BackslashLiteral(t *testing.T) {
 
 func TestCmdFormat_AmpSeparator(t *testing.T) {
 	// Cmd: & is a command separator (like ; in POSIX)
-	tokens, err := SplitWith("echo foo & echo bar", Cmd)
+	tokens, err := Split("echo foo & echo bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestCmdFormat_AmpSeparator(t *testing.T) {
 
 func TestCmdFormat_NoSemicolonSeparator(t *testing.T) {
 	// Cmd: ; is NOT a separator — it's a literal character
-	tokens, err := SplitWith("echo foo;bar", Cmd)
+	tokens, err := Split("echo foo;bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestCmdFormat_NoSemicolonSeparator(t *testing.T) {
 }
 
 func TestCmdFormat_Pipe(t *testing.T) {
-	tokens, err := SplitWith("echo foo | findstr bar", Cmd)
+	tokens, err := Split("echo foo | findstr bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestCmdFormat_Pipe(t *testing.T) {
 
 func TestCmdFormat_DoubleAnd(t *testing.T) {
 	// Cmd: && is conditional and
-	tokens, err := SplitWith("echo foo && echo bar", Cmd)
+	tokens, err := Split("echo foo && echo bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestCmdFormat_CaretInQuotes(t *testing.T) {
 	// Cmd: ^ is LITERAL inside double quotes — it does not escape.
 	// "say ^" → ^ is literal, " closes the quote.
 	// Outside quotes, ^" → literal " (caret escapes).
-	tokens, err := SplitWith(`echo "say ^"hello^""`, Cmd)
+	tokens, err := Split(`echo "say ^"hello^""`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestCmdFormat_CaretInQuotes(t *testing.T) {
 
 func TestCmdFormat_PercentNotWordbreak(t *testing.T) {
 	// Cmd: % is a word character (variable expansion), not a word break
-	tokens, err := SplitWith("echo %PATH%", Cmd)
+	tokens, err := Split("echo %PATH%", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestCmdFormat_PercentNotWordbreak(t *testing.T) {
 }
 
 func TestCmdFormat_DoubleOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo || echo bar", Cmd)
+	tokens, err := Split("echo foo || echo bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestCmdFormat_Redirect(t *testing.T) {
 }
 
 func TestCmdFormat_OpenDoubleQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo "hel`, Cmd)
+	tokens, err := Split(`echo "hel`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestCmdFormat_OpenDoubleQuote(t *testing.T) {
 }
 
 func TestCmdFormat_CaretAtEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo^", Cmd)
+	tokens, err := Split("echo foo^", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestCmdFormat_CaretAtEOF(t *testing.T) {
 func TestCmdFormat_CaretLiteralInQuotes(t *testing.T) {
 	// Cmd: ^ is literal inside double quotes — does not escape the next char.
 	// "hello^world" should produce hello^world, not helloworld.
-	tokens, err := SplitWith(`echo "hello^world"`, Cmd)
+	tokens, err := Split(`echo "hello^world"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func TestCmdFormat_CaretLiteralInQuotes(t *testing.T) {
 
 func TestCmdFormat_DoubleCaretLiteralInQuotes(t *testing.T) {
 	// Cmd: ^^ inside quotes is literal ^^ (both carets), not a single ^.
-	tokens, err := SplitWith(`echo "hello^^world"`, Cmd)
+	tokens, err := Split(`echo "hello^^world"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestCmdFormat_DoubleCaretLiteralInQuotes(t *testing.T) {
 
 func TestCmdFormat_LineContinuation(t *testing.T) {
 	// Cmd: ^ at end of line is a line continuation — ^\n is consumed
-	tokens, err := SplitWith("echo foo^\nbar", Cmd)
+	tokens, err := Split("echo foo^\nbar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestCmdFormat_LineContinuation(t *testing.T) {
 
 func TestCmdFormat_LineContinuationCRLF(t *testing.T) {
 	// Cmd: ^ at end of line with CRLF is a line continuation
-	tokens, err := SplitWith("echo foo^\r\nbar", Cmd)
+	tokens, err := Split("echo foo^\r\nbar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestCmdFormat_LineContinuationCRLF(t *testing.T) {
 
 func TestCmdFormat_ParenGrouping(t *testing.T) {
 	// Cmd: ( and ) are grouping operators
-	tokens, err := SplitWith("(echo foo) & echo bar", Cmd)
+	tokens, err := Split("(echo foo) & echo bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func TestCmdFormat_ParenBeforeCommand(t *testing.T) {
 	// Cmd: ( and ) are wordbreak operators; with spaces they separate from words
 	// They are not redirect operators, so FilterRedirects keeps them.
 	// Words() does not merge non-adjacent tokens.
-	tokens, err := SplitWith("( echo hello )", Cmd)
+	tokens, err := Split("( echo hello )", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func TestCmdFormat_ParenBeforeCommand(t *testing.T) {
 
 func TestCmdFormat_CommaDelimiter(t *testing.T) {
 	// Cmd: comma is a word delimiter (like space)
-	tokens, err := SplitWith("echo hello,world", Cmd)
+	tokens, err := Split("echo hello,world", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func TestCmdFormat_CommaDelimiter(t *testing.T) {
 
 func TestCmdFormat_CommaInQuotes(t *testing.T) {
 	// Cmd: comma inside double quotes is literal
-	tokens, err := SplitWith(`echo "hello,world"`, Cmd)
+	tokens, err := Split(`echo "hello,world"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +286,7 @@ func TestCmdFormat_CommaInQuotes(t *testing.T) {
 
 func TestCmdFormat_StreamRedirect2(t *testing.T) {
 	// Cmd: 2> should be recognized as a stream redirect (stderr)
-	tokens, err := SplitWith("echo foo 2> bar", Cmd)
+	tokens, err := Split("echo foo 2> bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,7 +303,7 @@ func TestCmdFormat_StreamRedirect2(t *testing.T) {
 
 func TestCmdFormat_StreamRedirectMerge(t *testing.T) {
 	// Cmd: 2>&1 should be recognized as a stream merge redirect
-	tokens, err := SplitWith("echo foo 2>&1 bar", Cmd)
+	tokens, err := Split("echo foo 2>&1 bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func TestCmdFormat_StreamRedirectCompletion(t *testing.T) {
 
 func TestCmdFormat_CaretLineContinuationAtEOF(t *testing.T) {
 	// Cmd: ^ at EOF (no newline) should enter ESCAPING_STATE, not line continuation
-	tokens, err := SplitWith("echo foo^", Cmd)
+	tokens, err := Split("echo foo^", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}

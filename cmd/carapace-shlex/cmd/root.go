@@ -30,7 +30,7 @@ var rootCmd = &cobra.Command{
 			encoder.SetIndent("", "  ")
 			return encoder.Encode(ctx)
 		default:
-			tokens, err := shlex.SplitWith(args[0], format)
+			tokens, err := shlex.Split(args[0], format)
 			if err != nil {
 				return err
 			}
@@ -54,7 +54,7 @@ var rootCmd = &cobra.Command{
 				for _, word := range tokens.Words() {
 					words = append(words, word.Value)
 				}
-				fmt.Fprintln(cmd.OutOrStdout(), shlex.JoinWith(words, format))
+				fmt.Fprintln(cmd.OutOrStdout(), shlex.Join(words, format))
 				return nil
 			default:
 				encoder := json.NewEncoder(cmd.OutOrStdout())

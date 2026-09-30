@@ -121,7 +121,7 @@ func TestVerify_FishCommentChar(t *testing.T) {
 // Other \X sequences are literal (both chars emitted).
 func TestVerify_FishSingleQuoteEscapes(t *testing.T) {
 	// \' inside single quotes → literal '
-	tokens, err := SplitWith("echo 'it\\'s'", Fish)
+	tokens, err := Split("echo 'it\\'s'", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestVerify_FishSingleQuoteEscapes(t *testing.T) {
 	}
 
 	// \\ inside single quotes → literal \
-	tokens, err = SplitWith("echo 'C:\\\\path'", Fish)
+	tokens, err = Split("echo 'C:\\\\path'", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestVerify_FishSingleQuoteEscapes(t *testing.T) {
 // only converts \' and \\ — other \X sequences keep both characters.
 func TestVerify_FishSingleQuoteNonEscape(t *testing.T) {
 	// \$ inside single quotes → literal \$ (NOT an escape)
-	tokens, err := SplitWith(`echo 'cost: \$5'`, Fish)
+	tokens, err := Split(`echo 'cost: \$5'`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestVerify_FishSingleQuoteNonEscape(t *testing.T) {
 	}
 
 	// \n inside single quotes → literal \n (NOT a newline)
-	tokens, err = SplitWith(`echo 'hello\nworld'`, Fish)
+	tokens, err = Split(`echo 'hello\nworld'`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestVerify_FishDoubleQuoteEscapeChars(t *testing.T) {
 // Verify double quote escape behavior end-to-end
 func TestVerify_FishDoubleQuoteEscaping(t *testing.T) {
 	// \" inside double quotes → literal "
-	tokens, err := SplitWith(`echo "say \"hello\""`, Fish)
+	tokens, err := Split(`echo "say \"hello\""`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestVerify_FishDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \$ inside double quotes → literal $
-	tokens, err = SplitWith(`echo "cost: \$5"`, Fish)
+	tokens, err = Split(`echo "cost: \$5"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +218,7 @@ func TestVerify_FishDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \\ inside double quotes → literal \
-	tokens, err = SplitWith(`echo "C:\\path"`, Fish)
+	tokens, err = Split(`echo "C:\\path"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +228,7 @@ func TestVerify_FishDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \n inside double quotes → literal \n (NOT a newline)
-	tokens, err = SplitWith(`echo "hello\nworld"`, Fish)
+	tokens, err = Split(`echo "hello\nworld"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ func TestVerify_FishDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \t inside double quotes → literal \t (NOT a tab)
-	tokens, err = SplitWith(`echo "a\tb"`, Fish)
+	tokens, err = Split(`echo "a\tb"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestVerify_FishDoubleQuoteEscaping(t *testing.T) {
 // mode (TOK_MODE_CHAR_ESCAPE) followed by \n is a line continuation.
 func TestVerify_FishLineContinuation(t *testing.T) {
 	// Outside quotes: \ + \n → removed
-	tokens, err := SplitWith("echo foo\\\nbar", Fish)
+	tokens, err := Split("echo foo\\\nbar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestVerify_FishLineContinuation(t *testing.T) {
 	}
 
 	// Inside double quotes: \ + \n → removed
-	tokens, err = SplitWith("echo \"foo\\\nbar\"", Fish)
+	tokens, err = Split("echo \"foo\\\nbar\"", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +273,7 @@ func TestVerify_FishLineContinuation(t *testing.T) {
 	}
 
 	// CRLF variant: \ + \r\n → removed
-	tokens, err = SplitWith("echo foo\\\r\nbar", Fish)
+	tokens, err = Split("echo foo\\\r\nbar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +412,7 @@ func TestVerify_FishKeywordOperators(t *testing.T) {
 // Verify keyword operators split pipelines end-to-end
 func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 	// "and" splits pipelines
-	tokens, err := SplitWith("echo foo and echo bar", Fish)
+	tokens, err := Split("echo foo and echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 	}
 
 	// "or" splits pipelines
-	tokens, err = SplitWith("echo foo or echo bar", Fish)
+	tokens, err = Split("echo foo or echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -432,7 +432,7 @@ func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 	}
 
 	// "not" does NOT split pipelines (prefix keyword)
-	tokens, err = SplitWith("echo foo not echo bar", Fish)
+	tokens, err = Split("echo foo not echo bar", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,7 +447,7 @@ func TestVerify_FishKeywordOperatorPipelineSplit(t *testing.T) {
 // ( as a delimiter. The PostProcess reclassifies ( and ) as
 // WORDBREAK_SUBSTITUTION_OPEN/CLOSE.
 func TestVerify_FishCommandSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo (ls)", Fish)
+	tokens, err := Split("echo (ls)", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -473,7 +473,7 @@ func TestVerify_FishCommandSubstitution(t *testing.T) {
 // The substitution delimiters should track depth so that pipes inside
 // (cmd1 | cmd2) don't split the outer pipeline.
 func TestVerify_FishSubstitutionDoesntSplitPipeline(t *testing.T) {
-	tokens, err := SplitWith("echo (ls | grep foo)", Fish)
+	tokens, err := Split("echo (ls | grep foo)", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -483,7 +483,7 @@ func TestVerify_FishSubstitutionDoesntSplitPipeline(t *testing.T) {
 	}
 }
 
-// QuoteWord for JoinWith — fish uses double-quote wrapping with
+// QuoteWord for Join — fish uses double-quote wrapping with
 // \" \$ \\ and \+newline escapes. Backtick is NOT special in fish.
 func TestVerify_FishQuoteWord(t *testing.T) {
 	tests := []struct {
@@ -519,7 +519,7 @@ func TestVerify_FishQuoteWord(t *testing.T) {
 // is consistent: spaces inside double quotes don't split words.
 func TestVerify_FishNoWordSplitting(t *testing.T) {
 	// Inside double quotes, spaces don't split
-	tokens, err := SplitWith(`echo "hello world"`, Fish)
+	tokens, err := Split(`echo "hello world"`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -529,7 +529,7 @@ func TestVerify_FishNoWordSplitting(t *testing.T) {
 	}
 
 	// Outside quotes, spaces DO split (literal source whitespace)
-	tokens, err = SplitWith("echo hello world", Fish)
+	tokens, err = Split("echo hello world", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,7 +543,7 @@ func TestVerify_FishNoWordSplitting(t *testing.T) {
 // From tokenizer.rs: TOK_MODE_CHAR_ESCAPE mode — next char consumed literally.
 func TestVerify_FishEscapeOutsideQuotes(t *testing.T) {
 	// Escaped space → one word
-	tokens, err := SplitWith(`echo a\ b`, Fish)
+	tokens, err := Split(`echo a\ b`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -553,7 +553,7 @@ func TestVerify_FishEscapeOutsideQuotes(t *testing.T) {
 	}
 
 	// Escaped $ → literal $
-	tokens, err = SplitWith(`echo \$HOME`, Fish)
+	tokens, err = Split(`echo \$HOME`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -563,7 +563,7 @@ func TestVerify_FishEscapeOutsideQuotes(t *testing.T) {
 	}
 
 	// Escaped pipe → literal | (not a pipeline delimiter)
-	tokens, err = SplitWith(`echo foo\|bar`, Fish)
+	tokens, err = Split(`echo foo\|bar`, Fish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -577,7 +577,7 @@ func TestVerify_FishEscapeOutsideQuotes(t *testing.T) {
 // From tokenizer.rs: # at token start → comment_end (skip to end of line).
 // # mid-word is a regular character.
 func TestVerify_FishComment(t *testing.T) {
-	tokens, err := SplitWith("echo hello # this is a comment", Fish)
+	tokens, err := Split("echo hello # this is a comment", Fish)
 	if err != nil {
 		t.Fatal(err)
 	}

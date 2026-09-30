@@ -4,7 +4,7 @@ import "testing"
 
 func TestZshFormat_RCQuotes(t *testing.T) {
 	// With RC_QUOTES, '' inside single quotes → literal '
-	tokens, err := SplitWith("echo 'it''s'", Zsh)
+	tokens, err := Split("echo 'it''s'", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestZshFormat_RCQuotes(t *testing.T) {
 
 func TestZshFormat_NoRCQuotes(t *testing.T) {
 	// Without RC_QUOTES (bash), '' closes then reopens → words merge to "its"
-	tokens, err := SplitWith("echo 'it''s'", Bash)
+	tokens, err := Split("echo 'it''s'", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestZshFormat_NoRCQuotes(t *testing.T) {
 }
 
 func TestZshFormat_OpenQuote(t *testing.T) {
-	tokens, err := SplitWith("echo 'hel", Zsh)
+	tokens, err := Split("echo 'hel", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestZshFormat_OpenQuote(t *testing.T) {
 }
 
 func TestZshFormat_DoubleQuoteEscape(t *testing.T) {
-	tokens, err := SplitWith(`echo "say \"hello\""`, Zsh)
+	tokens, err := Split(`echo "say \"hello\""`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestZshFormat_DoubleQuoteEscape(t *testing.T) {
 }
 
 func TestZshFormat_RCQuotesLonger(t *testing.T) {
-	tokens, err := SplitWith("echo 'it''s a test'", Zsh)
+	tokens, err := Split("echo 'it''s a test'", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestZshFormat_Operators(t *testing.T) {
 		{"echo foo ;; bar", WORDBREAK_LIST_SEQUENTIAL_DOUBLE, ";;"},
 	}
 	for _, tt := range tests {
-		tokens, err := SplitWith(tt.input, Zsh)
+		tokens, err := Split(tt.input, Zsh)
 		if err != nil {
 			t.Fatalf("zsh operator %q: %v", tt.wantRaw, err)
 		}
@@ -114,7 +114,7 @@ func TestZshFormat_ForceAppendRedirectIsRedirect(t *testing.T) {
 }
 
 func TestZshFormat_FallthroughIsPipelineDelimiter(t *testing.T) {
-	tokens, err := SplitWith("echo foo ;& bar", Zsh)
+	tokens, err := Split("echo foo ;& bar", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestZshFormat_FallthroughIsPipelineDelimiter(t *testing.T) {
 func TestZshFormat_LineContinuationOutsideQuotes(t *testing.T) {
 	// zsh: \<newline> outside quotes is a line continuation — both consumed.
 	input := "echo foo" + "\\" + "\n" + "bar"
-	tokens, err := SplitWith(input, Zsh)
+	tokens, err := Split(input, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestZshFormat_LineContinuationOutsideQuotes(t *testing.T) {
 func TestZshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 	// zsh: \<newline> inside "..." is a line continuation — both consumed.
 	input := "echo \"line1" + "\\" + "\n" + "line2\""
-	tokens, err := SplitWith(input, Zsh)
+	tokens, err := Split(input, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}

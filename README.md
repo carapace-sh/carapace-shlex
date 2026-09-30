@@ -12,21 +12,15 @@ V1 was POSIX-only. V2 supports multiple shell formats (including non-POSIX) via 
 
 ## Usage
 
-### Split (backward compatible)
+### Split
 
 ```go
-tokens, err := shlex.Split(`echo "hello world" | grep foo`)
+tokens, err := shlex.Split(`echo "hello world" | grep foo`, shlex.Bash)
+tokens, err = shlex.Split(`echo 'it''s'`, shlex.Elvish)
+tokens, err = shlex.Split(`echo foo`, shlex.Default) // Default ("") is the bash format
 ```
 
-Defaults to the bash (POSIX) format. Returns a `TokenSlice` with typed tokens including quotation state.
-
-### SplitWith (format-specific)
-
-```go
-tokens, err := shlex.SplitWith(`echo 'it''s'`, shlex.Elvish)
-```
-
-Use a specific shell format for lexing.
+Returns a `TokenSlice` with typed tokens including quotation state. Unknown format names are rejected.
 
 ### SplitForCompletion
 

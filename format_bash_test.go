@@ -20,7 +20,7 @@ func TestBashFormat_Classifier(t *testing.T) {
 
 func TestBashFormat_CloseQuoteEscapeReopen(t *testing.T) {
 	// The POSIX idiom for embedding a single quote: 'it'\''s
-	tokens, err := SplitWith("echo 'it'\\''s", Bash)
+	tokens, err := Split("echo 'it'\\''s", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestBashFormat_CloseQuoteEscapeReopen(t *testing.T) {
 }
 
 func TestBashFormat_EscapedSpace(t *testing.T) {
-	tokens, err := SplitWith(`echo a\ b`, Bash)
+	tokens, err := Split(`echo a\ b`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestBashFormat_BackslashNInDoubleQuotes(t *testing.T) {
 	// In bash, \n inside "..." is literal (backslash not special before n).
 	// Backslash is only special before $, `, ", \, and newline.
 	// Both backslash and n should be preserved in the value.
-	tokens, err := SplitWith(`echo "hello\nworld"`, Bash)
+	tokens, err := Split(`echo "hello\nworld"`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestBashFormat_BackslashNInDoubleQuotes(t *testing.T) {
 }
 
 func TestBashFormat_AdjacentQuotedSegments(t *testing.T) {
-	tokens, err := SplitWith(`echo a"b"'c'`, Bash)
+	tokens, err := Split(`echo a"b"'c'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestBashFormat_AdjacentQuotedSegments(t *testing.T) {
 }
 
 func TestBashFormat_SingleQuoteLiteral(t *testing.T) {
-	tokens, err := SplitWith(`echo '$HOME \n \t'`, Bash)
+	tokens, err := Split(`echo '$HOME \n \t'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestBashFormat_AtWordbreakPrefix(t *testing.T) {
 }
 
 func TestBashFormat_EscapeAtEOF(t *testing.T) {
-	tokens, err := SplitWith(`echo foo\`, Bash)
+	tokens, err := Split(`echo foo\`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestBashFormat_EscapeAtEOF(t *testing.T) {
 }
 
 func TestBashFormat_Comment(t *testing.T) {
-	tokens, err := SplitWith("echo hello # comment", Bash)
+	tokens, err := Split("echo hello # comment", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestBashFormat_ForceOutputRedirect(t *testing.T) {
 }
 
 func TestBashFormat_CaseTerminator(t *testing.T) {
-	tokens, err := SplitWith("echo foo ;; bar", Bash)
+	tokens, err := Split("echo foo ;; bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestBashFormat_CaseTerminator(t *testing.T) {
 
 func TestBashFormat_BackslashDollarInDoubleQuotes(t *testing.T) {
 	// \$ inside "..." should drop the backslash — $ is a CBSDQUOTE char
-	tokens, err := SplitWith(`echo "hello\$world"`, Bash)
+	tokens, err := Split(`echo "hello\$world"`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestBashFormat_BackslashDollarInDoubleQuotes(t *testing.T) {
 
 func TestBashFormat_BackslashQuoteInDoubleQuotes(t *testing.T) {
 	// \" inside "..." should drop the backslash — " is a CBSDQUOTE char
-	tokens, err := SplitWith(`echo "say \"hello\""`, Bash)
+	tokens, err := Split(`echo "say \"hello\""`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestBashFormat_BackslashQuoteInDoubleQuotes(t *testing.T) {
 
 func TestBashFormat_BackslashBacktickInDoubleQuotes(t *testing.T) {
 	// \` inside "..." should drop the backslash — ` is a CBSDQUOTE char
-	tokens, err := SplitWith("echo \"hello\\`world\"", Bash)
+	tokens, err := Split("echo \"hello\\`world\"", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestBashFormat_BackslashBacktickInDoubleQuotes(t *testing.T) {
 
 func TestBashFormat_BackslashBackslashInDoubleQuotes(t *testing.T) {
 	// \\ inside "..." should produce a single \ — \ is a CBSDQUOTE char
-	tokens, err := SplitWith(`echo "hello\\world"`, Bash)
+	tokens, err := Split(`echo "hello\\world"`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestBashFormat_BackslashBackslashInDoubleQuotes(t *testing.T) {
 func TestBashFormat_OperatorBoundary(t *testing.T) {
 	// >; should be two separate tokens: > and ;
 	// not a single unknown operator >;
-	tokens, err := SplitWith("echo foo >; bar", Bash)
+	tokens, err := Split("echo foo >; bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestBashFormat_OperatorBoundary(t *testing.T) {
 }
 
 func TestBashFormat_HereDocOperator(t *testing.T) {
-	tokens, err := SplitWith("echo foo << bar", Bash)
+	tokens, err := Split("echo foo << bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func TestBashFormat_HereDocOperator(t *testing.T) {
 }
 
 func TestBashFormat_HereStringOperator(t *testing.T) {
-	tokens, err := SplitWith("echo foo <<< bar", Bash)
+	tokens, err := Split("echo foo <<< bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestBashFormat_HereStringOperator(t *testing.T) {
 
 func TestBashFormat_CaseFallthrough(t *testing.T) {
 	// ;& is bash 4+ case fall-through
-	tokens, err := SplitWith("echo foo ;& bar", Bash)
+	tokens, err := Split("echo foo ;& bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestBashFormat_CaseFallthrough(t *testing.T) {
 
 func TestBashFormat_CaseNextPattern(t *testing.T) {
 	// ;;& is bash 4+ case next pattern
-	tokens, err := SplitWith("echo foo ;;& bar", Bash)
+	tokens, err := Split("echo foo ;;& bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestBashFormat_CaseNextPattern(t *testing.T) {
 
 func TestBashFormat_CloseParenAsWordbreak(t *testing.T) {
 	// ) is a shell break character in bash (shell_break_chars includes it)
-	tokens, err := SplitWith("echo (foo) bar", Bash)
+	tokens, err := Split("echo (foo) bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestBashFormat_CloseParenAsWordbreak(t *testing.T) {
 
 func TestBashFormat_OperatorSequencePipeSemicolon(t *testing.T) {
 	// |; should be two separate tokens: | and ;
-	tokens, err := SplitWith("echo foo |; bar", Bash)
+	tokens, err := Split("echo foo |; bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +372,7 @@ func TestBashFormat_LineContinuationOutsideQuotes(t *testing.T) {
 	// bash: \<newline> outside quotes is a line continuation — both consumed.
 	// Build input with explicit concatenation to ensure a real newline.
 	input := "echo foo" + "\\" + "\n" + "bar"
-	tokens, err := SplitWith(input, Bash)
+	tokens, err := Split(input, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +385,7 @@ func TestBashFormat_LineContinuationOutsideQuotes(t *testing.T) {
 func TestBashFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 	// bash: \<newline> inside "..." is a line continuation — both consumed.
 	input := "echo \"line1" + "\\" + "\n" + "line2\""
-	tokens, err := SplitWith(input, Bash)
+	tokens, err := Split(input, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestBashFormat_LineContinuationInDoubleQuotes(t *testing.T) {
 func TestBashFormat_LineContinuationCRLFInDoubleQuotes(t *testing.T) {
 	// bash: \<CR><LF> inside "..." is a line continuation — all three consumed.
 	input := "echo \"line1" + "\\" + "\r\n" + "line2\""
-	tokens, err := SplitWith(input, Bash)
+	tokens, err := Split(input, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +411,7 @@ func TestBashFormat_LineContinuationCRLFInDoubleQuotes(t *testing.T) {
 func TestBashFormat_LineContinuationAtWordStart(t *testing.T) {
 	// bash: \<newline> at start of word — word starts on next line.
 	input := "echo " + "\\" + "\n" + "bar"
-	tokens, err := SplitWith(input, Bash)
+	tokens, err := Split(input, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}

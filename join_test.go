@@ -2,7 +2,7 @@ package shlex
 
 import "testing"
 
-func TestJoinWith_Posix(t *testing.T) {
+func TestJoin_Posix(t *testing.T) {
 	tests := map[string][]string{
 		``:                              {},
 		`echo hello`:                    {"echo", "hello"},
@@ -19,13 +19,13 @@ func TestJoinWith_Posix(t *testing.T) {
 		`ls /tmp | xargs -n 1 echo`:     {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Bash); actual != expected {
-			t.Errorf("JoinWith(bash)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Bash); actual != expected {
+			t.Errorf("Join(bash)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
 
-func TestJoinWith_Fish(t *testing.T) {
+func TestJoin_Fish(t *testing.T) {
 	tests := map[string][]string{
 		`echo hello`:           {"echo", "hello"},
 		`echo "hello world"`:   {"echo", "hello world"},
@@ -33,13 +33,13 @@ func TestJoinWith_Fish(t *testing.T) {
 		`echo "cost \$5"`:      {"echo", "cost $5"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Fish); actual != expected {
-			t.Errorf("JoinWith(fish)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Fish); actual != expected {
+			t.Errorf("Join(fish)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
 
-func TestJoinWith_Elvish(t *testing.T) {
+func TestJoin_Elvish(t *testing.T) {
 	tests := map[string][]string{
 		`echo ''`:            {"echo", ""},
 		`echo hello`:         {"echo", "hello"},
@@ -61,60 +61,60 @@ func TestJoinWith_Elvish(t *testing.T) {
 		`echo a~b`:           {"echo", "a~b"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Elvish); actual != expected {
-			t.Errorf("JoinWith(elvish)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Elvish); actual != expected {
+			t.Errorf("Join(elvish)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
 
-func TestJoinWith_PowerShell(t *testing.T) {
+func TestJoin_PowerShell(t *testing.T) {
 	tests := map[string][]string{
 		`echo hello`:         {"echo", "hello"},
 		`echo 'hello world'`: {"echo", "hello world"},
 		`echo 'don''t'`:      {"echo", "don't"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Powershell); actual != expected {
-			t.Errorf("JoinWith(powershell)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Powershell); actual != expected {
+			t.Errorf("Join(powershell)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
 
-func TestJoinWith_Nushell(t *testing.T) {
+func TestJoin_Nushell(t *testing.T) {
 	tests := map[string][]string{
 		`echo hello`:           {"echo", "hello"},
 		`echo "hello world"`:   {"echo", "hello world"},
 		`echo "say \"hello\""`: {"echo", `say "hello"`},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Nushell); actual != expected {
-			t.Errorf("JoinWith(nushell)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Nushell); actual != expected {
+			t.Errorf("Join(nushell)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
 
-func TestJoinWith_Cmd(t *testing.T) {
+func TestJoin_Cmd(t *testing.T) {
 	tests := map[string][]string{
 		`echo hello`:             {"echo", "hello"},
 		`echo "hello world"`:     {"echo", "hello world"},
 		`echo "say "^"hello"^""`: {"echo", `say "hello"`},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Cmd); actual != expected {
-			t.Errorf("JoinWith(cmd)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Cmd); actual != expected {
+			t.Errorf("Join(cmd)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
 
-func TestJoinWith_Xonsh(t *testing.T) {
+func TestJoin_Xonsh(t *testing.T) {
 	tests := map[string][]string{
 		`echo hello`:         {"echo", "hello"},
 		`echo 'hello world'`: {"echo", "hello world"},
 		`echo 'it\'s'`:       {"echo", "it's"},
 	}
 	for expected, words := range tests {
-		if actual := JoinWith(words, Xonsh); actual != expected {
-			t.Errorf("JoinWith(xonsh)\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Xonsh); actual != expected {
+			t.Errorf("Join(xonsh)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }
@@ -129,8 +129,8 @@ func TestJoinBackwardCompat(t *testing.T) {
 		`echo "\"ls\""`:             {"echo", `"ls"`},
 		`ls /tmp | xargs -n 1 echo`: {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
 	} {
-		if actual := Join(words); actual != expected {
-			t.Errorf("Join() backward compat\nactual  : %#v\nexpected: %#v", actual, expected)
+		if actual := Join(words, Default); actual != expected {
+			t.Errorf("Join(words, Default)\nactual  : %#v\nexpected: %#v", actual, expected)
 		}
 	}
 }

@@ -74,7 +74,7 @@ func SplitForCompletion(s string, format Format) *CompletionContext {
 	if !ok {
 		return &CompletionContext{QuotingState: START_STATE}
 	}
-	tokens, err := SplitWith(s, format)
+	tokens, err := Split(s, format)
 	if err != nil || len(tokens) == 0 {
 		return &CompletionContext{QuotingState: START_STATE}
 	}

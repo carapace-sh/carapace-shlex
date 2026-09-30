@@ -8,7 +8,7 @@ import (
 
 func TestEdgeCase_StopParsingEOF(t *testing.T) {
 	// EOF immediately after --% with no content — empty word merges with --%
-	tokens, err := SplitWith("echo --%", Powershell)
+	tokens, err := Split("echo --%", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestEdgeCase_StopParsingEOF(t *testing.T) {
 
 func TestEdgeCase_StopParsingNewlineOnly(t *testing.T) {
 	// Newline after --% — newline is whitespace, next line continues in same pipeline
-	tokens, err := SplitWith("echo --%\nfoo", Powershell)
+	tokens, err := Split("echo --%\nfoo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestEdgeCase_StopParsingNewlineOnly(t *testing.T) {
 
 func TestEdgeCase_StopParsingPipeInDoubleQuotes(t *testing.T) {
 	// After --%, | inside double quotes should NOT split the pipeline
-	tokens, err := SplitWith(`echo --% "foo | bar" baz`, Powershell)
+	tokens, err := Split(`echo --% "foo | bar" baz`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestEdgeCase_StopParsingPipeInDoubleQuotes(t *testing.T) {
 
 func TestEdgeCase_StopParsingDoubleQuoteToggling(t *testing.T) {
 	// After --%, double quotes toggle in-quotes state — raw content is one word
-	tokens, err := SplitWith(`echo --% "hello" world`, Powershell)
+	tokens, err := Split(`echo --% "hello" world`, Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestEdgeCase_StopParsingDoubleQuoteToggling(t *testing.T) {
 // Block comment edge cases (PowerShell <# ... #>).
 
 func TestEdgeCase_BlockCommentUnclosedEOF(t *testing.T) {
-	tokens, err := SplitWith("echo <# unclosed comment", Powershell)
+	tokens, err := Split("echo <# unclosed comment", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestEdgeCase_BlockCommentUnclosedEOF(t *testing.T) {
 
 func TestEdgeCase_BlockCommentHashInside(t *testing.T) {
 	// A lone # inside a block comment does NOT close it — only #> closes
-	tokens, err := SplitWith("echo <# has # and # inside #> foo", Powershell)
+	tokens, err := Split("echo <# has # and # inside #> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestEdgeCase_BlockCommentHashInside(t *testing.T) {
 
 func TestEdgeCase_BlockCommentCloserRestart(t *testing.T) {
 	// The closer #> starts with # — a lone # restarts the match but doesn't close
-	tokens, err := SplitWith("echo <# # not closer #> foo", Powershell)
+	tokens, err := Split("echo <# # not closer #> foo", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestEdgeCase_BlockCommentCloserRestart(t *testing.T) {
 
 func TestEdgeCase_BlockCommentAfterWordbreak(t *testing.T) {
 	// Block comment opener after a pipe — pipe splits, comment consumed
-	tokens, err := SplitWith("echo foo |<# comment #> bar", Powershell)
+	tokens, err := Split("echo foo |<# comment #> bar", Powershell)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestEdgeCase_BlockCommentAfterWordbreak(t *testing.T) {
 
 func TestEdgeCase_UnicodeCJK(t *testing.T) {
 	// CJK characters — rune offsets must be correct (3 runes, not 9 bytes)
-	tokens, err := SplitWith("echo 日本語", Bash)
+	tokens, err := Split("echo 日本語", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestEdgeCase_UnicodeCJK(t *testing.T) {
 
 func TestEdgeCase_UnicodeAccented(t *testing.T) {
 	// Accented character (é) is a single rune
-	tokens, err := SplitWith("echo café", Bash)
+	tokens, err := Split("echo café", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestEdgeCase_UnicodeAccented(t *testing.T) {
 }
 
 func TestEdgeCase_UnicodeInQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo \"日本語\"", Bash)
+	tokens, err := Split("echo \"日本語\"", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestEdgeCase_UnicodeInQuotes(t *testing.T) {
 
 func TestEdgeCase_UnicodeEmoji(t *testing.T) {
 	// Emoji (4-byte UTF-8) — single rune
-	tokens, err := SplitWith("echo 🎉", Bash)
+	tokens, err := Split("echo 🎉", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestEdgeCase_UnicodeEmoji(t *testing.T) {
 
 func TestEdgeCase_UnicodeElvishBareword(t *testing.T) {
 	// Elvish allows non-ASCII printable in barewords
-	tokens, err := SplitWith("echo naïve", Elvish)
+	tokens, err := Split("echo naïve", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestEdgeCase_UnicodeElvishBareword(t *testing.T) {
 
 func TestEdgeCase_TripleQuoteOpeningTwoQuotesThenWord(t *testing.T) {
 	// Two double quotes followed by a word — not a triple quote
-	tokens, err := SplitWith(`echo ""hello`, Xonsh)
+	tokens, err := Split(`echo ""hello`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestEdgeCase_TripleQuoteOpeningTwoQuotesThenWord(t *testing.T) {
 
 func TestEdgeCase_TripleQuoteOpeningTwoQuotesEOF(t *testing.T) {
 	// Two double quotes at EOF — not a triple quote, empty string
-	tokens, err := SplitWith(`echo ""`, Xonsh)
+	tokens, err := Split(`echo ""`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func TestEdgeCase_TripleQuoteOpeningTwoQuotesEOF(t *testing.T) {
 
 func TestEdgeCase_TripleQuoteOpeningTwoSingleQuotesThenWord(t *testing.T) {
 	// Two single quotes followed by a word — not a triple quote
-	tokens, err := SplitWith(`echo ''hello`, Xonsh)
+	tokens, err := Split(`echo ''hello`, Xonsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestEdgeCase_TripleQuoteOpeningTwoSingleQuotesThenWord(t *testing.T) {
 // FilterRedirects fd prefix edge cases.
 
 func TestEdgeCase_FilterRedirectsFd3(t *testing.T) {
-	tokens, err := SplitWith("echo 3> file", Bash)
+	tokens, err := Split("echo 3> file", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ func TestEdgeCase_FilterRedirectsFd3(t *testing.T) {
 
 func TestEdgeCase_FilterRedirectsFd10(t *testing.T) {
 	// Multi-digit fd prefix should also be filtered
-	tokens, err := SplitWith("echo 10> file", Bash)
+	tokens, err := Split("echo 10> file", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestEdgeCase_FilterRedirectsFd10(t *testing.T) {
 
 func TestEdgeCase_FilterRedirectsNonNumericNotFiltered(t *testing.T) {
 	// Non-numeric word before redirect should NOT be filtered as fd prefix
-	tokens, err := SplitWith("echo foo> file", Bash)
+	tokens, err := Split("echo foo> file", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,9 +298,9 @@ func TestEdgeCase_WhitespaceOnly(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokens, err := SplitWith(tt.input, Bash)
+			tokens, err := Split(tt.input, Bash)
 			if err != nil {
-				t.Fatalf("SplitWith error: %v", err)
+				t.Fatalf("Split error: %v", err)
 			}
 			// Should produce exactly one empty token
 			if len(tokens) != 1 {
@@ -324,7 +324,7 @@ func TestEdgeCase_WhitespaceOnly(t *testing.T) {
 // Pipeline with no space after delimiter.
 
 func TestEdgeCase_PipeNoSpaceAfter(t *testing.T) {
-	tokens, err := SplitWith("echo foo|grep", Bash)
+	tokens, err := Split("echo foo|grep", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -354,7 +354,7 @@ func TestEdgeCase_PipeEOFCompletion(t *testing.T) {
 // Comment edge cases.
 
 func TestEdgeCase_CommentAtEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo # comment", Bash)
+	tokens, err := Split("echo foo # comment", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +365,7 @@ func TestEdgeCase_CommentAtEOF(t *testing.T) {
 }
 
 func TestEdgeCase_CommentThenNewline(t *testing.T) {
-	tokens, err := SplitWith("echo foo # comment\necho bar", Bash)
+	tokens, err := Split("echo foo # comment\necho bar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,7 +376,7 @@ func TestEdgeCase_CommentThenNewline(t *testing.T) {
 }
 
 func TestEdgeCase_CommentAtStart(t *testing.T) {
-	tokens, err := SplitWith("# comment\necho foo", Bash)
+	tokens, err := Split("# comment\necho foo", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -387,7 +387,7 @@ func TestEdgeCase_CommentAtStart(t *testing.T) {
 }
 
 func TestEdgeCase_HashInDoubleQuotesNotComment(t *testing.T) {
-	tokens, err := SplitWith(`echo "foo#bar"`, Bash)
+	tokens, err := Split(`echo "foo#bar"`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,7 +401,7 @@ func TestEdgeCase_HashInDoubleQuotesNotComment(t *testing.T) {
 
 func TestEdgeCase_LineContinuationAtEOF(t *testing.T) {
 	// Dangling escape at EOF — escape char is dropped, word returned without it
-	tokens, err := SplitWith("echo foo\\", Bash)
+	tokens, err := Split("echo foo\\", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +412,7 @@ func TestEdgeCase_LineContinuationAtEOF(t *testing.T) {
 }
 
 func TestEdgeCase_LineContinuationJoins(t *testing.T) {
-	tokens, err := SplitWith("echo foo\\\nbar", Bash)
+	tokens, err := Split("echo foo\\\nbar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +424,7 @@ func TestEdgeCase_LineContinuationJoins(t *testing.T) {
 
 func TestEdgeCase_LineContinuationInSingleQuotesLiteral(t *testing.T) {
 	// Backslash-newline inside single quotes is literal (no line continuation)
-	tokens, err := SplitWith("echo 'foo\\\nbar'", Bash)
+	tokens, err := Split("echo 'foo\\\nbar'", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +440,7 @@ func TestEdgeCase_LineContinuationInSingleQuotesLiteral(t *testing.T) {
 // Empty token after wordbreak at EOF.
 
 func TestEdgeCase_EmptyTokenAfterPipeEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo |", Bash)
+	tokens, err := Split("echo foo |", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -454,7 +454,7 @@ func TestEdgeCase_EmptyTokenAfterPipeEOF(t *testing.T) {
 }
 
 func TestEdgeCase_EmptyTokenAfterRedirectEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo >", Bash)
+	tokens, err := Split("echo foo >", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,7 +468,7 @@ func TestEdgeCase_EmptyTokenAfterRedirectEOF(t *testing.T) {
 }
 
 func TestEdgeCase_EmptyTokenAfterCaseTerminatorEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo ;;", Bash)
+	tokens, err := Split("echo foo ;;", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,7 +484,7 @@ func TestEdgeCase_EmptyTokenAfterCaseTerminatorEOF(t *testing.T) {
 // Nushell wordbreak type verification for ( and ).
 
 func TestEdgeCase_NushellSubstitutionWordbreakType(t *testing.T) {
-	tokens, err := SplitWith("echo (ls)", Nushell)
+	tokens, err := Split("echo (ls)", Nushell)
 	if err != nil {
 		t.Fatal(err)
 	}

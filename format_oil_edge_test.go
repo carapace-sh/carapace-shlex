@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestOilFormat_DoubleOr(t *testing.T) {
-	tokens, err := SplitWith("echo foo || echo bar", Oil)
+	tokens, err := Split("echo foo || echo bar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -13,7 +13,7 @@ func TestOilFormat_DoubleOr(t *testing.T) {
 }
 
 func TestOilFormat_Background(t *testing.T) {
-	tokens, err := SplitWith("echo foo & echo bar", Oil)
+	tokens, err := Split("echo foo & echo bar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestOilFormat_Background(t *testing.T) {
 }
 
 func TestOilFormat_PipeWithStderr(t *testing.T) {
-	tokens, err := SplitWith("echo foo |& grep bar", Oil)
+	tokens, err := Split("echo foo |& grep bar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestOilFormat_PipeWithStderr(t *testing.T) {
 }
 
 func TestOilFormat_RedirectOutput(t *testing.T) {
-	tokens, err := SplitWith("echo foo > file.txt", Oil)
+	tokens, err := Split("echo foo > file.txt", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestOilFormat_RedirectAppend(t *testing.T) {
 }
 
 func TestOilFormat_HereDoc(t *testing.T) {
-	tokens, err := SplitWith("cat << EOF", Oil)
+	tokens, err := Split("cat << EOF", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestOilFormat_HereDoc(t *testing.T) {
 }
 
 func TestOilFormat_HereString(t *testing.T) {
-	tokens, err := SplitWith(`cat <<< "string"`, Oil)
+	tokens, err := Split(`cat <<< "string"`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestOilFormat_HereString(t *testing.T) {
 }
 
 func TestOilFormat_CommandSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo $(date)", Oil)
+	tokens, err := Split("echo $(date)", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestOilFormat_CommandSubstitution(t *testing.T) {
 }
 
 func TestOilFormat_ArithmeticExpansion(t *testing.T) {
-	tokens, err := SplitWith("echo $((1+2))", Oil)
+	tokens, err := Split("echo $((1+2))", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestOilFormat_ArithmeticExpansion(t *testing.T) {
 }
 
 func TestOilFormat_ProcessSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo <(grep foo)", Oil)
+	tokens, err := Split("echo <(grep foo)", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestOilFormat_ProcessSubstitution(t *testing.T) {
 }
 
 func TestOilFormat_EscapedSpace(t *testing.T) {
-	tokens, err := SplitWith(`echo foo\ bar`, Oil)
+	tokens, err := Split(`echo foo\ bar`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestOilFormat_EscapedSpace(t *testing.T) {
 }
 
 func TestOilFormat_DoubleQuoteBackslash(t *testing.T) {
-	tokens, err := SplitWith(`echo "a\$b"`, Oil)
+	tokens, err := Split(`echo "a\$b"`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestOilFormat_DoubleQuoteBackslash(t *testing.T) {
 func TestOilFormat_LineContinuation(t *testing.T) {
 	// backslash-newline = line continuation. The space before the
 	// backslash is kept, so words are "echo" and "foo bar".
-	tokens, err := SplitWith("echo foo \\\nbar", Oil)
+	tokens, err := Split("echo foo \\\nbar", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestOilFormat_LineContinuation(t *testing.T) {
 }
 
 func TestOilFormat_EmptyQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo "" ''`, Oil)
+	tokens, err := Split(`echo "" ''`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestOilFormat_EmptyQuotes(t *testing.T) {
 }
 
 func TestOilFormat_AdjacentQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo a"b"c'd'`, Oil)
+	tokens, err := Split(`echo a"b"c'd'`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestOilFormat_AdjacentQuotes(t *testing.T) {
 }
 
 func TestOilFormat_Comment(t *testing.T) {
-	tokens, err := SplitWith("echo foo # comment", Oil)
+	tokens, err := Split("echo foo # comment", Oil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestOilFormat_Comment(t *testing.T) {
 }
 
 func TestOilFormat_EscapeAtEOF(t *testing.T) {
-	tokens, err := SplitWith(`echo foo\`, Oil)
+	tokens, err := Split(`echo foo\`, Oil)
 	if err != nil {
 		t.Fatal(err)
 	}

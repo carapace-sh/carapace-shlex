@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestSubstitution_BashCommandSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo $(echo test)", Bash)
+	tokens, err := Split("echo $(echo test)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestSubstitution_BashCommandSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_BashArithmetic(t *testing.T) {
-	tokens, err := SplitWith("echo $((1+2))", Bash)
+	tokens, err := Split("echo $((1+2))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestSubstitution_BashArithmetic(t *testing.T) {
 }
 
 func TestSubstitution_BashProcessSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo <(grep foo)", Bash)
+	tokens, err := Split("echo <(grep foo)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestSubstitution_BashProcessSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_PipelineDoesNotSplitInsideSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo foo $(bar | grep x) baz", Bash)
+	tokens, err := Split("echo foo $(bar | grep x) baz", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestSubstitution_PipelineDoesNotSplitInsideSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_NestedCommandSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo $(echo $(echo test))", Bash)
+	tokens, err := Split("echo $(echo $(echo test))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestSubstitution_CompletionInsideSubstitutionWithInnerPipe(t *testing.T) {
 }
 
 func TestSubstitution_BashBacktickSubstitution(t *testing.T) {
-	tokens, err := SplitWith("echo `echo test`", Bash)
+	tokens, err := Split("echo `echo test`", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestSubstitution_BashBacktickSubstitution(t *testing.T) {
 }
 
 func TestSubstitution_ElvishOutputCapture(t *testing.T) {
-	tokens, err := SplitWith("echo (echo test)", Elvish)
+	tokens, err := Split("echo (echo test)", Elvish)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestSubstitution_ElvishOutputCaptureCompletion(t *testing.T) {
 }
 
 func TestSubstitution_TokenReclassification(t *testing.T) {
-	tokens, err := SplitWith("echo $(test)", Bash)
+	tokens, err := Split("echo $(test)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}

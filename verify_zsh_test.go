@@ -94,7 +94,7 @@ func TestVerify_ZshRCQuotes(t *testing.T) {
 	}
 
 	// '' inside single quotes → literal '
-	tokens, err := SplitWith("echo 'it''s'", Zsh)
+	tokens, err := Split("echo 'it''s'", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestVerify_ZshRCQuotes(t *testing.T) {
 	}
 
 	// Multiple '' sequences
-	tokens, err = SplitWith("echo '''hello'''", Zsh)
+	tokens, err = Split("echo '''hello'''", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestVerify_ZshRCQuotes(t *testing.T) {
 	}
 
 	// Empty single-quoted string '' → empty value (not an escape)
-	tokens, err = SplitWith("echo ''", Zsh)
+	tokens, err = Split("echo ''", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestVerify_ZshSingleQuoteNoBackslashEscape(t *testing.T) {
 	}
 
 	// \ is literal inside single quotes
-	tokens, err := SplitWith(`echo 'hello\nworld'`, Zsh)
+	tokens, err := Split(`echo 'hello\nworld'`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestVerify_ZshSingleQuoteNoBackslashEscape(t *testing.T) {
 	}
 
 	// $ is literal inside single quotes
-	tokens, err = SplitWith(`echo '$HOME'`, Zsh)
+	tokens, err = Split(`echo '$HOME'`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestVerify_ZshSingleQuoteNoBackslashEscape(t *testing.T) {
 	}
 
 	// ` is literal inside single quotes
-	tokens, err = SplitWith("echo '`cmd`'", Zsh)
+	tokens, err = Split("echo '`cmd`'", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestVerify_ZshDoubleQuoteEscaping(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// \" inside double quotes → literal "
-	tokens, err := SplitWith(`echo "say \"hello\""`, Zsh)
+	tokens, err := Split(`echo "say \"hello\""`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestVerify_ZshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \$ inside double quotes → literal $
-	tokens, err = SplitWith(`echo "cost: \$5"`, Zsh)
+	tokens, err = Split(`echo "cost: \$5"`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestVerify_ZshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \\ inside double quotes → literal \
-	tokens, err = SplitWith(`echo "C:\\path"`, Zsh)
+	tokens, err = Split(`echo "C:\\path"`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestVerify_ZshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \` inside double quotes → literal `
-	tokens, err = SplitWith("echo \"cmd \\`whoami\\`\"", Zsh)
+	tokens, err = Split("echo \"cmd \\`whoami\\`\"", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestVerify_ZshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \n inside double quotes → literal \n (NOT a newline)
-	tokens, err = SplitWith(`echo "hello\nworld"`, Zsh)
+	tokens, err = Split(`echo "hello\nworld"`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func TestVerify_ZshDoubleQuoteEscaping(t *testing.T) {
 	}
 
 	// \t inside double quotes → literal \t (NOT a tab)
-	tokens, err = SplitWith(`echo "a\tb"`, Zsh)
+	tokens, err = Split(`echo "a\tb"`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestVerify_ZshLineContinuation(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// Outside quotes: \ + \n → removed
-	tokens, err := SplitWith("echo foo\\\nbar", Zsh)
+	tokens, err := Split("echo foo\\\nbar", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +302,7 @@ func TestVerify_ZshLineContinuation(t *testing.T) {
 	}
 
 	// Inside double quotes: \ + \n → removed
-	tokens, err = SplitWith("echo \"foo\\\nbar\"", Zsh)
+	tokens, err = Split("echo \"foo\\\nbar\"", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +312,7 @@ func TestVerify_ZshLineContinuation(t *testing.T) {
 	}
 
 	// CRLF variant: \ + \r\n → removed
-	tokens, err = SplitWith("echo foo\\\r\nbar", Zsh)
+	tokens, err = Split("echo foo\\\r\nbar", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func TestVerify_ZshComment(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo hello # this is a comment", Zsh)
+	tokens, err := Split("echo hello # this is a comment", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,9 +410,9 @@ func TestVerify_ZshOperatorGrammar(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tokens, err := SplitWith("echo "+tc.input+" foo", Zsh)
+		tokens, err := Split("echo "+tc.input+" foo", Zsh)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", "echo "+tc.input+" foo", err)
+			t.Fatalf("Split(%q): %v", "echo "+tc.input+" foo", err)
 		}
 		found := false
 		for _, tok := range tokens {
@@ -557,7 +557,7 @@ func TestVerify_ZshCommandSubstitution(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $(ls)", Zsh)
+	tokens, err := Split("echo $(ls)", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -587,7 +587,7 @@ func TestVerify_ZshArithmeticExpansion(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $((1+2))", Zsh)
+	tokens, err := Split("echo $((1+2))", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -626,9 +626,9 @@ func TestVerify_ZshProcessSubstitution(t *testing.T) {
 		if op == ")" {
 			input = "echo <(cat) " + op
 		}
-		tokens, err := SplitWith(input, Zsh)
+		tokens, err := Split(input, Zsh)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", input, err)
+			t.Fatalf("Split(%q): %v", input, err)
 		}
 		found := false
 		for _, tok := range tokens {
@@ -651,7 +651,7 @@ func TestVerify_ZshSubstitutionDoesntSplitPipeline(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $(ls | grep foo)", Zsh)
+	tokens, err := Split("echo $(ls | grep foo)", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -670,7 +670,7 @@ func TestVerify_ZshFdPrefixInRedirects(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// 2> should filter out the "2" as fd prefix
-	tokens, err := SplitWith("echo 2> file", Zsh)
+	tokens, err := Split("echo 2> file", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -689,7 +689,7 @@ func TestVerify_ZshFdPrefixInRedirects(t *testing.T) {
 	}
 }
 
-// QuoteWord for JoinWith — zsh uses posixQuoteWord (double-quote wrapping
+// QuoteWord for Join — zsh uses posixQuoteWord (double-quote wrapping
 // with \ escapes for CBSDQUOTE chars: \, `, $, ", \n).
 // This matches zsh's quotestring() with QT_DOUBLE style.
 func TestVerify_ZshQuoteWord(t *testing.T) {
@@ -729,7 +729,7 @@ func TestVerify_ZshEscapeOutsideQuotes(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// Escaped space → one word
-	tokens, err := SplitWith(`echo a\ b`, Zsh)
+	tokens, err := Split(`echo a\ b`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -739,7 +739,7 @@ func TestVerify_ZshEscapeOutsideQuotes(t *testing.T) {
 	}
 
 	// Escaped $ → literal $
-	tokens, err = SplitWith(`echo \$HOME`, Zsh)
+	tokens, err = Split(`echo \$HOME`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -749,7 +749,7 @@ func TestVerify_ZshEscapeOutsideQuotes(t *testing.T) {
 	}
 
 	// Escaped pipe → literal | (not a pipeline delimiter)
-	tokens, err = SplitWith(`echo foo\|bar`, Zsh)
+	tokens, err = Split(`echo foo\|bar`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -759,7 +759,7 @@ func TestVerify_ZshEscapeOutsideQuotes(t *testing.T) {
 	}
 
 	// Escaped > → literal > (not a redirect)
-	tokens, err = SplitWith(`echo foo\>bar`, Zsh)
+	tokens, err = Split(`echo foo\>bar`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -779,7 +779,7 @@ func TestVerify_ZshNoWordSplitting(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// Inside double quotes, spaces don't split
-	tokens, err := SplitWith(`echo "hello world"`, Zsh)
+	tokens, err := Split(`echo "hello world"`, Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -789,7 +789,7 @@ func TestVerify_ZshNoWordSplitting(t *testing.T) {
 	}
 
 	// Outside quotes, spaces DO split (literal source whitespace)
-	tokens, err = SplitWith("echo hello world", Zsh)
+	tokens, err = Split("echo hello world", Zsh)
 	if err != nil {
 		t.Fatal(err)
 	}

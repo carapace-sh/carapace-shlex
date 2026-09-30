@@ -1141,14 +1141,9 @@ func (t *tokenizer) Next() (*Token, error) {
 	return token, err
 }
 
-// Split partitions a string into tokens using the default (bash) format.
-func Split(s string) (TokenSlice, error) {
-	return SplitWith(s, Default)
-}
-
-// SplitWith partitions a string into tokens using the given format.
+// Split partitions a string into tokens using the given format.
 // Unknown format names are rejected.
-func SplitWith(s string, format Format) (TokenSlice, error) {
+func Split(s string, format Format) (TokenSlice, error) {
 	f, ok := formatImplFor(format)
 	if !ok {
 		return nil, fmt.Errorf("unknown format: %q", format)
@@ -1171,15 +1166,9 @@ func SplitWith(s string, format Format) (TokenSlice, error) {
 	return tokens, nil
 }
 
-// Join concatenates words to create a single string using the default
-// (bash) format. It quotes and escapes where appropriate.
-func Join(s []string) string {
-	return JoinWith(s, Default)
-}
-
-// JoinWith concatenates words using the given format's quoting rules.
+// Join concatenates words using the given format's quoting rules.
 // Unknown format names fall back to the default format.
-func JoinWith(s []string, format Format) string {
+func Join(s []string, format Format) string {
 	f, ok := formatImplFor(format)
 	if !ok {
 		f = formatImpls[Default]

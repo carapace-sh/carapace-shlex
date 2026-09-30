@@ -201,9 +201,9 @@ func TestVerify_OperatorGrammar(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tokens, err := SplitWith("echo "+tc.input+" foo", Bash)
+		tokens, err := Split("echo "+tc.input+" foo", Bash)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", "echo "+tc.input+" foo", err)
+			t.Fatalf("Split(%q): %v", "echo "+tc.input+" foo", err)
 		}
 		// Find the wordbreak token
 		found := false
@@ -293,9 +293,9 @@ func TestVerify_DoubleQuoteBackslashEscaping(t *testing.T) {
 		if r == '\n' {
 			input = "echo \"\\\n\""
 		}
-		tokens, err := SplitWith(input, Bash)
+		tokens, err := Split(input, Bash)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", input, err)
+			t.Fatalf("Split(%q): %v", input, err)
 		}
 		words := tokens.Words()
 		last := words[len(words)-1]
@@ -320,9 +320,9 @@ func TestVerify_DoubleQuoteBackslashEscaping(t *testing.T) {
 			continue // spaces break the word
 		}
 		input := `echo "\` + string(r) + `"`
-		tokens, err := SplitWith(input, Bash)
+		tokens, err := Split(input, Bash)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", input, err)
+			t.Fatalf("Split(%q): %v", input, err)
 		}
 		words := tokens.Words()
 		last := words[len(words)-1]
@@ -342,7 +342,7 @@ func TestVerify_SingleQuoteNoEscape(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// \ is literal inside single quotes
-	tokens, err := SplitWith(`echo 'hello\nworld'`, Bash)
+	tokens, err := Split(`echo 'hello\nworld'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +353,7 @@ func TestVerify_SingleQuoteNoEscape(t *testing.T) {
 	}
 
 	// $ is literal inside single quotes
-	tokens, err = SplitWith(`echo '$HOME'`, Bash)
+	tokens, err = Split(`echo '$HOME'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +364,7 @@ func TestVerify_SingleQuoteNoEscape(t *testing.T) {
 	}
 
 	// ` is literal inside single quotes
-	tokens, err = SplitWith(`echo '`+"`"+`cmd`+"`"+`'`, Bash)
+	tokens, err = Split(`echo '`+"`"+`cmd`+"`"+`'`, Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestVerify_LineContinuation(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// Outside quotes: \ + \n → removed (word continues)
-	tokens, err := SplitWith("echo foo\\\nbar", Bash)
+	tokens, err := Split("echo foo\\\nbar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestVerify_LineContinuation(t *testing.T) {
 	}
 
 	// Inside double quotes: \ + \n → removed (line continuation)
-	tokens, err = SplitWith("echo \"foo\\\nbar\"", Bash)
+	tokens, err = Split("echo \"foo\\\nbar\"", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +404,7 @@ func TestVerify_LineContinuation(t *testing.T) {
 	}
 
 	// CRLF variant: \ + \r\n → removed
-	tokens, err = SplitWith("echo foo\\\r\nbar", Bash)
+	tokens, err = Split("echo foo\\\r\nbar", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -423,7 +423,7 @@ func TestVerify_Comment(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo hello # this is a comment", Bash)
+	tokens, err := Split("echo hello # this is a comment", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -482,9 +482,9 @@ func TestVerify_CommandSeparators(t *testing.T) {
 	separators := []string{";", "|", "&"}
 	for _, sep := range separators {
 		input := "echo foo" + sep + " bar"
-		tokens, err := SplitWith(input, Bash)
+		tokens, err := Split(input, Bash)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", input, err)
+			t.Fatalf("Split(%q): %v", input, err)
 		}
 		pipelines := tokens.Pipelines()
 		if len(pipelines) < 2 {
@@ -502,7 +502,7 @@ func TestVerify_FdPrefixInRedirects(t *testing.T) {
 	os.Unsetenv("COMP_WORDBREAKS")
 
 	// 2> should filter out the "2" as fd prefix
-	tokens, err := SplitWith("echo 2> file", Bash)
+	tokens, err := Split("echo 2> file", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,9 +534,9 @@ func TestVerify_ProcessSubstitution(t *testing.T) {
 		if op == ")" {
 			input = "echo <(cat) " + op
 		}
-		tokens, err := SplitWith(input, Bash)
+		tokens, err := Split(input, Bash)
 		if err != nil {
-			t.Fatalf("SplitWith(%q): %v", input, err)
+			t.Fatalf("Split(%q): %v", input, err)
 		}
 		found := false
 		for _, tok := range tokens {
@@ -559,7 +559,7 @@ func TestVerify_CommandSubstitution(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $(ls)", Bash)
+	tokens, err := Split("echo $(ls)", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -590,7 +590,7 @@ func TestVerify_ArithmeticExpansion(t *testing.T) {
 	defer os.Setenv("COMP_WORDBREAKS", saved)
 	os.Unsetenv("COMP_WORDBREAKS")
 
-	tokens, err := SplitWith("echo $((1+2))", Bash)
+	tokens, err := Split("echo $((1+2))", Bash)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,7 @@ package shlex
 import "testing"
 
 func TestCmdFormat_CaretEscapeParen(t *testing.T) {
-	tokens, err := SplitWith("echo foo^(", Cmd)
+	tokens, err := Split("echo foo^(", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func TestCmdFormat_CaretEscapeParen(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapeCloseParen(t *testing.T) {
-	tokens, err := SplitWith("echo foo^)", Cmd)
+	tokens, err := Split("echo foo^)", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestCmdFormat_CaretEscapeCloseParen(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapeRedirect(t *testing.T) {
-	tokens, err := SplitWith("echo ^>foo", Cmd)
+	tokens, err := Split("echo ^>foo", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestCmdFormat_CaretEscapeRedirect(t *testing.T) {
 }
 
 func TestCmdFormat_CaretEscapeQuote(t *testing.T) {
-	tokens, err := SplitWith(`echo ^"`, Cmd)
+	tokens, err := Split(`echo ^"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestCmdFormat_CaretEscapeQuote(t *testing.T) {
 }
 
 func TestCmdFormat_DoubleCaretOutsideQuotes(t *testing.T) {
-	tokens, err := SplitWith("echo ^^& echo bar", Cmd)
+	tokens, err := Split("echo ^^& echo bar", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestCmdFormat_DoubleCaretOutsideQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_PercentAtEOF(t *testing.T) {
-	tokens, err := SplitWith("echo foo%", Cmd)
+	tokens, err := Split("echo foo%", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestCmdFormat_PercentAtEOF(t *testing.T) {
 }
 
 func TestCmdFormat_PercentInDoubleQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo "hello%world%"`, Cmd)
+	tokens, err := Split(`echo "hello%world%"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestCmdFormat_PercentInDoubleQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_PercentFollowedByRedirect(t *testing.T) {
-	tokens, err := SplitWith("echo %> foo", Cmd)
+	tokens, err := Split("echo %> foo", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestCmdFormat_PercentFollowedByRedirect(t *testing.T) {
 }
 
 func TestCmdFormat_NestedParens(t *testing.T) {
-	tokens, err := SplitWith("echo ((a) b)", Cmd)
+	tokens, err := Split("echo ((a) b)", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,21 +109,21 @@ func TestCmdFormat_NestedParens(t *testing.T) {
 }
 
 func TestCmdFormat_UnclosedParen(t *testing.T) {
-	_, err := SplitWith("echo (foo", Cmd)
+	_, err := Split("echo (foo", Cmd)
 	if err != nil {
 		t.Fatalf("Unclosed paren should not error: %v", err)
 	}
 }
 
 func TestCmdFormat_EmptyParens(t *testing.T) {
-	_, err := SplitWith("echo ()", Cmd)
+	_, err := Split("echo ()", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestCmdFormat_ParensInQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo "(foo)"`, Cmd)
+	tokens, err := Split(`echo "(foo)"`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestCmdFormat_CommaAtEOF(t *testing.T) {
 }
 
 func TestCmdFormat_MultipleCommas(t *testing.T) {
-	tokens, err := SplitWith("echo a,,b", Cmd)
+	tokens, err := Split("echo a,,b", Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestCmdFormat_MultipleRedirects(t *testing.T) {
 }
 
 func TestCmdFormat_EmptyQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo ""`, Cmd)
+	tokens, err := Split(`echo ""`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestCmdFormat_EmptyQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_AdjacentQuotes(t *testing.T) {
-	tokens, err := SplitWith(`echo ""hello""`, Cmd)
+	tokens, err := Split(`echo ""hello""`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestCmdFormat_AdjacentQuotes(t *testing.T) {
 }
 
 func TestCmdFormat_QuoteInsideWord(t *testing.T) {
-	tokens, err := SplitWith(`echo pre"mid"post`, Cmd)
+	tokens, err := Split(`echo pre"mid"post`, Cmd)
 	if err != nil {
 		t.Fatal(err)
 	}
