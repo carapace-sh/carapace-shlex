@@ -16,7 +16,7 @@ user-invocable: true
 
 # carapace-shlex v2 — Multi-Shell Command-Line Lexer
 
-In-depth reference for the v2 lexer in [carapace-shlex](https://github.com/carapace-sh/carapace-shlex), a fork of [go-shlex](https://github.com/google/shlex) that splits and re-joins command lines while tracking quotation state for shell completion. V1 was POSIX-only; v2 supports 10 shell formats (including non-POSIX) via the `Format` interface.
+In-depth reference for the v2 lexer in [carapace-shlex](https://github.com/carapace-sh/carapace-shlex), a fork of [go-shlex](https://github.com/google/shlex) that splits and re-joins command lines while tracking quotation state for shell completion. V1 was POSIX-only; v2 supports 11 shell formats (including non-POSIX) via the `Format` interface.
 
 ## Data Flow
 

@@ -72,6 +72,7 @@ Quotes and escapes words into a single command line using the format's quoting r
 | Oil | `shlex.Oil` | bash-compatible (OSH) |
 | Tcsh | `shlex.Tcsh` | POSIX-family |
 | Fish | `shlex.Fish` | `\'`/`\\` in single quotes, keyword operators (`and`/`or`) |
+| Hilbish | `shlex.Hilbish` | POSIX sh (snail/mvdan.cc/sh), no `<<<`/`|&`/`&>` |
 | Elvish | `shlex.Elvish` | `''` doubled-quote, `\` as bareword |
 | PowerShell | `shlex.Powershell` | backtick escape, `''`/`""` doubled-quotes |
 | Nushell | `shlex.Nushell` | backtick-as-quote, `$'...'`/`$"..."` |
@@ -85,7 +86,7 @@ go run ./cmd/carapace-shlex --format fish --completion-context "echo foo and gre
 ```
 
 Flags:
-- `--format` — shell format (bash, zsh, fish, elvish, nushell, powershell, xonsh, tcsh, oil, cmd)
+- `--format` — shell format (bash, zsh, fish, elvish, nushell, powershell, xonsh, tcsh, oil, cmd, hilbish)
 - `--completion-context` — output `CompletionContext` as JSON
 - `--current-pipeline` — show current pipeline only
 - `--filter-redirects` — filter redirect operators

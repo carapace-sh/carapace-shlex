@@ -72,7 +72,7 @@ func Execute(version string) error {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&formatFlag, "format", "bash", "shell format (bash, zsh, fish, elvish, nushell, powershell, xonsh, tcsh, oil, cmd)")
+	rootCmd.Flags().StringVar(&formatFlag, "format", "bash", "shell format (bash, zsh, fish, elvish, nushell, powershell, xonsh, tcsh, oil, cmd, hilbish)")
 	rootCmd.Flags().Bool("filter-redirects", false, "filter redirects")
 	rootCmd.Flags().Bool("current-pipeline", false, "show current pipeline")
 	rootCmd.Flags().Bool("wordbreak-prefix", false, "show wordbreak prefix")
@@ -87,7 +87,7 @@ func init() {
 	)
 
 	carapace.Gen(rootCmd).FlagCompletion(carapace.ActionMap{
-		"format": carapace.ActionValues("bash", "zsh", "fish", "elvish", "nushell", "powershell", "xonsh", "tcsh", "oil", "cmd"),
+		"format": carapace.ActionValues("bash", "zsh", "fish", "elvish", "nushell", "powershell", "xonsh", "tcsh", "oil", "cmd", "hilbish"),
 	})
 
 	carapace.Gen(rootCmd).PositionalCompletion(
