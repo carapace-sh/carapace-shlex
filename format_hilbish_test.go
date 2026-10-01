@@ -68,38 +68,38 @@ func TestHilbishFormat_Comment(t *testing.T) {
 	}
 }
 
-func TestHilbishFormat_NoPipeWithStderr(t *testing.T) {
+func TestHilbishFormat_PipeWithStderr(t *testing.T) {
 	tokens, err := Split("echo foo |& grep bar", Hilbish)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pipeFound, ampFound := false, false
-	for _, tok := range tokens {
-		if tok.RawValue == "|" && tok.WordbreakType == WORDBREAK_PIPE {
-			pipeFound = true
-		}
-		if tok.RawValue == "&" && tok.WordbreakType == WORDBREAK_LIST_ASYNC {
-			ampFound = true
-		}
-	}
-	if !pipeFound || !ampFound {
-		t.Errorf("hilbish |&: want separate | (PIPE) and & (LIST_ASYNC) tokens")
-	}
-}
-
-func TestHilbishFormat_RedirectBoth(t *testing.T) {
-	tokens, err := Split("echo foo >& /tmp/bar", Hilbish)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var op Token
 	for _, tok := range tokens {
-		if tok.RawValue == ">&" {
+		if tok.RawValue == "|&" {
+			op = tok
+		}
+	}
+	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_PIPE_WITH_STDERR {
+		t.Errorf("hilbish |&: Type=%v WT=%v, want WORDBREAK_TOKEN/PIPE_WITH_STDERR", op.Type, op.WordbreakType)
+	}
+	if len(tokens.pipelines()) != 2 {
+		t.Errorf("hilbish |&: %d pipelines, want 2", len(tokens.pipelines()))
+	}
+}
+
+func TestHilbishFormat_RedirectBoth(t *testing.T) {
+	tokens, err := Split("echo foo &> /tmp/bar", Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var op Token
+	for _, tok := range tokens {
+		if tok.RawValue == "&>" {
 			op = tok
 		}
 	}
 	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_OUTPUT_BOTH {
-		t.Errorf("hilbish >&: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT_BOTH", op.Type, op.WordbreakType)
+		t.Errorf("hilbish &>: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_OUTPUT_BOTH", op.Type, op.WordbreakType)
 	}
 }
 
@@ -119,19 +119,19 @@ func TestHilbishFormat_HereDoc(t *testing.T) {
 	}
 }
 
-func TestHilbishFormat_NoHereString(t *testing.T) {
+func TestHilbishFormat_HereString(t *testing.T) {
 	tokens, err := Split("cat <<< foo", Hilbish)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var op Token
 	for _, tok := range tokens {
-		if tok.RawValue == "<<" {
+		if tok.RawValue == "<<<" {
 			op = tok
 		}
 	}
-	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_HERE_DOC {
-		t.Errorf("hilbish <<<: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_HERE_DOC (<< then <)", op.Type, op.WordbreakType)
+	if op.Type != WORDBREAK_TOKEN || op.WordbreakType != WORDBREAK_REDIRECT_INPUT_STRING {
+		t.Errorf("hilbish <<<: Type=%v WT=%v, want WORDBREAK_TOKEN/REDIRECT_INPUT_STRING", op.Type, op.WordbreakType)
 	}
 }
 
@@ -187,7 +187,19 @@ func TestHilbishFormat_LineContinuation(t *testing.T) {
 
 func TestHilbishFormat_Join(t *testing.T) {
 	joined := Join([]string{"echo", "hello world"}, Hilbish)
-	if joined != `echo "hello world"` {
-		t.Errorf("hilbish join: %q, want %q", joined, `echo "hello world"`)
+	if joined != `echo hello\ world` {
+		t.Errorf("hilbish join: %q, want %q", joined, `echo hello\ world`)
+	}
+}
+
+func TestHilbishFormat_JoinRoundTrip(t *testing.T) {
+	words := []string{"echo", `it's "tricky"; really`, "foo|bar"}
+	tokens, err := Split(Join(words, Hilbish), Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := tokens.Words().Strings()
+	if len(got) != 3 || got[1] != words[1] || got[2] != words[2] {
+		t.Errorf("hilbish join roundtrip: got %v, want %v", got, words)
 	}
 }

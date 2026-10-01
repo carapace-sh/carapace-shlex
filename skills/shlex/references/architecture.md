@@ -239,7 +239,7 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 | `shlex.Nushell` | `format_nushell.go` | backtick-as-quote, `$'...'`/`$"..."` |
 | `shlex.Xonsh` | `format_xonsh.go` | Python string prefixes, POSIX operators |
 | `shlex.Cmd` | `format_cmd.go` | caret escape, `"`-only, `&` separator |
-| `shlex.Hilbish` | `format_hilbish.go` | POSIX sh via snail (mvdan.cc/sh), fixed wordbreaks, no `<<<`/`\|&`/`&>` |
+| `shlex.Hilbish` | `format_hilbish.go` | bash-language sh runner (snail/mvdan.cc/sh), fixed wordbreaks |
 
 ### Deferred format features
 

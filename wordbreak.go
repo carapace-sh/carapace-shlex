@@ -217,37 +217,3 @@ func tcshWordbreakType(raw string) WordbreakType {
 // using the POSIX sh operator grammar handled by hilbish's shell interpreter
 // (snail / mvdan.cc/sh). Unlike bash there is no <<< here-string, no |&,
 // and no &> / &>> redirect; case pattern lists use ;;.
-func hilbishWordbreakType(raw string) WordbreakType {
-	switch raw {
-	case "<":
-		return WORDBREAK_REDIRECT_INPUT
-	case ">":
-		return WORDBREAK_REDIRECT_OUTPUT
-	case ">>":
-		return WORDBREAK_REDIRECT_OUTPUT_APPEND
-	case ">|":
-		return WORDBREAK_REDIRECT_OUTPUT_FORCE
-	case ">&":
-		return WORDBREAK_REDIRECT_OUTPUT_BOTH
-	case "<<":
-		return WORDBREAK_REDIRECT_HERE_DOC
-	case "<&":
-		return WORDBREAK_REDIRECT_INPUT_DUPLICATE
-	case "<>":
-		return WORDBREAK_REDIRECT_INPUT_OUTPUT
-	case "|":
-		return WORDBREAK_PIPE
-	case "&":
-		return WORDBREAK_LIST_ASYNC
-	case ";":
-		return WORDBREAK_LIST_SEQUENTIAL
-	case ";;":
-		return WORDBREAK_LIST_SEQUENTIAL_DOUBLE
-	case "&&":
-		return WORDBREAK_LIST_AND
-	case "||":
-		return WORDBREAK_LIST_OR
-	default:
-		return WORDBREAK_UNKNOWN
-	}
-}

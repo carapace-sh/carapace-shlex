@@ -72,7 +72,7 @@ Quotes and escapes words into a single command line using the format's quoting r
 | Oil | `shlex.Oil` | bash-compatible (OSH) |
 | Tcsh | `shlex.Tcsh` | POSIX-family |
 | Fish | `shlex.Fish` | `\'`/`\\` in single quotes, keyword operators (`and`/`or`) |
-| Hilbish | `shlex.Hilbish` | POSIX sh (snail/mvdan.cc/sh), no `<<<`/`|&`/`&>` |
+| Hilbish | `shlex.Hilbish` | bash-language sh runner (snail/mvdan.cc/sh), fixed wordbreaks |
 | Elvish | `shlex.Elvish` | `''` doubled-quote, `\` as bareword |
 | PowerShell | `shlex.Powershell` | backtick escape, `''`/`""` doubled-quotes |
 | Nushell | `shlex.Nushell` | backtick-as-quote, `$'...'`/`$"..."` |
