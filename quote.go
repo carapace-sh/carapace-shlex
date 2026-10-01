@@ -76,12 +76,14 @@ func fishQuoteWord(s string) string {
 // in barewords rather than the word being quoted. Backslash and semicolon
 // are escaped too even though hilbish's charEscapeMap omits them — without
 // them a joined line would not round-trip (a raw \ is dropped by the sh
-// parser, a raw ; splits the command).
+// parser, a raw ; splits the command). Tab and carriage return are escaped
+// for the same reason: unlike POSIX double-quote wrapping they would
+// otherwise split the bareword.
 func hilbishQuoteWord(s string) string {
 	if s == "" {
 		return `""`
 	}
-	if !strings.ContainsAny(s, "\"'` ()[]$&*><|\\;") {
+	if !strings.ContainsAny(s, "\"'` ()[]$&*><|\\;\t\r\n") {
 		return s
 	}
 	var b strings.Builder
@@ -92,6 +94,9 @@ func hilbishQuoteWord(s string) string {
 			b.WriteRune(r)
 		case '\n':
 			b.WriteString("\\\n")
+		case '\t', '\r':
+			b.WriteByte('\\')
+			b.WriteRune(r)
 		default:
 			b.WriteRune(r)
 		}

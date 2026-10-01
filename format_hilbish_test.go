@@ -193,13 +193,13 @@ func TestHilbishFormat_Join(t *testing.T) {
 }
 
 func TestHilbishFormat_JoinRoundTrip(t *testing.T) {
-	words := []string{"echo", `it's "tricky"; really`, "foo|bar"}
+	words := []string{"echo", `it's "tricky"; really`, "foo|bar", "a\tb"}
 	tokens, err := Split(Join(words, Hilbish), Hilbish)
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := tokens.Words().Strings()
-	if len(got) != 3 || got[1] != words[1] || got[2] != words[2] {
+	if len(got) != 4 || got[1] != words[1] || got[2] != words[2] || got[3] != words[3] {
 		t.Errorf("hilbish join roundtrip: got %v, want %v", got, words)
 	}
 }
