@@ -166,7 +166,6 @@ func bashWordbreakType(raw string) WordbreakType {
 	case ";&":
 		return WORDBREAK_LIST_FALLTHROUGH
 	default:
-		// TODO check COMP_WORDBREAKS -> WORDBREAK_OTHER
 		return WORDBREAK_UNKNOWN
 	}
 }

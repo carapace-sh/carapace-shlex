@@ -61,8 +61,5 @@ func countUnclosedCommandScopes(tokens TokenSlice) int {
 			}
 		}
 	}
-	if depth > 0 {
-		return depth
-	}
-	return 0
+	return depth
 }
