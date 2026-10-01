@@ -10,7 +10,7 @@ The shells fall into lexical families. A v2 format can often reuse a family's co
 
 | Family | Shells | Lexical character |
 |--------|--------|-------------------|
-| **POSIX** | bash, zsh, oil (OSH), tcsh | backslash escape, `'`/`"` quotes, `#` comment, `|`/`<`/`>`/`&`/`;` operators |
+| **POSIX** | bash, zsh, oil (OSH), tcsh, hilbish (via mvdan/sh LangBash) | backslash escape, `'`/`"` quotes, `#` comment, `|`/`<`/`>`/`&`/`;` operators |
 | **Non-POSIX Unix** | fish, elvish, nushell | backslash escape, `'`/`"` quotes, but different operators / no word splitting |
 | **Python-hybrid** | xonsh | Python string literals + shell operators |
 | **Windows** | PowerShell, cmd (clink) | backtick / caret escape, here-strings, `&` separator |
@@ -74,6 +74,7 @@ These are the characters that break a word and are classified as `WORDBREAK_TOKE
 | **powershell** | `\|` | `>` `>>` `2>` `2>&1` etc. | `;` | `&&` `\|\|` (PS7+) | `( ) { } ,` |
 | **xonsh** | `\|` | `>` `>>` `<` `2>` `2>&1` `e>` `e<` etc. | `;` | `&` `\|` `&&` `\|\|` | `@()` `$()` `![]` |
 | **cmd** | `\|` | `>` `>>` `<` | `&` `&&` `\|\|` | `&` `&&` `\|\|` | — |
+| **hilbish** | `\|` `\|&` | `< > >> >\| <<< <> <& &> &>>` | `;` `&` `;;` | `&&` `\|\|` `&` `;` `;;` `;&` `;;&` | `( )` (fixed, no COMP_WORDBREAKS) |
 
 **Key lexer implication**: POSIX shells share the bash operator grammar (multi-char greedy matching of `>>`, `<<`, `&&`, `||`, `|&`, `&>>`). Fish needs *keyword* operator recognition (`and`/`or`/`not` are bare words that act as operators — the tokenizer must match them at word boundaries, not as operator runes). Cmd uses `&` as a *command separator* (like `;` in POSIX), not just a background operator.
 
@@ -135,6 +136,7 @@ For a *lexer* (not an expander), interpolation matters only insofar as the inter
 - **powershell** → backtick escape; `''`/`""` doubled-quote; here-strings; `--%` stop-parsing.
 - **xonsh** → Python string literals (raw, f-, p-, b-strings) + shell operators.
 - **cmd** → `^` escape; `"`-only quotes; `&` separator; `REM`/`::` comments.
+- **hilbish** → bash grammar via snail (mvdan/sh LangBash); fixed wordbreaks; backslash-escaped barewords for insertion; see [format-hilbish.md](format-hilbish.md).
 
 ## References
 

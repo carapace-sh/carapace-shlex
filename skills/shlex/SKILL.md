@@ -49,6 +49,7 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 | tcsh format, csh lexing, single quotes, double quotes, backslash, backslash_quote, $'...' ANSI-C, backtick command substitution, # comment, ! history expansion, tcsh operators, pipe, redirect, ; separator | [references/format-tcsh.md](references/format-tcsh.md) |
 | oil format, OSH lexing, YSH lexing, single quotes, double quotes, ANSI-C quoting, YSH strings, r'...', triple-quoted, # comment, oil operators, pipe, redirect, simple word evaluation | [references/format-oil.md](references/format-oil.md) |
 | cmd format, cmd.exe lexing, clink lexing, caret escape, ^, double quotes, no single quotes, %variable%, REM, :: comment, command separator, & separator, pipe, redirect, cmd metacharacters | [references/format-cmd.md](references/format-cmd.md) |
+| hilbish format, hilbish lexing, snail, mvdan/sh, LangBash, hybrid runner, lua runner, @ modifiers, backslash-escaped barewords, charEscapeMap, bash operators | [references/format-hilbish.md](references/format-hilbish.md) |
 
 ## Quick Guide
 
@@ -68,6 +69,7 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 - **How does tcsh differ from POSIX lexing?** → [references/format-tcsh.md](references/format-tcsh.md)
 - **How do OSH and YSH differ lexically?** → [references/format-oil.md](references/format-oil.md)
 - **How does cmd.exe/clink tokenize?** → [references/format-cmd.md](references/format-cmd.md)
+- **How does hilbish lex command lines?** → [references/format-hilbish.md](references/format-hilbish.md)
 
 ## Cross-Project References
 
@@ -82,6 +84,7 @@ The per-shell lexical format references here describe only what a **lexer** need
 - **xonsh** skill — xonsh completion, prompt-toolkit, language/execution, startup
 - **tcsh** skill — tcsh completion, editor, quoting/expansion, execution, startup
 - **oil** skill — Oil completion, line editing, quoting/expansion, execution, startup
+- **hilbish** skill — hilbish completion, runner modes, Lua API, line editing, startup
 - **cmd-clink** skill — clink argmatcher, completion, line editing, cmd integration
 
 For how carapace formats completion *output* per shell (snippet, value quoting, nospace), see the **carapace-dev** skill → `references/shell.md`.
