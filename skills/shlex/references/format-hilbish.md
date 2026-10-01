@@ -25,11 +25,11 @@ Same as bash (LangBash):
 ```sh
 echo 'hello world'   # one word, literal
 echo '$HOME'         # $HOME (literal)
-echo "`cmd`"         # `cmd` (literal in single quotes)
+echo '`cmd`'         # `cmd` (literal backticks)
 echo "hello world"   # one word
 ```
 
-- **Single quotes**: literal, no escapes, `''` is close+reopen (two words' segments join), not an escape.
+- **Single quotes**: literal, no escapes. `''` is not an escape — it closes and reopens the quote, joining adjacent segments (`a''b` → `ab`), unlike elvish/fish where `''`/`\'` produce a literal quote.
 - **Double quotes**: `\` escapes only `$`, `` ` ``, `"`, `\`, and newline (the format's `EscapingQuoteEscapeChars`).
 
 ## Escape Character
