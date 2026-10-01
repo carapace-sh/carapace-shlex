@@ -42,7 +42,7 @@ ctx := shlex.Complete(`echo "text$HO`, shlex.Bash)
 // ctx.Variable.Insert("HOME")                 // "text$HOME" - the word with the completed name
 ```
 
-`Variable` is detected on the lexer's final word — quote state, escapes, and the sigil forms are handled by the format (bash, zsh, tcsh, fish, elvish, nushell, and xonsh implement detection; `$` inside single quotes or after `\` is literal where the shell says so, closed expansions like `${HOME}` are not references). `Insert` composes the replacement: it preserves the raw text the shell's completion interface replaces (bash's naive `COMP_WORDS` split, e.g. `"text $HO` yields `$HOME`) and reconstructs the sigil form (`$HOME` or `${HOME}`).
+`Variable` is detected on the lexer's final word — quote state, escapes, and the sigil forms are handled by the format (bash, zsh, tcsh, fish, elvish, nushell, xonsh, and hilbish implement detection; `$` inside single quotes or after `\` is literal where the shell says so, closed expansions like `${HOME}` are not references). `Insert` composes the replacement: it preserves the raw text the shell's completion interface replaces (bash's naive `COMP_WORDS` split, e.g. `"text $HO` yields `$HOME`) and reconstructs the sigil form (`$HOME` or `${HOME}`).
 
 ### Quoting for insertion
 
@@ -52,7 +52,7 @@ ctx := shlex.Complete(`echo "he`, shlex.Bash)
 ctx.Quote(`hello world`) // `"hello world"` - replaces the raw word `"he`
 ```
 
-`Quote` returns the value quoted so it can replace the raw current word: an open quote is closed with the format's own escape rules (per shell: bash `'"'"'`, fish `\'`, zsh/elvish `''`, cmd `""`, PowerShell backtick), and barewords are quoted as complete words. Stop-parsing mode (PowerShell `--%`) passes values through raw.
+`Quote` returns the value quoted so it can replace the raw current word: an open quote is closed with the format's own escape rules (per shell: bash/hilbish `'"'"'`, fish `\'`, zsh/elvish `''`, cmd `""`, PowerShell backtick), and barewords are quoted as complete words. Stop-parsing mode (PowerShell `--%`) passes values through raw.
 
 ### Join
 

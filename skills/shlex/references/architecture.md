@@ -220,6 +220,7 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 | nushell | double-quote wrapping with `\" \\` escapes |
 | xonsh | Python single-quote wrapping with `\' \\` escapes |
 | cmd | double-quote wrapping with `^"` for literal `"` |
+| hilbish | backslash-escaped barewords (`charEscapeMap` plus `\`, `;`, tab) |
 
 `Join(s []string, format Format) string` joins words using the format's `QuoteWord` method; `shlex.Default` selects the bash rules.
 
