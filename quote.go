@@ -70,6 +70,40 @@ func fishQuoteWord(s string) string {
 	return b.String()
 }
 
+// hilbishQuoteWord quotes a word for hilbish.
+// Matches hilbish's own completion insertion style (complete.go
+// escapeFilename via charEscapeMap): metacharacters are backslash-escaped
+// in barewords rather than the word being quoted. Backslash and semicolon
+// are escaped too even though hilbish's charEscapeMap omits them — without
+// them a joined line would not round-trip (a raw \ is dropped by the sh
+// parser, a raw ; splits the command). Tab and carriage return are escaped
+// for the same reason: unlike POSIX double-quote wrapping they would
+// otherwise split the bareword.
+func hilbishQuoteWord(s string) string {
+	if s == "" {
+		return `""`
+	}
+	if !strings.ContainsAny(s, "\"'` ()[]$&*><|\\;\t\r\n") {
+		return s
+	}
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '"', '\'', '`', ' ', '(', ')', '[', ']', '$', '&', '*', '>', '<', '|', '\\', ';':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case '\n':
+			b.WriteString("\\\n")
+		case '\t', '\r':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // elvishQuoteWord quotes a word for elvish.
 // Elvish barewords allow: letters, digits, -_:~./\@%+! and non-ASCII printable.
 // Single quotes: two consecutive single-quote chars produce one literal quote.

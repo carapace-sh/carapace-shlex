@@ -212,3 +212,8 @@ func tcshWordbreakType(raw string) WordbreakType {
 		return WORDBREAK_UNKNOWN
 	}
 }
+
+// hilbishWordbreakType maps a wordbreak token's RawValue to a WordbreakType
+// using the POSIX sh operator grammar handled by hilbish's shell interpreter
+// (snail / mvdan.cc/sh). Unlike bash there is no <<< here-string, no |&,
+// and no &> / &>> redirect; case pattern lists use ;;.
