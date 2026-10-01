@@ -32,6 +32,9 @@ func (v Variable) Span() Span {
 }
 
 func (v Variable) Insert(completed string) string {
+	// len() returns byte counts. Since Name is extracted from the
+	// same RawValue source as replacement, byte lengths are consistent
+	// even with multi-byte UTF-8 characters.
 	sigil, closer := "$", ""
 	if v.brace {
 		sigil, closer = "${", "}"

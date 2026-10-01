@@ -373,6 +373,12 @@ func (t *tokenizer) checkBlockCommentOpener(firstRune rune, token *Token) bool {
 	if len(opener) == 0 || rune(opener[0]) != firstRune {
 		return false
 	}
+	// bufio.Reader only supports one UnreadRune. The first rune was
+	// consumed by the caller; only one more can be unread on mismatch,
+	// so openers longer than 2 runes are not supported here.
+	if len(opener) > 2 {
+		return false
+	}
 	// Try to match remaining runes of the opener (index 1 onward)
 	for i := 1; i < len(opener); i++ {
 		r, _, err := t.ReadRune()
@@ -412,13 +418,12 @@ func (t *tokenizer) scanStream() (*Token, error) {
 	var nextRune rune
 	var nextRuneType runeTokenClass
 	var err error
-	consumed := 0
+	sawSpace := false
 
 	for {
 		nextRune, _, err = t.ReadRune()
 		nextRuneType = t.classifier.ClassifyRune(nextRune)
 		token.RawValue += string(nextRune)
-		consumed += 1 // TODO find a nicer solution for this
 
 		switch {
 		case err == io.EOF:
@@ -450,7 +455,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 						token.Span.End = t.index
 						t.index += 1
 						return token, nil // return an additional empty token for current cursor position
-					case previousState == WORDBREAK_STATE, consumed > 1: // consumed is greater than 1 when when there were spaceRunes before
+					case previousState == WORDBREAK_STATE, sawSpace: // sawSpace when there were spaceRunes before
 						token.removeLastRaw()
 						token.Type = WORD_TOKEN
 						token.Span.Start = t.index
@@ -461,6 +466,7 @@ func (t *tokenizer) scanStream() (*Token, error) {
 					}
 				case spaceRuneClass:
 					token.removeLastRaw()
+					sawSpace = true
 				case escapingQuoteRuneClass:
 					token.Type = WORD_TOKEN
 					token.WordbreakIndex = len(token.Value)
@@ -573,7 +579,11 @@ func (t *tokenizer) scanStream() (*Token, error) {
 			// we check if the RawValue without nextRune matches the opener start.
 			if bc, ok := t.format.(blockCommenter); ok {
 				opener := bc.BlockCommentOpener()
-				if len(opener) > 0 {
+				// bufio.Reader only supports one UnreadRune. The first
+				// rune is in token.Value and the second is nextRune (in
+				// RawValue); only one more can be unread on mismatch, so
+				// openers longer than 3 runes are not supported here.
+				if len(opener) > 0 && len(opener) <= 3 {
 					// The wordbreak portion is token.Value (without nextRune).
 					// token.RawValue includes nextRune; we need to check if
 					// token.Value (the wordbreak so far) is the opener prefix.
@@ -1114,7 +1124,7 @@ func (t *tokenizer) Next() (*Token, error) {
 
 	token, err := t.scanStream()
 	if err == nil {
-		token.State = t.state // TODO should be done in scanStream
+		token.State = t.state
 		if token.Span.End == 0 && token.Span.Start >= 0 {
 			token.Span.End = token.Span.Start + len([]rune(token.RawValue))
 		}
