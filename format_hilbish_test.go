@@ -203,3 +203,126 @@ func TestHilbishFormat_JoinRoundTrip(t *testing.T) {
 		t.Errorf("hilbish join roundtrip: got %v, want %v", got, words)
 	}
 }
+
+func TestHilbishFormat_AdjacentQuoteSegments(t *testing.T) {
+	tokens, err := Split(`echo a''b "foo"bar`, Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[1] != "ab" || words[2] != "foobar" {
+		t.Errorf("hilbish adjacent quotes: Words = %v, want [echo ab foobar]", words)
+	}
+}
+
+func TestHilbishFormat_EmptyQuotes(t *testing.T) {
+	tokens, err := Split(`echo ""`, Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "" {
+		t.Errorf("hilbish empty quotes: Words = %v, want [echo ]", words)
+	}
+}
+
+func TestHilbishFormat_OpenDoubleQuoteAtEOF(t *testing.T) {
+	tokens, err := Split(`echo "hel`, Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tokens.Words().currentToken()
+	if last.State != QUOTING_ESCAPING_STATE {
+		t.Errorf("hilbish open double: State = %v, want QUOTING_ESCAPING_STATE", last.State)
+	}
+}
+
+func TestHilbishFormat_EscapeAtEOF(t *testing.T) {
+	tokens, err := Split(`echo hel\`, Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tokens.Words().currentToken()
+	if last.State != ESCAPING_STATE {
+		t.Errorf("hilbish escape at EOF: State = %v, want ESCAPING_STATE", last.State)
+	}
+}
+
+func TestHilbishFormat_CommentOnlyAtWordStart(t *testing.T) {
+	tokens, err := Split("echo a#b #c", Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "a#b" {
+		t.Errorf("hilbish mid-word #: Words = %v, want [echo a#b]", words)
+	}
+}
+
+func TestHilbishFormat_RedirectFilterNumericFd(t *testing.T) {
+	tokens, err := Split("echo foo 2>&1 | grep -", Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.CurrentPipeline().FilterRedirects().Words().Strings()
+	if len(words) != 2 || words[0] != "grep" || words[1] != "-" {
+		t.Errorf("hilbish 2>&1 filter: Words = %v, want [grep -]", words)
+	}
+}
+
+func TestHilbishFormat_VariableDetection(t *testing.T) {
+	tests := []struct {
+		input string
+		name  string
+	}{
+		{`echo "text$HO`, "HO"},
+		{`echo ${HO`, "HO"},
+		{`echo $HO`, "HO"},
+	}
+	for _, tt := range tests {
+		ctx := Complete(tt.input, Hilbish)
+		if ctx.Variable == nil || ctx.Variable.Name != tt.name {
+			t.Errorf("hilbish variable %q: Variable = %v, want name %q", tt.input, ctx.Variable, tt.name)
+		}
+	}
+}
+
+func TestHilbishFormat_VariableLiteral(t *testing.T) {
+	tests := []string{`echo '$HO'`, `echo \$HO`}
+	for _, input := range tests {
+		ctx := Complete(input, Hilbish)
+		if ctx.Variable != nil {
+			t.Errorf("hilbish literal variable %q: Variable = %v, want nil", input, ctx.Variable)
+		}
+	}
+}
+
+func TestHilbishFormat_SpanRuneOffsets(t *testing.T) {
+	ctx := Complete("echo café", Hilbish)
+	// "echo " is 5 runes; café starts at rune offset 5, length 4
+	if ctx.Span.Start != 5 || ctx.Span.End != 9 {
+		t.Errorf("hilbish span: Span = %+v, want {5 9}", ctx.Span)
+	}
+}
+
+func TestHilbishFormat_CRLFLineContinuation(t *testing.T) {
+	tokens, err := Split("echo foo\\\r\nbar", Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "foobar" {
+		t.Errorf("hilbish CRLF continuation: Words = %v, want [echo foobar]", words)
+	}
+}
+
+func TestHilbishFormat_ModifierWords(t *testing.T) {
+	tokens, err := Split("@priv echo hi", Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 3 || words[0] != "@priv" {
+		t.Errorf("hilbish modifier: Words = %v, want [@priv echo hi]", words)
+	}
+}
