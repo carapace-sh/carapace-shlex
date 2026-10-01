@@ -326,3 +326,68 @@ func TestHilbishFormat_ModifierWords(t *testing.T) {
 		t.Errorf("hilbish modifier: Words = %v, want [@priv echo hi]", words)
 	}
 }
+
+// Real-world command lines from hilbish docs, hilbish's own completion
+// tests, and community configs (github.com/asumbek/hilbish-config,
+// github.com/AlphaTechnolog/dotfiles).
+
+func TestHilbishFormat_ModifierWithQuotedArg(t *testing.T) {
+	ctx := Complete(`@priv curl -H "Authorization: Bearer secret" https://example.com`, Hilbish)
+	words := ctx.Words
+	if len(words) != 5 || words[3] != "Authorization: Bearer secret" || words[4] != "https://example.com" {
+		t.Errorf("hilbish modifier curl: Words = %v", words)
+	}
+}
+
+func TestHilbishFormat_EqualsNotAWordbreak(t *testing.T) {
+	// Unlike bash, = is not a wordbreak for hilbish: long flags stay one
+	// word and get no wordbreak prefix.
+	ctx := Complete("bat --paging=never --style=plain file.txt", Hilbish)
+	words := ctx.Words
+	if len(words) != 4 || words[1] != "--paging=never" || words[2] != "--style=plain" {
+		t.Errorf("hilbish = flags: Words = %v", words)
+	}
+	if ctx.Prefix != "" {
+		t.Errorf("hilbish = flags: Prefix = %q, want empty", ctx.Prefix)
+	}
+}
+
+func TestHilbishFormat_RedirectWithoutSpace(t *testing.T) {
+	ctx := Complete("chafa --view-size=80x25 pic.jpg >pic.bin", Hilbish)
+	if !ctx.IsRedirect || ctx.CurrentWord != "pic.bin" || ctx.Prefix != ">" {
+		t.Errorf("hilbish >file: IsRedirect=%v CurrentWord=%q Prefix=%q", ctx.IsRedirect, ctx.CurrentWord, ctx.Prefix)
+	}
+}
+
+func TestHilbishFormat_EscapedUnicodeFilename(t *testing.T) {
+	// hilbish's own completion tests offer filenames like
+	// [2021.07.14] ツユ 2ndアルバム as escaped barewords with \[ \] \ .
+	raw := `cd \[2021.07.14\]\ ツユ\ 2ndアルバム`
+	tokens, err := Split(raw, Hilbish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	words := tokens.Words().Strings()
+	if len(words) != 2 || words[1] != "[2021.07.14] ツユ 2ndアルバム" {
+		t.Fatalf("hilbish escaped unicode: Words = %v", words)
+	}
+	if joined := Join(words, Hilbish); joined != raw {
+		t.Errorf("hilbish escaped unicode roundtrip: %q, want %q", joined, raw)
+	}
+}
+
+func TestHilbishFormat_VariableInFlagValue(t *testing.T) {
+	ctx := Complete("nix-shell --command $SHELL", Hilbish)
+	if ctx.Variable == nil || ctx.Variable.Name != "SHELL" {
+		t.Errorf("hilbish --command $SHELL: Variable = %v, want SHELL", ctx.Variable)
+	}
+}
+
+func TestHilbishFormat_PipelineFromAliasBody(t *testing.T) {
+	// Alias bodies like 'ls %1 | wc -l' and 'git status --porcelain | wc -l':
+	// % placeholders are plain word chars, pipeline splits before wc.
+	ctx := Complete("git status --porcelain | wc -l", Hilbish)
+	if len(ctx.Words) != 2 || ctx.Words[0] != "wc" || ctx.Words[1] != "-l" {
+		t.Errorf("hilbish alias pipeline: Words = %v", ctx.Words)
+	}
+}
