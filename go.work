@@ -4,5 +4,3 @@ use (
 	.
 	./cmd
 )
-
-replace github.com/carapace-sh/carapace => ../carapace
