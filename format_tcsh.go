@@ -67,3 +67,7 @@ func (tcshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 func (tcshFormat) Variable(word Token) (Variable, bool) {
 	return posixVariableRef(word)
 }
+
+func (tcshFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

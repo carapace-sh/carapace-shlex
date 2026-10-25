@@ -141,3 +141,39 @@ func TestQuote_JoinsSingleWord(t *testing.T) {
 		}
 	}
 }
+
+func TestIsBareWord(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   Format
+		word     string
+		expected bool
+	}{
+		{name: "empty", format: Bash, word: "", expected: false},
+		{name: "digits leading", format: Bash, word: "7z", expected: true},
+		{name: "dotted", format: Bash, word: "toit.lsp", expected: true},
+		{name: "dashed", format: Bash, word: "git-rebase", expected: true},
+		{name: "dollar", format: Bash, word: "a$(touch x)", expected: false},
+		{name: "backtick", format: Bash, word: "a`touch x`", expected: false},
+		{name: "quote", format: Bash, word: "a'; touch x", expected: false},
+		{name: "space", format: Bash, word: "a b", expected: false},
+		{name: "newline", format: Bash, word: "a\nb", expected: false},
+		{name: "tcsh equals history", format: Tcsh, word: "a=b", expected: false},
+		{name: "tcsh bang", format: Tcsh, word: "a!b", expected: false},
+		{name: "colon wordbreak", format: Bash, word: "a:b", expected: false},
+		{name: "lua identifier", format: Lua, word: "foo_1", expected: true},
+		{name: "lua digit leading", format: Lua, word: "7z", expected: false},
+		{name: "lua dotted", format: Lua, word: "toit.lsp", expected: false},
+		{name: "lua dashed", format: Lua, word: "git-rebase", expected: false},
+		{name: "lua empty", format: Lua, word: "", expected: false},
+		{name: "unknown format fallback", format: "no-such-format", word: "toit.lsp", expected: true},
+		{name: "unknown format fallback rejects", format: "no-such-format", word: "a;b", expected: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsBareWord(tt.word, tt.format); got != tt.expected {
+				t.Errorf("IsBareWord(%#v, %v) = %v, want %v", tt.word, tt.format, got, tt.expected)
+			}
+		})
+	}
+}

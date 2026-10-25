@@ -67,6 +67,12 @@ type formatImpl interface {
 	// QuoteWord quotes a single word for safe insertion into a command line.
 	// Used by Join. Each format uses its shell's preferred quoting style.
 	QuoteWord(s string) string
+
+	// IsBareWord reports whether s is a bareword for this format: it stands
+	// as a single inert token in unquoted position. Formats share the frozen
+	// base list (bareWordRe) and sharpen it where barewords also serve as
+	// identifiers, e.g. the Lua identifier rule.
+	IsBareWord(s string) bool
 }
 ```
 
@@ -339,6 +345,8 @@ func Join(s []string, format Format) string
 func Split(s string, format Format) (TokenSlice, error)
 func Complete(s string, format Format) *CompletionContext
 func Join(s []string, format Format) string
+func Escape(word string, format Format) string
+func IsBareWord(word string, format Format) bool
 
 // Format constants
 const (
@@ -349,6 +357,8 @@ const (
 ```
 
 `Split(s, Default)` matches v1's default bash lexing. `Token.Index` became `Token.Span` (rune offsets), and `Split`/`Join` now take the format explicitly.
+
+`Escape(word, format)` escapes a word for use inside an already-quoted string literal of the format (template interiors); unknown formats and formats without a dedicated string-interior rule fall back to the default format. `IsBareWord(word, format)` reports whether the word stands as a single inert token in unquoted position; used for screening before unquoted insertion or registration (e.g. completer names in carapace). It never accepts a non-inert word, but conservatively refuses some true barewords too (non-ASCII, mid-word `#`); unknown formats fall back to `Default`.
 
 ## Adding a New Shell Format
 

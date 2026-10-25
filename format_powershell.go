@@ -183,3 +183,7 @@ func (powershellFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	}
 	return final
 }
+
+func (powershellFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

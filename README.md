@@ -72,6 +72,15 @@ shlex.Escape(`demo'; touch x`, shlex.Xonsh)
 
 Escapes a word for embedding inside an *already-quoted* string literal of the format (the caller supplies the surrounding quote characters, e.g. a template's `'%v'` slot). This is the interior variant of `shlex.Quote`. Unknown formats and formats without a dedicated string-interior rule (e.g. cmd, nushell) fall back to the default format; the result may not be valid inside those formats' own string literals.
 
+### IsBareWord
+
+```go
+shlex.IsBareWord("git-rebase", shlex.Bash) // true
+shlex.IsBareWord("a'; touch x", shlex.Bash) // false
+```
+
+Reports whether a word is a bareword for the format: it stands as a single inert token in unquoted position, with no wordbreak, escaping, expansion or history rules triggered — including ones that act above the lexer (tcsh `=word`, `!word`). Anything that breaks out of that single-token context (quotes, escapes, separators, redirects, pipe/wordbreak symbols, whitespace) or any non-ASCII character is rejected. Useful wherever words are interpolated unquoted into shell text (templates, config, snippets) or screened before registration (e.g. completer names in carapace). Unknown formats fall back to the default format. This is a conservative screen, not the format's exact bareword grammar: true barewords may be refused (e.g. non-ASCII letters, mid-word `#`); identifier validity is not implied (command names like `toit.lsp` or `git-rebase` are accepted). Empty words are not barewords.
+
 ## Supported Formats
 
 | Format | Constant | Key features |

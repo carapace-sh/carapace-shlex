@@ -61,3 +61,7 @@ func (zshFormat) PostProcess(tokens TokenSlice) TokenSlice {
 func (zshFormat) Variable(word Token) (Variable, bool) {
 	return posixVariableRef(word)
 }
+
+func (zshFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

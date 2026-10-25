@@ -1223,3 +1223,15 @@ func Escape(word string, format Format) string {
 	}
 	return posixStringEscape(word)
 }
+
+// IsBareWord reports whether the given word is a bareword for the format:
+// it stands as a single inert token in unquoted position. Identifier
+// validity is not implied. Empty words are not barewords. Unknown formats
+// fall back to the default format, like in Quote.
+func IsBareWord(word string, format Format) bool {
+	f, ok := formatImplFor(format)
+	if !ok {
+		f = formatImpls[Default]
+	}
+	return f.IsBareWord(word)
+}

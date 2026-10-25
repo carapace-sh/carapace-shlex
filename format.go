@@ -108,6 +108,15 @@ type formatImpl interface {
 	// wrapping for nushell/PowerShell, single-quote wrapping for shells
 	// that support it, etc.
 	QuoteWord(s string) string
+
+	// IsBareWord reports whether s is a bareword for this format: it
+	// stands as a single inert token in unquoted position, with no
+	// wordbreak, escaping, expansion or history rules triggered,
+	// including ones that act above the lexer (e.g. tcsh `=word` history
+	// expansion). Identifier validity is not implied; implementations
+	// sharpen the shared list (bareWordRe) where barewords also serve as
+	// identifiers, e.g. Lua.
+	IsBareWord(s string) bool
 }
 
 // formatImpls maps Format names to their behavior.

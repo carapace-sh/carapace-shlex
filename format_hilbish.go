@@ -64,3 +64,7 @@ func (hilbishFormat) PostProcess(tokens TokenSlice) TokenSlice {
 func (hilbishFormat) Variable(word Token) (Variable, bool) {
 	return posixVariableRef(word)
 }
+
+func (hilbishFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}
