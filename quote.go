@@ -461,7 +461,7 @@ func luaStringEscape(s string) string {
 
 // bareWordRe is the shared conservative bareword list for the formats: a
 // word may consist of alphanumeric characters and the static characters
-// . _ - as non-leading characters. Quotes, escapes, expansions
+// . _ - + as non-leading characters. Quotes, escapes, expansions
 // (` $ { ~ ( ), wordbreaks (: @ = ; | &) and history actives (!) are all
 // rejected, including the ones that act above a shell's lexer, so a word
 // passing this list stands as a single inert token in unquoted position,
@@ -469,4 +469,4 @@ func luaStringEscape(s string) string {
 // implied: dot- and dash-containing and digit-leading words are command
 // names, not identifiers. Formats may override with a sharper list via
 // IsBareWord, e.g. the Lua format which validates the whole identifier rule.
-var bareWordRe = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._-]*$`)
+var bareWordRe = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9._+-]*$`)
