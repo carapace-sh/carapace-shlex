@@ -60,7 +60,8 @@ type formatImpl interface {
 	// NonEscapingQuoteBackslashEscapes returns true if backslash (\) is an
 	// escape character inside the non-escaping quote (single quotes).
 	// When true, \' and \\ inside single quotes produce the escaped char
-	// and stay in QUOTING_STATE. Only fish needs this.
+	// and stay in QUOTING_STATE. Used by fish and lua (Lua escapes \' in
+	// both quote styles).
 	// Requires NonEscapingQuoteEscapes() to also be true.
 	NonEscapingQuoteBackslashEscapes() bool
 

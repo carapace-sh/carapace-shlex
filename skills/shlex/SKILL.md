@@ -9,7 +9,7 @@ description: >
   "quotation state", "wordbreak", "WORDBREAK", "COMP_WORDBREAKS", "TokenSlice", "LexerState",
   "TokenType", "tokenizer", "Split", "Split", "Complete", "CompletionContext",
   "Format", "shlex.Bash", "shlex.Zsh", "shlex.Fish", "shlex.Elvish", "shlex.Powershell",
-  "shlex.Nushell", "shlex.Xonsh", "shlex.Tcsh", "shlex.Oil", "shlex.Cmd", "formatImpl",
+  "shlex.Nushell", "shlex.Xonsh", "shlex.Tcsh", "shlex.Oil", "shlex.Cmd", "shlex.Lua", "formatImpl",
   "Span", "shell format", "lexical format", "POSIX shell lexing", "non-POSIX shell lexing".
 user-invocable: true
 ---
@@ -49,6 +49,7 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 | tcsh format, csh lexing, single quotes, double quotes, backslash, backslash_quote, $'...' ANSI-C, backtick command substitution, # comment, ! history expansion, tcsh operators, pipe, redirect, ; separator | [references/format-tcsh.md](references/format-tcsh.md) |
 | oil format, OSH lexing, YSH lexing, single quotes, double quotes, ANSI-C quoting, YSH strings, r'...', triple-quoted, # comment, oil operators, pipe, redirect, simple word evaluation | [references/format-oil.md](references/format-oil.md) |
 | cmd format, cmd.exe lexing, clink lexing, caret escape, ^, double quotes, no single quotes, %variable%, REM, :: comment, command separator, & separator, pipe, redirect, cmd metacharacters | [references/format-cmd.md](references/format-cmd.md) |
+| lua format, Lua lexing, lua strings, cmd-clink snippets, argmatcher, lua identifiers, lua quoting, '' in lua, \' in lua, lua operators, lua comments, no shell operators | [references/format-lua.md](references/format-lua.md) |
 | hilbish format, hilbish lexing, snail, mvdan/sh, LangBash, hybrid runner, lua runner, @ modifiers, backslash-escaped barewords, charEscapeMap, bash operators | [references/format-hilbish.md](references/format-hilbish.md) |
 
 ## Quick Guide
@@ -69,6 +70,7 @@ Load the reference that matches your task. When in doubt, load multiple referenc
 - **How does tcsh differ from POSIX lexing?** → [references/format-tcsh.md](references/format-tcsh.md)
 - **How do OSH and YSH differ lexically?** → [references/format-oil.md](references/format-oil.md)
 - **How does cmd.exe/clink tokenize?** → [references/format-cmd.md](references/format-cmd.md)
+- **How does the lua format tokenize cmd-clink snippets?** → [references/format-lua.md](references/format-lua.md)
 - **How does hilbish lex command lines?** → [references/format-hilbish.md](references/format-hilbish.md)
 
 ## Cross-Project References

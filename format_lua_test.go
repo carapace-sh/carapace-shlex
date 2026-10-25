@@ -3,7 +3,18 @@ package shlex
 import "testing"
 
 func TestLua_Split(t *testing.T) {
-	tokens, err := Split(`argmatcher git :addarg(x, checkpoint)`, Lua)
+	tokens, err := Split(`argmatcher 'don\'t fail'`, Lua)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual, expected := tokens.Words().Strings(), []string{"argmatcher", "don't fail"}; !stringSlicesEqual(actual, expected) {
+		t.Errorf("Words()\nactual  : %#v\nexpected: %#v", actual, expected)
+	}
+	if actual, expected := tokens[len(tokens)-1].State, IN_WORD_STATE; actual != expected {
+		t.Errorf("State\nactual  : %v\nexpected: %v", actual, expected)
+	}
+
+	tokens, err = Split(`argmatcher git :addarg(x, checkpoint)`, Lua)
 	if err != nil {
 		t.Fatal(err)
 	}

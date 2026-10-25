@@ -1,6 +1,9 @@
 package shlex
 
 // luaFormat implements Format for Lua lexing (cmd-clink snippets are Lua).
+// Inside single quotes, a doubled quote and \' are treated as an escaped
+// quote (fish/zsh RC_QUOTES style) rather than Lua's adjacent-literal
+// concatenation, so words like 'don\'t' survive lexing.
 type luaFormat struct{}
 
 // Lua has no redirections or pipelines; the structural punctuation is
@@ -27,8 +30,8 @@ func (luaFormat) ClassifyOperator(raw string) WordbreakType {
 
 func (luaFormat) KeywordOperators() map[string]WordbreakType { return nil }
 
-func (luaFormat) NonEscapingQuoteEscapes() bool          { return false }
-func (luaFormat) NonEscapingQuoteBackslashEscapes() bool { return false }
+func (luaFormat) NonEscapingQuoteEscapes() bool          { return true }
+func (luaFormat) NonEscapingQuoteBackslashEscapes() bool { return true }
 func (luaFormat) EscapeNotBareword() bool                { return true }
 func (luaFormat) EscapeNotInEscapingQuote() bool         { return false }
 
