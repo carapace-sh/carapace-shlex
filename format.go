@@ -23,6 +23,7 @@ const (
 	Elvish     Format = "elvish"
 	Fish       Format = "fish"
 	Hilbish    Format = "hilbish"
+	Lua        Format = "lua"
 	Nushell    Format = "nushell"
 	Oil        Format = "oil"
 	Powershell Format = "powershell"
@@ -53,13 +54,15 @@ type formatImpl interface {
 	// peeks at the next rune on seeing the quote char or escape char:
 	//   - '' (doubled quote) → one literal quote, stay in state
 	//   - \' or \\ → escaped char, stay in state
-	// Supported by: fish, elvish, zsh (RC_QUOTES), PowerShell.
+	// Supported by: fish, elvish, zsh (RC_QUOTES), PowerShell, lua (the
+	// doubled-quote approximation for Lua single quotes).
 	NonEscapingQuoteEscapes() bool
 
 	// NonEscapingQuoteBackslashEscapes returns true if backslash (\) is an
 	// escape character inside the non-escaping quote (single quotes).
 	// When true, \' and \\ inside single quotes produce the escaped char
-	// and stay in QUOTING_STATE. Only fish needs this.
+	// and stay in QUOTING_STATE. Used by fish and lua (Lua escapes \' in
+	// both quote styles).
 	// Requires NonEscapingQuoteEscapes() to also be true.
 	NonEscapingQuoteBackslashEscapes() bool
 
@@ -115,6 +118,7 @@ var formatImpls = map[Format]formatImpl{
 	Elvish:     elvishFormat{},
 	Fish:       fishFormat{},
 	Hilbish:    hilbishFormat{},
+	Lua:        luaFormat{},
 	Nushell:    nushellFormat{},
 	Oil:        bashFormat{},
 	Powershell: powershellFormat{},

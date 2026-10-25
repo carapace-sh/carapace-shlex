@@ -63,6 +63,15 @@ shlex.Join([]string{"echo", "hello world"}, shlex.Bash)
 
 Quotes and escapes words into a single command line using the format's quoting rules.
 
+### Escape
+
+```go
+shlex.Escape(`demo'; touch x`, shlex.Xonsh)
+// `demo\'; touch x` - content for an already-quoted `'%v'` template slot
+```
+
+Escapes a word for embedding inside an *already-quoted* string literal of the format (the caller supplies the surrounding quote characters, e.g. a template's `'%v'` slot). This is the interior variant of `shlex.Quote`. Unknown formats and formats without a dedicated string-interior rule (e.g. cmd, nushell) fall back to the default format; the result may not be valid inside those formats' own string literals.
+
 ## Supported Formats
 
 | Format | Constant | Key features |
@@ -74,6 +83,7 @@ Quotes and escapes words into a single command line using the format's quoting r
 | Fish | `shlex.Fish` | `\'`/`\\` in single quotes, keyword operators (`and`/`or`) |
 | Hilbish | `shlex.Hilbish` | bash-language sh runner (snail/mvdan.cc/sh), fixed wordbreaks |
 | Elvish | `shlex.Elvish` | `''` doubled-quote, `\` as bareword |
+| Lua | `shlex.Lua` | cmd-clink snippets (Lua strings) |
 | PowerShell | `shlex.Powershell` | backtick escape, `''`/`""` doubled-quotes |
 | Nushell | `shlex.Nushell` | backtick-as-quote, `$'...'`/`$"..."` |
 | Xonsh | `shlex.Xonsh` | Python string prefixes, POSIX operators |
@@ -86,7 +96,7 @@ go run ./cmd/carapace-shlex --format fish --completion-context "echo foo and gre
 ```
 
 Flags:
-- `--format` — shell format (bash, zsh, fish, elvish, nushell, powershell, xonsh, tcsh, oil, cmd, hilbish)
+- `--format` — shell format (bash, zsh, fish, elvish, nushell, lua, powershell, xonsh, tcsh, oil, cmd, hilbish)
 - `--completion-context` — output `CompletionContext` as JSON
 - `--current-pipeline` — show current pipeline only
 - `--filter-redirects` — filter redirect operators

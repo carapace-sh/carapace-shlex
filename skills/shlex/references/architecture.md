@@ -221,12 +221,13 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 | xonsh | Python single-quote wrapping with `\' \\` escapes |
 | cmd | double-quote wrapping with `^"` for literal `"` |
 | hilbish | backslash-escaped barewords (`charEscapeMap` plus `\`, `;`, tab) |
+| lua | double-quote wrapping; ASCII identifiers stay bare, otherwise `"`, `\\`, newline escapes |
 
 `Join(s []string, format Format) string` joins words using the format's `QuoteWord` method; `shlex.Default` selects the bash rules.
 
 ## Implemented Formats
 
-11 formats are implemented, each in a `format_*.go` file:
+12 formats are implemented, each in a `format_*.go` file:
 
 | Format | File | Key features |
 |--------|------|-------------|
@@ -241,6 +242,7 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 | `shlex.Xonsh` | `format_xonsh.go` | Python string prefixes, POSIX operators |
 | `shlex.Cmd` | `format_cmd.go` | caret escape, `"`-only, `&` separator |
 | `shlex.Hilbish` | `format_hilbish.go` | bash-language sh runner (snail/mvdan.cc/sh), fixed wordbreaks |
+| `shlex.Lua` | `format_lua.go` | cmd-clink snippets: Lua strings, `;` only pipeline delimiter, no comments/long strings |
 
 ### Deferred format features
 

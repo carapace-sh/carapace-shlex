@@ -1200,3 +1200,26 @@ func Quote(word string, format Format) string {
 	}
 	return f.QuoteWord(word)
 }
+
+// Escape returns the word's content escaped for embedding inside
+// string literals whose surrounding quote characters the caller supplies,
+// e.g. when a generated template already carries the quotes. It is the
+// interior variant of Quote. Unknown format names fall back to the default
+// format. Formats without a dedicated string-interior rule (cmd, nushell,
+// and others) also fall back; the result may not be valid for those
+// formats' own string literals.
+func Escape(word string, format Format) string {
+	switch format {
+	case Fish:
+		return fishStringEscape(word)
+	case Elvish:
+		return elvishStringEscape(word)
+	case Powershell:
+		return powershellStringEscape(word)
+	case Xonsh:
+		return xonshStringEscape(word)
+	case Lua:
+		return luaStringEscape(word)
+	}
+	return posixStringEscape(word)
+}
