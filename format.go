@@ -23,6 +23,7 @@ const (
 	Elvish     Format = "elvish"
 	Fish       Format = "fish"
 	Hilbish    Format = "hilbish"
+	Lua        Format = "lua"
 	Nushell    Format = "nushell"
 	Oil        Format = "oil"
 	Powershell Format = "powershell"
@@ -115,6 +116,7 @@ var formatImpls = map[Format]formatImpl{
 	Elvish:     elvishFormat{},
 	Fish:       fishFormat{},
 	Hilbish:    hilbishFormat{},
+	Lua:        luaFormat{},
 	Nushell:    nushellFormat{},
 	Oil:        bashFormat{},
 	Powershell: powershellFormat{},

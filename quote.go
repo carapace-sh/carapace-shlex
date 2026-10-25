@@ -20,6 +20,15 @@ func posixQuoteWord(s string) string {
 	}
 	var b strings.Builder
 	b.WriteByte('"')
+	b.WriteString(posixStringEscape(s))
+	b.WriteByte('"')
+	return b.String()
+}
+
+// posixStringEscape escapes the content of a POSIX double-quoted string
+// (the characters $, `, ", \, and newline) without supplying the quotes.
+func posixStringEscape(s string) string {
+	var b strings.Builder
 	for _, r := range s {
 		switch r {
 		case '"':
@@ -36,7 +45,6 @@ func posixQuoteWord(s string) string {
 			b.WriteRune(r)
 		}
 	}
-	b.WriteByte('"')
 	return b.String()
 }
 
@@ -52,6 +60,16 @@ func fishQuoteWord(s string) string {
 	}
 	var b strings.Builder
 	b.WriteByte('"')
+	b.WriteString(fishStringEscape(s))
+	b.WriteByte('"')
+	return b.String()
+}
+
+// fishStringEscape escapes the content of a fish double-quoted string
+// (the characters ", $, \, and newline) without supplying the quotes.
+// Backtick is a regular character in fish (not command substitution).
+func fishStringEscape(s string) string {
+	var b strings.Builder
 	for _, r := range s {
 		switch r {
 		case '"':
@@ -66,7 +84,6 @@ func fishQuoteWord(s string) string {
 			b.WriteRune(r)
 		}
 	}
-	b.WriteByte('"')
 	return b.String()
 }
 
@@ -117,6 +134,16 @@ func elvishQuoteWord(s string) string {
 	}
 	var b strings.Builder
 	b.WriteByte('\'')
+	b.WriteString(elvishStringEscape(s))
+	b.WriteByte('\'')
+	return b.String()
+}
+
+// elvishStringEscape escapes the content of an elvish single-quoted string
+// (two consecutive single-quote characters produce one literal quote)
+// without supplying the quotes.
+func elvishStringEscape(s string) string {
+	var b strings.Builder
 	for _, r := range s {
 		if r == '\'' {
 			b.WriteString("''")
@@ -124,7 +151,6 @@ func elvishQuoteWord(s string) string {
 			b.WriteRune(r)
 		}
 	}
-	b.WriteByte('\'')
 	return b.String()
 }
 
@@ -197,6 +223,16 @@ func powershellQuoteWord(s string) string {
 	}
 	var b strings.Builder
 	b.WriteByte('\'')
+	b.WriteString(powershellStringEscape(s))
+	b.WriteByte('\'')
+	return b.String()
+}
+
+// powershellStringEscape escapes the content of a PowerShell single-quoted
+// string (a doubled quote produces one literal quote) without supplying
+// the quotes.
+func powershellStringEscape(s string) string {
+	var b strings.Builder
 	for _, r := range s {
 		if r == '\'' {
 			b.WriteString("''")
@@ -204,7 +240,6 @@ func powershellQuoteWord(s string) string {
 			b.WriteRune(r)
 		}
 	}
-	b.WriteByte('\'')
 	return b.String()
 }
 
@@ -219,6 +254,16 @@ func xonshQuoteWord(s string) string {
 	}
 	var b strings.Builder
 	b.WriteByte('\'')
+	b.WriteString(xonshStringEscape(s))
+	b.WriteByte('\'')
+	return b.String()
+}
+
+// xonshStringEscape escapes the content of a xonsh (Python)
+// single-quoted string with backslash escapes for quote and backslash
+// without supplying the quotes.
+func xonshStringEscape(s string) string {
+	var b strings.Builder
 	for _, r := range s {
 		switch r {
 		case '\'':
@@ -229,7 +274,6 @@ func xonshQuoteWord(s string) string {
 			b.WriteRune(r)
 		}
 	}
-	b.WriteByte('\'')
 	return b.String()
 }
 
@@ -364,4 +408,80 @@ func escapeDoubleQuote(f formatImpl, value string) string {
 		}
 	}
 	return b.String()
+}
+
+// luaQuoteWord quotes a word for Lua (as used by cmd-clink snippets).
+// Lua identifiers stay bare; anything else is wrapped in double quotes
+// with backslash escapes for backslash and quote. Newlines need no escape
+// inside Lua strings.
+func luaQuoteWord(s string) string {
+	if s == "" {
+		return `""`
+	}
+	if isLuaBareword(s) {
+		return s
+	}
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString(`\"`)
+		case '\\':
+			b.WriteString(`\\`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
+}
+
+// isLuaBareword reports whether s is a valid Lua bareword (an identifier:
+// letters, digits, and underscores).
+func isLuaBareword(s string) bool {
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+			return false
+		}
+	}
+	return true
+}
+
+// luaStringEscape escapes the content of a Lua single-quoted string with
+// backslash escapes for quote and backslash without supplying the quotes.
+func luaStringEscape(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '\'':
+			b.WriteString(`\'`)
+		case '\\':
+			b.WriteString(`\\`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// Escape returns the word's content escaped for embedding inside
+// string literals whose surrounding quote characters the caller supplies,
+// e.g. when a generated template already carries the quotes. It is the
+// interior variant of Quote. Formats without a dedicated string-interior
+// rule and unknown format names fall back to the default format.
+func Escape(word string, format Format) string {
+	switch format {
+	case Fish:
+		return fishStringEscape(word)
+	case Elvish:
+		return elvishStringEscape(word)
+	case Powershell:
+		return powershellStringEscape(word)
+	case Xonsh:
+		return xonshStringEscape(word)
+	case Lua:
+		return luaStringEscape(word)
+	}
+	return posixStringEscape(word)
 }
