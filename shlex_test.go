@@ -126,3 +126,18 @@ func TestJoin(t *testing.T) {
 		}
 	}
 }
+
+func TestQuote_UnknownFormat(t *testing.T) {
+	if got := Quote("a b", "no-such-format"); got != Quote("a b", Default) {
+		t.Errorf("Quote(unknown format) = %q, want default format fallback %q", got, Quote("a b", Default))
+	}
+}
+
+func TestQuote_JoinsSingleWord(t *testing.T) {
+	for _, format := range []Format{Bash, Zsh, Oil, Fish, Tcsh, Xonsh, Elvish, Powershell, Nushell, Cmd, Hilbish, Default, "unknown"} {
+		quoted := Quote("a b", format)
+		if quoted != Join([]string{"a b"}, format) {
+			t.Errorf("Quote(%q, %q) = %q, want %q", "a b", format, quoted, Join([]string{"a b"}, format))
+		}
+	}
+}

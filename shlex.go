@@ -1189,3 +1189,14 @@ func Join(s []string, format Format) string {
 	}
 	return strings.Join(formatted, " ")
 }
+
+// Quote returns the given word quoted according to the format's quoting
+// rules, so that it parses back into a single token when split with the same
+// format. Unknown format names fall back to the default format.
+func Quote(word string, format Format) string {
+	f, ok := formatImplFor(format)
+	if !ok {
+		f = formatImpls[Default]
+	}
+	return f.QuoteWord(word)
+}
