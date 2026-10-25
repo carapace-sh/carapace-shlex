@@ -14,6 +14,7 @@ The shells fall into lexical families. A v2 format can often reuse a family's co
 | **Non-POSIX Unix** | fish, elvish, nushell | backslash escape, `'`/`"` quotes, but different operators / no word splitting |
 | **Python-hybrid** | xonsh | Python string literals + shell operators |
 | **Windows** | PowerShell, cmd (clink) | backtick / caret escape, here-strings, `&` separator |
+| **Embedded scripts** | lua | both `'` and `"` escape via `\`, identifiers as barewords; no operators, no comments lexed |
 
 POSIX-family shells share the v1 operator grammar almost verbatim. The non-POSIX and Windows shells need format-specific operator sets and, in some cases, extra string types.
 
@@ -32,6 +33,7 @@ POSIX-family shells share the v1 operator grammar almost verbatim. The non-POSIX
 | **powershell** | literal (`` ` `` is literal) | `` `$ `" `` `` `` `` `n `t `` escapes | `"` | `@'...'@`, `@"..."@` here-strings |
 | **xonsh** | Python single-quote | Python double-quote | `"` | `r'...'`, `f'...'`, `p'...'`, `b'...'` |
 | **cmd** | — (not a quote) | `"..."` (no escaping inside) | n/a | `%VAR%` |
+| **lua** | `\'`, `\\`, control escapes, `''` approximated as doubled | same (both styles escape identically) | both | long strings `[[...]]` (not lexed) |
 
 **Key lexer implication**: "escaping quote" (double-quote-like, `\` is special inside) vs "non-escaping quote" (single-quote-like, literal) maps to `QUOTING_ESCAPING_STATE` vs `QUOTING_STATE` in the state machine. Shells where single quotes have *some* escapes (fish `\'`, elvish `''`) need format-specific handling — the two-state model isn't enough.
 
@@ -49,6 +51,7 @@ POSIX-family shells share the v1 operator grammar almost verbatim. The non-POSIX
 | **powershell** | `` ` `` | `` `$ `" `` `` `` `` `n `t `` | same (in `"..."`) | none (literal in `'...'`) |
 | **xonsh** | `\` | Python rules | Python rules | none |
 | **cmd** | `^` | escapes next char | `^` escapes inside `"..."` | n/a |
+| **lua** | `\` | literal bareword char in the model (`EscapeNotBareword`) | escapes the next rune | escapes the next rune (both styles identical) |
 
 ## Word Delimiters (Spaces)
 
@@ -57,6 +60,7 @@ All shells treat ` \t\r\n` as word delimiters. The tokenizer's `spaceRuneClass` 
 - **fish** does **not** word-split on unquoted variable expansion (a `$var` with spaces is one word), but the *lexer* still splits on literal whitespace in the source — so lexing is the same as POSIX for literal input.
 - **elvish** and **nushell** similarly don't word-split; the lexer splits on literal source whitespace only.
 - **cmd** treats `\r\n` and `&` as command separators; within a single command, space/tab delimit words.
+- **lua** also counts `\f`/`\v` as whitespace (Lua's `llex` does; the classifier adds both on top of `spaceRuneClass`).
 
 ## Operators and Word Breaks
 
@@ -74,6 +78,7 @@ These are the characters that break a word and are classified as `WORDBREAK_TOKE
 | **powershell** | `\|` | `>` `>>` `2>` `2>&1` etc. | `;` | `&&` `\|\|` (PS7+) | `( ) { } ,` |
 | **xonsh** | `\|` | `>` `>>` `<` `2>` `2>&1` `e>` `e<` etc. | `;` | `&` `\|` `&&` `\|\|` | `@()` `$()` `![]` |
 | **cmd** | `\|` | `>` `>>` `<` | `&` `&&` `\|\|` | `&` `&&` `\|\|` | — |
+| **lua** | — | — | `;` (only pipeline delimiter) | — | `( )` brackets, `,` `.` `=` `:` inert |
 | **hilbish** | `\|` `\|&` | `< > >> >\| <<< <> <& &> &>>` | `;` `&` `;;` | `&&` `\|\|` `&` `;` `;;` `;&` `;;&` | `( )` (fixed, no COMP_WORDBREAKS) |
 
 **Key lexer implication**: POSIX shells share the bash operator grammar (multi-char greedy matching of `>>`, `<<`, `&&`, `||`, `|&`, `&>>`). Fish needs *keyword* operator recognition (`and`/`or`/`not` are bare words that act as operators — the tokenizer must match them at word boundaries, not as operator runes). Cmd uses `&` as a *command separator* (like `;` in POSIX), not just a background operator.
@@ -92,6 +97,7 @@ These are the characters that break a word and are classified as `WORDBREAK_TOKE
 | **powershell** | `#` | end of line | also `<# ... #>` block comments (multi-line) |
 | **xonsh** | `#` | end of line | Python `#` comments |
 | **cmd** | `REM` / `::` | end of line | `REM` is a command; `::` is a label-style comment |
+| **lua** | `--` | end of line / long bracket | **not lexed** — the classifier keeps the POSIX `#` (a documented deviation) |
 
 The v1 tokenizer handles `#`-to-newline comments in `COMMENT_STATE`. Cmd's `REM`/`::` and PowerShell's `<# #>` block comments need format-specific comment handling.
 
@@ -137,6 +143,7 @@ For a *lexer* (not an expander), interpolation matters only insofar as the inter
 - **xonsh** → Python string literals (raw, f-, p-, b-strings) + shell operators.
 - **cmd** → `^` escape; `"`-only quotes; `&` separator; `REM`/`::` comments.
 - **hilbish** → bash grammar via snail (mvdan/sh LangBash); fixed wordbreaks; backslash-escaped barewords for insertion; see [format-hilbish.md](format-hilbish.md).
+- **lua** → quote/escape adapter for cmd-clink snippets: both quote styles escape via `\`, ASCII identifiers stay bare, pseudo-format with no operators/comments; see [format-lua.md](format-lua.md).
 
 ## References
 

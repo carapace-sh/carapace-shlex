@@ -54,7 +54,8 @@ type formatImpl interface {
 	// peeks at the next rune on seeing the quote char or escape char:
 	//   - '' (doubled quote) → one literal quote, stay in state
 	//   - \' or \\ → escaped char, stay in state
-	// Supported by: fish, elvish, zsh (RC_QUOTES), PowerShell.
+	// Supported by: fish, elvish, zsh (RC_QUOTES), PowerShell, lua (the
+	// doubled-quote approximation for Lua single quotes).
 	NonEscapingQuoteEscapes() bool
 
 	// NonEscapingQuoteBackslashEscapes returns true if backslash (\) is an
