@@ -2,8 +2,9 @@ package shlex
 
 // luaFormat implements Format for Lua lexing (cmd-clink snippets are Lua).
 // Inside single quotes, a doubled quote and \' are treated as an escaped
-// quote (fish/zsh RC_QUOTES style) rather than Lua's adjacent-literal
-// concatenation, so words like 'don\'t' survive lexing.
+// quote (fish/zsh RC_QUOTES style); real Lua instead reads doubled-quote
+// sequences as two adjacent string literals, but the doubling approximation
+// lets words like 'don\'t' survive lexing.
 type luaFormat struct{}
 
 // Lua has no redirections or pipelines; the structural punctuation is
@@ -13,6 +14,7 @@ const LUA_WORDBREAKS = ";(){},.=:"
 
 func (luaFormat) Classifier() tokenClassifier {
 	t := newBaseClassifier(escapeRunes)
+	t.addRuneClass("\f\v", spaceRuneClass)
 	t.addWordbreaks(LUA_WORDBREAKS)
 	return t
 }

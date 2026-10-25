@@ -14,6 +14,14 @@ func TestLua_Split(t *testing.T) {
 		t.Errorf("State\nactual  : %v\nexpected: %v", actual, expected)
 	}
 
+	tokens, err = Split("a\fb c", Lua)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual, expected := tokens.Words().Strings(), []string{"a", "b", "c"}; !stringSlicesEqual(actual, expected) {
+		t.Errorf("Words() with formfeed\nactual  : %#v\nexpected: %#v", actual, expected)
+	}
+
 	tokens, err = Split(`argmatcher git :addarg(x, checkpoint)`, Lua)
 	if err != nil {
 		t.Fatal(err)

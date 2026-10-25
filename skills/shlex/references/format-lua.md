@@ -6,15 +6,16 @@ Lexical rules a command-line lexer needs for Lua. The format exists for
 `"..."` support backslash escapes, and identifiers are the only barewords.
 
 > **Source of truth**: Lua 5.4 reference manual, §3.1 (Lexical Conventions)
-> and §3.1.1 (String literals). For broader clink internals, use the
-> **cmd-clink** skill. For cross-shell comparison, see
+> and the lexer source `llex.c` / `lctype.h`
+> ([lua/lua](https://github.com/lua/lua), version 5.4). For broader clink
+> internals, use the **cmd-clink** skill. For cross-shell comparison, see
 > [comparison.md](comparison.md).
 
 ## Classification
 
 | Rune class | Runes | Tokenizer state |
 |------------|-------|-----------------|
-| space | ` \t\r\n` | word delimiter |
+| space | ` \t\r\n` + `\f` `\v` (Lua counts form feed/vertical tab as whitespace; `spaceRunes` misses them, so the format classifier adds both) | word delimiter |
 | escaping quote | `"` | `QUOTING_ESCAPING_STATE` |
 | non-escaping quote | `'` | `QUOTING_STATE` — fish/zsh-style `''` and `\'` rules |
 | escape | `\` | — |
@@ -40,21 +41,24 @@ is an escape in **both**.
 | `\'` | single quote |
 | `\n` | newline |
 | `\t`, `\r`, `\a`, `\b`, `\f`, `\v` | control characters |
-| literal newline | **not allowed** inside short strings (must be an escape) |
-| `\xHH` | hex byte |
-| `\ddd` | decimal byte (up to 3 digits) |
+| `\` + line break | a newline (the backslash *is* consumed; a raw unescaped newline is an "unfinished string" error) |
+| literal runaway newline | **not allowed** inside short strings |
+| `\xHH` | hex byte (exactly two hex digits) |
+| `\ddd` | decimal byte (up to 3 digits, value ≤ 255) |
 | `\z` | skip following whitespace |
+| `\u{XXX}` | UTF-8 encoding of a code point, mandatory braces |
 
 The tokenizer never evaluates escape sequences; it tracks only quotation
 state. The relevant simplifications (both documented model limitations):
 
-- **`''` in single quotes**: Lua itself only concatenates adjacent
-  string literals (`'it''s'` = "it" ++ "s" = `its`). The lexer instead
-  treats `''` as an escaped quote (fish/zsh `RC_QUOTES` style), keeping
-  `'it''s'` as the single word `it's` so completion can resume inside
-  the string. The same flags make `\'` an escape, matching real Lua
+- **`''` in single quotes**: Lua itself has **no** adjacent-string
+  concatenation — `'it''s'` lexes as the two string literals `it` and
+  `s` (an error in expression position). The lexer instead treats `''`
+  as an escaped quote (fish/zsh `RC_QUOTES` style), keeping `'it''s'`
+  as the single word `it's` so completion can resume inside the string.
+  The same flags make `\'` an escape, matching real Lua
   (`'don\'t'` → `don't`).
-- **`hex/decimal/\z` escapes**: not modeled. The tokenizer still consumes
+- **hex/decimal/`\z`/`\u{}` escapes**: not modeled. The tokenizer still consumes
   `\` as an escape inside quotes, so `"\x41"` dequotes to `x41` (the
   backslash is dropped and the rune taken literally) rather than the byte
   `A`. Round-trip through `Split`/`Join` is therefore not preserved for
@@ -75,12 +79,13 @@ Backslash escapes the next rune (`EscapingQuoteEscapeChars` returns nil).
 
 ## Barewords
 
-Lua identifiers are the only barewords, and they are ASCII-only:
-
-```
-[(A-Za-z_)][(A-Za-z0-9_)]*
-```
-
+Lua identifiers are the only barewords, and in the default (ASCII
+execution-charset) build they really are ASCII-only via the fixed tables
+in `lctype.h` — `lislalpha`/`lislalnum` include `_` and map exactly
+`[(A-Za-z_)][A-Za-z0-9_]*` (`LUA_USE_CTYPE`/`LUA_UCID` builds can
+diverge). Reserved words (`and`, `while`, ..., not names in Lua) contain
+only identifier runes, so they likewise stay bare — harmless, since they
+never need quoting.
 A leading digit is invalid (`123abc` lexes as the number `1` followed by
 the identifier `abc`), and unicode letters are invalid — both are handled
 by `isLuaBareword` (any non-matching word gets quoted via `luaQuoteWord`).
@@ -106,11 +111,18 @@ The flat state machine does not lex these; leave them alone and do not
 feed them to the lexer:
 
 - **line comments** (`--`) and **block comments** (`--[[ ... ]]`)
-- **long strings** (`[[ ... ]]`, `[= ... =]`)
+- **long strings** (`[[ ... ]]`, `[=[ ... ]=]`)
 - **hex / decimal / `\z` escapes** inside strings (the `\` still escapes
   the following rune when tokenizing, so round-tripping \x41 etc. yields
   the decoded value only if the consumer dequotes it)
 - `#` is a POSIX-style comment in the classifier, not Lua syntax
+- `--` short comments skip to end-of-line and long comments match a
+  closing long bracket of the opening level (`skip_sep` in `llex.c`)
+- long-bracket strings have *levels* (`[[`, `[=[`, `[==[`, ...) matched
+  by the same `skip_sep`; the character right after the opening bracket
+  being a newline is not part of the string
+- Lua's lexical whitespace is ` \t\n\r\f\v` (`llex.c` plus `lisspace`) —
+  the format classifier adds `\f`/`\v` on top of the shared `spaceRunes`
 
 ## QuoteWord / Escape
 
