@@ -70,7 +70,7 @@ shlex.Escape(`demo'; touch x`, shlex.Xonsh)
 // `demo\'; touch x` - content for an already-quoted `'%v'` template slot
 ```
 
-Escapes a word for embedding inside an *already-quoted* string literal of the format (the caller supplies the surrounding quote characters, e.g. a template's `'%v'` slot). This is the interior variant of `shlex.Quote`. Unknown formats and formats without a dedicated string-interior rule fall back to the default format.
+Escapes a word for embedding inside an *already-quoted* string literal of the format (the caller supplies the surrounding quote characters, e.g. a template's `'%v'` slot). This is the interior variant of `shlex.Quote`. Unknown formats and formats without a dedicated string-interior rule (e.g. cmd, nushell) fall back to the default format; the result may not be valid inside those formats' own string literals.
 
 ## Supported Formats
 

@@ -412,8 +412,7 @@ func escapeDoubleQuote(f formatImpl, value string) string {
 
 // luaQuoteWord quotes a word for Lua (as used by cmd-clink snippets).
 // Lua identifiers stay bare; anything else is wrapped in double quotes
-// with backslash escapes for backslash and quote. Newlines need no escape
-// inside Lua strings.
+// with backslash escapes for backslash and quote.
 func luaQuoteWord(s string) string {
 	if s == "" {
 		return `""`
@@ -429,6 +428,8 @@ func luaQuoteWord(s string) string {
 			b.WriteString(`\"`)
 		case '\\':
 			b.WriteString(`\\`)
+		case '\n':
+			b.WriteString(`\n`)
 		default:
 			b.WriteRune(r)
 		}
@@ -437,19 +438,22 @@ func luaQuoteWord(s string) string {
 	return b.String()
 }
 
-// isLuaBareword reports whether s is a valid Lua bareword (an identifier:
-// letters, digits, and underscores).
+// isLuaBareword reports whether s is a valid Lua identifier
+// ([A-Za-z_][A-Za-z0-9_]*), which is the only bareword word form.
 func isLuaBareword(s string) bool {
-	for _, r := range s {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+	for i, r := range s {
+		valid := r == '_' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(i > 0 && r >= '0' && r <= '9')
+		if !valid {
 			return false
 		}
 	}
 	return true
 }
 
-// luaStringEscape escapes the content of a Lua single-quoted string with
-// backslash escapes for quote and backslash without supplying the quotes.
+// luaStringEscape escapes the content of a Lua string (without supplying
+// the quotes) with backslash escapes for quote, backslash, and newline.
 func luaStringEscape(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -458,6 +462,8 @@ func luaStringEscape(s string) string {
 			b.WriteString(`\'`)
 		case '\\':
 			b.WriteString(`\\`)
+		case '\n':
+			b.WriteString(`\n`)
 		default:
 			b.WriteRune(r)
 		}
@@ -468,8 +474,10 @@ func luaStringEscape(s string) string {
 // Escape returns the word's content escaped for embedding inside
 // string literals whose surrounding quote characters the caller supplies,
 // e.g. when a generated template already carries the quotes. It is the
-// interior variant of Quote. Formats without a dedicated string-interior
-// rule and unknown format names fall back to the default format.
+// interior variant of Quote. Unknown format names fall back to the default
+// format. Formats without a dedicated string-interior rule (cmd, nushell,
+// and others) also fall back; the result may not be valid for those
+// formats' own string literals.
 func Escape(word string, format Format) string {
 	switch format {
 	case Fish:

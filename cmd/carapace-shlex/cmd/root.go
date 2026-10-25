@@ -87,7 +87,7 @@ func init() {
 	)
 
 	carapace.Gen(rootCmd).FlagCompletion(carapace.ActionMap{
-		"format": carapace.ActionValues("bash", "zsh", "fish", "elvish", "nushell", "powershell", "xonsh", "tcsh", "oil", "cmd", "hilbish"),
+		"format": carapace.ActionValues("bash", "zsh", "fish", "elvish", "lua", "nushell", "powershell", "xonsh", "tcsh", "oil", "cmd", "hilbish"),
 	})
 
 	carapace.Gen(rootCmd).PositionalCompletion(

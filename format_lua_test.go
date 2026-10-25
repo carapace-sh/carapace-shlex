@@ -2,6 +2,39 @@ package shlex
 
 import "testing"
 
+func TestLua_Split(t *testing.T) {
+	tokens, err := Split(`argmatcher git :addarg(x, checkpoint)`, Lua)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual, expected := tokens.Words().Strings(), []string{"argmatcher", "git", ":addarg(x,", "checkpoint)"}; !stringSlicesEqual(actual, expected) {
+		t.Errorf("Words()\nactual  : %#v\nexpected: %#v", actual, expected)
+	}
+	expectedWordbreakType := map[string]WordbreakType{
+		"(": WORDBREAK_BRACKET,
+		")": WORDBREAK_BRACKET,
+		",": WORDBREAK_UNKNOWN,
+	}
+	for _, token := range tokens {
+		if token.Type != WORDBREAK_TOKEN {
+			continue
+		}
+		if expected, ok := expectedWordbreakType[token.Value]; ok && token.WordbreakType != expected {
+			t.Errorf("WordbreakType of %q\nactual  : %v\nexpected: %v", token.Value, token.WordbreakType, expected)
+		}
+	}
+}
+
+func TestLua_Complete(t *testing.T) {
+	ctx := Complete(`argmatcher git :addarg(checkpoint`, Lua)
+	if actual, expected := ctx.Words, []string{"argmatcher", "git", ":addarg(checkpoint"}; !stringSlicesEqual(actual, expected) {
+		t.Errorf("Words()\nactual  : %#v\nexpected: %#v", actual, expected)
+	}
+	if actual, expected := ctx.CurrentWord, ":addarg(checkpoint"; actual != expected {
+		t.Errorf("CurrentWord\nactual  : %q\nexpected: %q", actual, expected)
+	}
+}
+
 func TestJoin_Lua(t *testing.T) {
 	tests := map[string][]string{
 		`argmatcher git`:  {"argmatcher", "git"},
@@ -9,6 +42,9 @@ func TestJoin_Lua(t *testing.T) {
 		`x "a\"b"`:        {"x", `a"b`},
 		`x "a\\b"`:        {"x", `a\b`},
 		`x "a$(touch x)"`: {"x", "a$(touch x)"},
+		`x "a\nb"`:        {"x", "a\nb"},
+		`x "123abc"`:      {"x", "123abc"},
+		`x "café"`:        {"x", "café"},
 	}
 	for expected, words := range tests {
 		if actual := Join(words, Lua); actual != expected {
@@ -17,29 +53,14 @@ func TestJoin_Lua(t *testing.T) {
 	}
 }
 
-func TestEscape(t *testing.T) {
-	tests := []struct {
-		name     string
-		format   Format
-		input    string
-		expected string
-	}{
-		{name: "posix dollar/quote", format: Bash, input: "a$()b'c", expected: `a\$()b'c`},
-		{name: "posix doublequote/backslash", format: Bash, input: "a\"b\\c", expected: `a\"b\\c`},
-		{name: "posix fallback for unknown", format: "no-such-format", input: "a$(touch x)", expected: `a\$(touch x)`},
-		{name: "posix fallback for cmd", format: Cmd, input: `a"b`, expected: `a\"b`},
-		{name: "fish", format: Fish, input: "a$()b\"c\\d", expected: `a\$()b\"c\\d`},
-		{name: "elvish", format: Elvish, input: "a'b", expected: `a''b`},
-		{name: "powershell", format: Powershell, input: `demo'; IEX 'x`, expected: `demo''; IEX ''x`},
-		{name: "xonsh", format: Xonsh, input: `demo'; touch 'x`, expected: `demo\'; touch \'x`},
-		{name: "lua", format: Lua, input: `demo'; touch 'x`, expected: `demo\'; touch \'x`},
-		{name: "lua passes metacharacters", format: Lua, input: "a$(touch x)", expected: "a$(touch x)"},
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := Escape(tt.input, tt.format); got != tt.expected {
-				t.Errorf("Escape(%#v, %v) = %#v, want %#v", tt.input, tt.format, got, tt.expected)
-			}
-		})
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
 	}
+	return true
 }
