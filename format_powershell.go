@@ -1,5 +1,10 @@
 package shlex
 
+import (
+	"regexp"
+	"strings"
+)
+
 // powershellFormat implements Format for PowerShell lexing.
 // Key differences from bash:
 //   - Backtick (`) is the escape character, not backslash (\)
@@ -184,6 +189,23 @@ func (powershellFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	return final
 }
 
+// powershellNumericWordRe matches digit-leading words that PowerShell
+// evaluates to a different value standalone (e.g. 0x1f -> 31, 2e3 -> 2000,
+// 2kb -> 2048, 2l -> 2, 2us -> 2, trailing 2. -> 2). Words rendering as
+// their own value (42, 2.5) are not matched.
+var powershellNumericWordRe = regexp.MustCompile(
+	`^0[xX][0-9a-fA-F_]+$` +
+		`|^0[bB][01_]+$` +
+		`|[0-9][0-9_]*(\.[0-9_]*)?[eE][0-9]+$` +
+		`|^[0-9][0-9_]*\.$` +
+		`|(?i)^[0-9][0-9_]*(\.[0-9_]*)?(l|u|ul|d|kb|mb|gb|tb|pb|us)$`,
+)
+
 func (powershellFormat) IsBareWord(s string) bool {
-	return bareWordRe.MatchString(s)
+	// digit-leading words with operator runes are arithmetic in
+	// PowerShell command position (2+2 computes 4), so they are not inert
+	if s != "" && s[0] >= '0' && s[0] <= '9' && strings.ContainsAny(s, "+-*/%") {
+		return false
+	}
+	return !powershellNumericWordRe.MatchString(s) && bareWordRe.MatchString(s)
 }

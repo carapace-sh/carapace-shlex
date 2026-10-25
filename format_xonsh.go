@@ -1,5 +1,10 @@
 package shlex
 
+import (
+	"regexp"
+	"strings"
+)
+
 // xonshFormat implements Format for xonsh lexing.
 // Xonsh is a Python/shell hybrid. For lexing purposes:
 //   - Standard single/double quotes work like bash
@@ -162,6 +167,23 @@ func (xonshFormat) Variable(word Token) (Variable, bool) {
 	})
 }
 
+// xonshNumericWordRe matches digit-leading words that Python evaluates
+// silently in xonsh (e.g. 0x1f -> 31, 1_000, 2. -> 2.0, 2e3 -> 2000.0,
+// plain 42 -> 42). Words that fail to parse stay inert in subprocess mode.
+var xonshNumericWordRe = regexp.MustCompile(
+	`^0[xX][0-9a-fA-F_]+$` +
+		`|^0[oO][0-7_]+$` +
+		`|^0[bB][01_]+$` +
+		`|^[0-9][0-9_]*\.?[0-9_]*([eE][0-9]+)?$`,
+)
+
 func (xonshFormat) IsBareWord(s string) bool {
+	// digit-leading words with operator runes or numeric literal shape are
+	// valid Python expressions and evaluate in xonsh (e.g. 2+2 silently
+	// computes), so they are not inert
+	if s != "" && s[0] >= '0' && s[0] <= '9' &&
+		(strings.ContainsAny(s, "+-*/%") || xonshNumericWordRe.MatchString(s)) {
+		return false
+	}
 	return bareWordRe.MatchString(s)
 }
