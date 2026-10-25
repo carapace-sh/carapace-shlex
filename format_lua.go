@@ -1,5 +1,7 @@
 package shlex
 
+import "strings"
+
 // luaFormat implements Format for Lua lexing (cmd-clink snippets are Lua).
 // Inside single quotes, a doubled quote and \' are treated as an escaped
 // quote (fish/zsh RC_QUOTES style); real Lua instead reads doubled-quote
@@ -46,3 +48,38 @@ func (luaFormat) EscapingQuoteEscapeChars() map[rune]bool { return nil }
 func (luaFormat) QuoteWord(s string) string { return luaQuoteWord(s) }
 func (luaFormat) TripleQuoteSupport() bool  { return false }
 func (luaFormat) RawPrefixSupport() bool    { return false }
+
+// QuoteInsertion implements quoteInserter. Raw newlines are invalid inside
+// Lua short strings regardless of the quote style, and
+// EscapingQuoteEscapeChars returns nil, so the default insertion would
+// emit an unescaped newline; escape quote, backslash, and newline instead.
+func (luaFormat) QuoteInsertion(state LexerState, value string) string {
+	switch state {
+	case QUOTING_STATE:
+		return `'` + luaEscapeInterior(value, '\'') + `'`
+	case QUOTING_ESCAPING_STATE:
+		return `"` + luaEscapeInterior(value, '"') + `"`
+	default:
+		return quoteInsertionDefault(luaFormat{}, state, value)
+	}
+}
+
+// luaEscapeInterior escapes value for the inside of a Lua string literal:
+// the string's own quote character, the backslash, and newlines as \n.
+func luaEscapeInterior(value string, quote rune) string {
+	var b strings.Builder
+	for _, r := range value {
+		switch r {
+		case quote:
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case '\\':
+			b.WriteString(`\\`)
+		case '\n':
+			b.WriteString(`\n`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}

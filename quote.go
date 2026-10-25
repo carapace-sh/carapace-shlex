@@ -455,20 +455,7 @@ func isLuaBareword(s string) bool {
 // luaStringEscape escapes the content of a Lua string (without supplying
 // the quotes) with backslash escapes for quote, backslash, and newline.
 func luaStringEscape(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch r {
-		case '\'':
-			b.WriteString(`\'`)
-		case '\\':
-			b.WriteString(`\\`)
-		case '\n':
-			b.WriteString(`\n`)
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
+	return luaEscapeInterior(s, '\'')
 }
 
 // Escape returns the word's content escaped for embedding inside

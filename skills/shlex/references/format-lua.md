@@ -20,7 +20,7 @@ Lexical rules a command-line lexer needs for Lua. The format exists for
 | non-escaping quote | `'` | `QUOTING_STATE` — fish/zsh-style `''` and `\'` rules |
 | escape | `\` | — |
 | comment | `#` (inherited from the POSIX base; **not** Lua syntax) | `COMMENT_STATE` |
-| wordbreak | `;` `(` `)` `{` `}` `,` `.` `=` `:` | `WORDBREAK_STATE` |
+| wordbreak | `;` `(` `)` `,` `.` `=` `:` (braces `{` `}` are **not** wordbreaks; Lua braces stay literal word characters) | `WORDBREAK_STATE` |
 
 Lua has **no shell operators**: no pipes, no redirects, no list operators.
 `;` is only a statement separator and is classified

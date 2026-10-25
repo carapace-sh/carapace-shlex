@@ -72,6 +72,27 @@ func TestJoin_Lua(t *testing.T) {
 	}
 }
 
+func TestLua_QuoteInsertion(t *testing.T) {
+	tests := []struct {
+		input    string
+		value    string
+		expected string
+	}{
+		{input: `x "a`, value: "a b", expected: `"a b"`},
+		{input: `x "a`, value: `a"b`, expected: `"a\"b"`},
+		{input: `x "a`, value: `a\b`, expected: `"a\\b"`},
+		{input: `x "a`, value: "a\nb", expected: `"a\nb"`},
+		{input: `x 'a`, value: "a'b", expected: `'a\'b'`},
+		{input: `x 'a`, value: "a\nb", expected: `'a\nb'`},
+	}
+	for _, tt := range tests {
+		ctx := Complete(tt.input, Lua)
+		if actual := ctx.Quote(tt.value); actual != tt.expected {
+			t.Errorf("Quote(%q) for %q\nactual  : %s\nexpected: %#v", tt.value, tt.input, actual, tt.expected)
+		}
+	}
+}
+
 func stringSlicesEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
