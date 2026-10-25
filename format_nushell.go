@@ -252,3 +252,7 @@ func isNushellNameRune(r rune) bool {
 		return false
 	}
 }
+
+func (nushellFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

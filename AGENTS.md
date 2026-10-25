@@ -60,7 +60,7 @@ The core state machine in `shlex.go` (`scanStream`) has **no nesting awareness**
 `format.go` defines:
 
 - **`Format`** — a string type naming a supported shell (`shlex.Bash`, `shlex.Zsh`, ..., `shlex.Default` for the empty name used by spec macros). Formats are a closed set: the lexing behavior lives behind the unexported `formatImpl` interface, resolved by the `formatImpls` map. Adding a format means adding a constant and a map entry, not implementing an interface from outside the package.
-- **`formatImpl`** (required, unexported): `Classifier`, `ClassifyOperator`, `KeywordOperators`, quote-behavior flags (`NonEscapingQuoteEscapes`, `NonEscapingQuoteBackslashEscapes`, `EscapeNotBareword`, `EscapeNotInEscapingQuote`, `EscapingQuoteEscapeChars`), `TripleQuoteSupport`, `RawPrefixSupport`, `QuoteWord`.
+- **`formatImpl`** (required, unexported): `Classifier`, `ClassifyOperator`, `KeywordOperators`, quote-behavior flags (`NonEscapingQuoteEscapes`, `NonEscapingQuoteBackslashEscapes`, `EscapeNotBareword`, `EscapeNotInEscapingQuote`, `EscapingQuoteEscapeChars`), `TripleQuoteSupport`, `RawPrefixSupport`, `QuoteWord`, `IsBareWord`.
 - **Optional interfaces** (asserted via type assertion in `tokenizer.Next` / `Split`):
   - `postProcessor` — post-pass token reclassification (elvish, nushell)
   - `blockCommenter` — multi-line block comments (PowerShell `<# #>`)
@@ -101,6 +101,8 @@ type Token struct {
 - `Split(s, format)` → `TokenSlice, error` (unknown formats are rejected)
 - `Complete(s, format)` → `*CompletionContext` (never errors; returns empty context with `START_STATE` on failure)
 - `Join(s, format)` → quoted string (unknown formats fall back to `Default`)
+- `Escape(word, format)` → content for an already-quoted string literal of the format (unknown formats and formats without a dedicated string-interior rule fall back to `Default`)
+- `IsBareWord(word, format)` → whether the word stands as a single inert token in unquoted position (conservative screen for unquoted insertion or registration, e.g. completer names in carapace; unknown formats fall back to `Default`)
 - `CompletionContext` — the completion-oriented API: `Words`, `CurrentWord`, `RawCurrentWord`, `Prefix`, `QuotingState`, `IsRedirect`, `InLambdaParams`, `Variable` (lexical variable-reference detection; `Insert` composes the replacement word), `Quote` (insertion quoting per format and quoting state), `Span` (current word position), and `Tokens` (raw token escape hatch)
 
 `Complete` is the primary entry point for completion callers (carapace). It internally calls `Split` then derives the context fields. `InLambdaParams` is detected via an odd count of `WORDBREAK_LAMBDA_PIPE` in the current pipeline (toggle heuristic — see known limitations).
@@ -118,11 +120,12 @@ Parked deliberately; revisit when a consumer actually hits them.
 
 1. Create `format_<shell>.go` implementing `formatImpl` (+ optional interfaces as needed).
 2. Add a `<shell>QuoteWord` function in `quote.go` and reference it from the format's `QuoteWord` method. Quoting helpers are kept in `quote.go`, not in the format file.
-3. If the shell has operators that differ from the bash grammar, add a `<shell>WordbreakType` function in `wordbreak.go` (see `bashWordbreakType`, `tcshWordbreakType` as templates).
-4. Add a `Format` constant and a `formatImpls` map entry in `format.go`, and add the format name to the `--format` flag's completion values in `cmd/carapace-shlex/cmd/root.go`.
-5. Add the format to the table in `README.md`.
-6. Create `format_<shell>_test.go` (see existing test files for the pattern).
-7. If the shell needs behavior the flat state machine can't express, implement `postProcessor` rather than modifying `scanStream`.
+3. Decide `IsBareWord`: the shared conservative list `bareWordRe` (quote.go) is the default; sharpen it in the format file only when barewords must also be valid identifiers (see `luaFormat`).
+4. If the shell has operators that differ from the bash grammar, add a `<shell>WordbreakType` function in `wordbreak.go` (see `bashWordbreakType`, `tcshWordbreakType` as templates).
+5. Add a `Format` constant and a `formatImpls` map entry in `format.go`, and add the format name to the `--format` flag's completion values in `cmd/carapace-shlex/cmd/root.go`.
+6. Add the format to the table in `README.md`.
+7. Create `format_<shell>_test.go` (see existing test files for the pattern).
+8. If the shell needs behavior the flat state machine can't express, implement `postProcessor` rather than modifying `scanStream`.
 
 ## Testing Patterns
 

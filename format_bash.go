@@ -68,3 +68,7 @@ func (bashFormat) Variable(word Token) (Variable, bool) {
 func (f bashFormat) NaiveSplitWord(raw string) string {
 	return naiveSplitWord(f.Classifier(), raw)
 }
+
+func (bashFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

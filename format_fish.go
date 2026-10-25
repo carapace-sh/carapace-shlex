@@ -119,3 +119,7 @@ func (fishFormat) Variable(word Token) (Variable, bool) {
 		nameRune:        isPosixNameRune,
 	})
 }
+
+func (fishFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

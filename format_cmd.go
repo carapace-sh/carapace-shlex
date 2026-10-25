@@ -149,3 +149,7 @@ func (cmdFormat) PostProcess(tokens TokenSlice) TokenSlice {
 	}
 	return result
 }
+
+func (cmdFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

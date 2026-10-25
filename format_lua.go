@@ -83,3 +83,8 @@ func luaEscapeInterior(value string, quote rune) string {
 	}
 	return b.String()
 }
+
+func (luaFormat) IsBareWord(s string) bool {
+	// isLuaBareword accepts the empty identifier
+	return s != "" && isLuaBareword(s)
+}

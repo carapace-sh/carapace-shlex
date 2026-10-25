@@ -161,3 +161,7 @@ func (xonshFormat) Variable(word Token) (Variable, bool) {
 		nameRune:        isPosixNameRune,
 	})
 }
+
+func (xonshFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}

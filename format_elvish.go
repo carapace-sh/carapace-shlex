@@ -162,3 +162,7 @@ func (elvishFormat) Variable(word Token) (Variable, bool) {
 		nameRune:        isPosixNameRune,
 	})
 }
+
+func (elvishFormat) IsBareWord(s string) bool {
+	return bareWordRe.MatchString(s)
+}
