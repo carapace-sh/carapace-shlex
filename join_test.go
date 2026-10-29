@@ -13,7 +13,7 @@ func TestJoin_Posix(t *testing.T) {
 		`echo "with\"doubleQuote"`:      {"echo", `with"doubleQuote`},
 		`echo "with'singleQuote"`:       {"echo", "with'singleQuote"},
 		`echo "with\$dollar"`:           {"echo", "with$dollar"},
-		"echo \"with\\\nlinefeed\"":     {"echo", "with\nlinefeed"},
+		"echo \"with\"'\n'\"linefeed\"": {"echo", "with\nlinefeed"},
 		"echo \"with\rcarriageReturn\"": {"echo", "with\rcarriageReturn"},
 		"echo \"with\ttab\"":            {"echo", "with\ttab"},
 		`ls /tmp | xargs -n 1 echo`:     {"ls", "/tmp", "|", "xargs", "-n", "1", "echo"},
@@ -31,6 +31,7 @@ func TestJoin_Fish(t *testing.T) {
 		`echo "hello world"`:   {"echo", "hello world"},
 		`echo "say \"hello\""`: {"echo", `say "hello"`},
 		`echo "cost \$5"`:      {"echo", "cost $5"},
+		"echo \"a\nb\"":        {"echo", "a\nb"},
 	}
 	for expected, words := range tests {
 		if actual := Join(words, Fish); actual != expected {
@@ -111,6 +112,7 @@ func TestJoin_Xonsh(t *testing.T) {
 		`echo hello`:         {"echo", "hello"},
 		`echo 'hello world'`: {"echo", "hello world"},
 		`echo 'it\'s'`:       {"echo", "it's"},
+		"echo 'a\\nb'":       {"echo", "a\nb"},
 	}
 	for expected, words := range tests {
 		if actual := Join(words, Xonsh); actual != expected {

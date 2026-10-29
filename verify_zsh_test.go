@@ -689,8 +689,9 @@ func TestVerify_ZshFdPrefixInRedirects(t *testing.T) {
 	}
 }
 
-// QuoteWord for Join — zsh uses posixQuoteWord (double-quote wrapping
-// with \ escapes for CBSDQUOTE chars: \, `, $, ", \n).
+// QuoteWord for Join — zsh uses bashQuoteWord (double-quote wrapping
+// with \ escapes for CBSDQUOTE chars; newlines use quote close/reopen
+// since zsh drops backslash-newline inside double quotes).
 // This matches zsh's quotestring() with QT_DOUBLE style.
 func TestVerify_ZshQuoteWord(t *testing.T) {
 	tests := []struct {
@@ -708,7 +709,7 @@ func TestVerify_ZshQuoteWord(t *testing.T) {
 		{`with$dollar`, `"with\$dollar"`},
 		{`with` + "`" + `backtick`, `"with\` + "`" + `backtick"`},
 		{`with
-newline`, `"with\` + "\n" + `newline"`},
+newline`, "\"with\"'\n'\"newline\""},
 		// Empty string
 		{"", `""`},
 	}

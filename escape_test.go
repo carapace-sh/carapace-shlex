@@ -20,6 +20,10 @@ func TestEscape(t *testing.T) {
 		{name: "lua", format: Lua, input: `demo'; touch 'x`, expected: `demo\'; touch \'x`},
 		{name: "lua passes metacharacters", format: Lua, input: "a$(touch x)", expected: "a$(touch x)"},
 		{name: "lua newline", format: Lua, input: "a\nb", expected: `a\nb`},
+		{name: "bash newline", format: Bash, input: "a\nb", expected: "a\"'\n'\"b"},
+		{name: "tcsh newline", format: Tcsh, input: "a\nb", expected: "a\\\nb"},
+		{name: "fish newline stays raw", format: Fish, input: "a\nb", expected: "a\nb"},
+		{name: "xonsh newline escape", format: Xonsh, input: "a\nb", expected: `a\nb`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

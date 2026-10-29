@@ -435,7 +435,7 @@ func TestVerify_Comment(t *testing.T) {
 
 // Quoting for Join — from lib/sh/shquote.c sh_backslash_quote:
 // Double-quote wrapping with \ escaping for CBSDQUOTE chars (minus \n).
-// shlex's posixQuoteWord should match this behavior.
+// shlex's bashQuoteWord should match this behavior.
 func TestVerify_QuoteWord(t *testing.T) {
 	saved := os.Getenv("COMP_WORDBREAKS")
 	defer os.Setenv("COMP_WORDBREAKS", saved)
@@ -455,15 +455,15 @@ func TestVerify_QuoteWord(t *testing.T) {
 		{`with$dollar`, `"with\$dollar"`},
 		{`with` + "`" + `backtick`, `"with\` + "`" + `backtick"`},
 		{`with
-newline`, `"with\` + "\n" + `newline"`},
+newline`, "\"with\"'\n'\"newline\""},
 		// Empty string
 		{"", `""`},
 	}
 
 	for _, tc := range tests {
-		got := posixQuoteWord(tc.input)
+		got := bashQuoteWord(tc.input)
 		if got != tc.want {
-			t.Errorf("posixQuoteWord(%q) = %q, want %q", tc.input, got, tc.want)
+			t.Errorf("bashQuoteWord(%q) = %q, want %q", tc.input, got, tc.want)
 		}
 	}
 }

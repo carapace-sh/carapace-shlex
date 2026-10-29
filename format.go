@@ -168,13 +168,24 @@ type postProcessor interface {
 // NOT added to the word value. This applies both outside quotes (ESCAPING_STATE)
 // and inside double quotes (ESCAPING_QUOTED_STATE).
 //
-// Supported by: bash, zsh, tcsh, fish, xonsh (backslash+newline),
+// Supported by: bash, zsh, fish, xonsh (backslash+newline),
 // PowerShell (backtick+newline), cmd (caret+newline).
 type lineContinuationEscaper interface {
 	// IsLineContinuation returns true if the rune following the escape
 	// character should be treated as a line continuation. The parameter
 	// is the rune that follows the escape character (e.g. '\n' or '\r').
 	IsLineContinuation(r rune) bool
+}
+
+// lineContinuationInsideQuotes reports whether the format treats escape+newline
+// as a line continuation inside double quotes. Formats that opt out (tcsh
+// preserves backslash-newline inside double quotes, unlike bash) implement
+// IsLineContinuationInsideQuotes() bool; the default is true.
+func lineContinuationInsideQuotes(format formatImpl) bool {
+	if opt, ok := format.(interface{ IsLineContinuationInsideQuotes() bool }); ok {
+		return opt.IsLineContinuationInsideQuotes()
+	}
+	return true
 }
 
 // lineContinuationWhitespace is an optional interface for formats where
