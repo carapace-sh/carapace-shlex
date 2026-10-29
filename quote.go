@@ -6,10 +6,11 @@ import (
 	"unicode"
 )
 
-// posixQuoteWord quotes a word for tcsh ("bash-compatible" except that
-// tcsh preserves backslash-newline inside double quotes, unlike bash).
-// Uses double-quote wrapping with escape sequences for $, `, ", \, and
-// newline. Tab and CR are emitted literally inside double quotes
+// posixQuoteWord quotes a word for tcsh, the only remaining consumer.
+// Uses double-quote wrapping with escape sequences for $, `, " and \.
+// Newlines are emitted as backslash-newline, which tcsh preserves inside
+// double quotes (unlike bash, which drops it). Tab and CR are emitted
+// literally inside double quotes
 // since they are safe there and not backslash-escaped by the shell.
 // Safe words (no special chars) are returned as-is.
 func posixQuoteWord(s string) string {
@@ -26,10 +27,10 @@ func posixQuoteWord(s string) string {
 	return b.String()
 }
 
-// posixStringEscape escapes the content of a POSIX-family double-quoted
-// string (the characters $, `, ", \, and newline) without supplying the
-// quotes. Newlines are emitted as backslash-newline, which tcsh preserves
-// inside double quotes. bash, zsh and oil instead treat it as a line
+// posixStringEscape escapes the content of a tcsh double-quoted string
+// (the characters $, ` and ") without supplying the quotes. Newlines are
+// emitted as backslash-newline, which tcsh preserves inside double
+// quotes. bash, zsh and oil instead treat it as a line
 // continuation and drop the newline; use bashStringEscape for those.
 func posixStringEscape(s string) string {
 	var b strings.Builder

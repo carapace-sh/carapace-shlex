@@ -1208,7 +1208,8 @@ func Quote(word string, format Format) string {
 // interior variant of Quote. Unknown format names fall back to the default
 // format. Formats without a dedicated string-interior rule (cmd, nushell,
 // tcsh, and others) also fall back; the result may not be valid for those
-// formats' own string literals. The bash/zsh/oil result is meant to be
+// formats' own string literals (e.g. a newline close/reopen sequence is a
+// syntax error in tcsh). The bash/zsh/oil result is meant to be
 // embedded in double quotes by the caller: newlines are represented by a
 // quote close/reopen sequence instead of backslash-newline.
 func Escape(word string, format Format) string {
