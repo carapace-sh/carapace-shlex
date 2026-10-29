@@ -6,10 +6,10 @@ import (
 	"unicode"
 )
 
-// posixQuoteWord quotes a word for POSIX shells (bash, zsh, oil, tcsh).
+// posixQuoteWord quotes a word for tcsh ("bash-compatible" except that
+// tcsh preserves backslash-newline inside double quotes, unlike bash).
 // Uses double-quote wrapping with escape sequences for $, `, ", \, and
-// newline (the only control char that backslash escapes inside double quotes
-// in POSIX shells). Tab and CR are emitted literally inside double quotes
+// newline. Tab and CR are emitted literally inside double quotes
 // since they are safe there and not backslash-escaped by the shell.
 // Safe words (no special chars) are returned as-is.
 func posixQuoteWord(s string) string {
@@ -26,8 +26,11 @@ func posixQuoteWord(s string) string {
 	return b.String()
 }
 
-// posixStringEscape escapes the content of a POSIX double-quoted string
-// (the characters $, `, ", \, and newline) without supplying the quotes.
+// posixStringEscape escapes the content of a POSIX-family double-quoted
+// string (the characters $, `, ", \, and newline) without supplying the
+// quotes. Newlines are emitted as backslash-newline, which tcsh preserves
+// inside double quotes. bash, zsh and oil instead treat it as a line
+// continuation and drop the newline; use bashStringEscape for those.
 func posixStringEscape(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -49,6 +52,52 @@ func posixStringEscape(s string) string {
 	return b.String()
 }
 
+// bashStringEscape escapes the content of a bash/zsh/oil double-quoted
+// string (the characters $, `, ", and \) without supplying the quotes.
+// Newlines are emitted as a quote-close/reopen sequence "'\n'" because
+// bash treats backslash-newline inside double quotes as a line
+// continuation and drops it; this requires the caller to wrap the result
+// in double quotes.
+func bashStringEscape(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString(`\"`)
+		case '\\':
+			b.WriteString(`\\`)
+		case '$':
+			b.WriteString(`\$`)
+		case '`':
+			b.WriteString("\\`")
+		case '\n':
+			b.WriteString(`"'`)
+			b.WriteRune('\n')
+			b.WriteString(`'"`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// bashQuoteWord quotes a word for bash/zsh/oil using bashStringEscape.
+func bashQuoteWord(s string) string {
+	return quoteWrapped(s, bashStringEscape)
+}
+
+// quoteWrapped wraps the output of the given escaper in double quotes,
+// leaving safe words as-is.
+func quoteWrapped(s string, escape func(string) string) string {
+	if s == "" {
+		return `""`
+	}
+	if !strings.ContainsAny(s, `"' `+"`$\n\r\t\\") {
+		return s
+	}
+	return `"` + escape(s) + `"`
+}
+
 // fishQuoteWord quotes a word for fish.
 // Fish double quotes escape only ", $, \, and newline.
 // Backtick is a regular character in fish (not command substitution).
@@ -67,8 +116,10 @@ func fishQuoteWord(s string) string {
 }
 
 // fishStringEscape escapes the content of a fish double-quoted string
-// (the characters ", $, \, and newline) without supplying the quotes.
+// (the characters ", $, and \) without supplying the quotes.
 // Backtick is a regular character in fish (not command substitution).
+// A raw newline is emitted verbatim: fish treats backslash-newline inside
+// double quotes as a line continuation and drops it.
 func fishStringEscape(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -79,8 +130,6 @@ func fishStringEscape(s string) string {
 			b.WriteString(`\\`)
 		case '$':
 			b.WriteString(`\$`)
-		case '\n':
-			b.WriteString("\\\n")
 		default:
 			b.WriteRune(r)
 		}
@@ -261,8 +310,10 @@ func xonshQuoteWord(s string) string {
 }
 
 // xonshStringEscape escapes the content of a xonsh (Python)
-// single-quoted string with backslash escapes for quote and backslash
-// without supplying the quotes.
+// single-quoted string with backslash escapes for quote, backslash and
+// newline (a raw newline is a syntax error in a Python string literal)
+// without supplying the quotes. Note that the shlex lexer does not
+// unescape \n (Value differs from the actual xonsh value).
 func xonshStringEscape(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -271,6 +322,8 @@ func xonshStringEscape(s string) string {
 			b.WriteString(`\'`)
 		case '\\':
 			b.WriteString(`\\`)
+		case '\n':
+			b.WriteString(`\n`)
 		default:
 			b.WriteRune(r)
 		}

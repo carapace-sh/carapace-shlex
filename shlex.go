@@ -779,7 +779,8 @@ func (t *tokenizer) scanStream() (*Token, error) {
 				return token, err
 			default:
 				// Check for line continuation (e.g. bash/fish \+newline inside "...")
-				if lc, ok := t.format.(lineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) {
+				if lc, ok := t.format.(lineContinuationEscaper); ok && lc.IsLineContinuation(nextRune) &&
+					lineContinuationInsideQuotes(t.format) {
 					// Consume optional \n after \r (without adding to RawValue)
 					if nextRune == '\r' {
 						peek2, _, peek2Err := t.ReadRune()
@@ -1206,10 +1207,14 @@ func Quote(word string, format Format) string {
 // e.g. when a generated template already carries the quotes. It is the
 // interior variant of Quote. Unknown format names fall back to the default
 // format. Formats without a dedicated string-interior rule (cmd, nushell,
-// and others) also fall back; the result may not be valid for those
-// formats' own string literals.
+// tcsh, and others) also fall back; the result may not be valid for those
+// formats' own string literals. The bash/zsh/oil result is meant to be
+// embedded in double quotes by the caller: newlines are represented by a
+// quote close/reopen sequence instead of backslash-newline.
 func Escape(word string, format Format) string {
 	switch format {
+	case Default, Bash, Zsh, Oil:
+		return bashStringEscape(word)
 	case Fish:
 		return fishStringEscape(word)
 	case Elvish:

@@ -708,7 +708,7 @@ func TestVerify_ZshQuoteWord(t *testing.T) {
 		{`with$dollar`, `"with\$dollar"`},
 		{`with` + "`" + `backtick`, `"with\` + "`" + `backtick"`},
 		{`with
-newline`, `"with\` + "\n" + `newline"`},
+newline`, "\"with\"'\n'\"newline\""},
 		// Empty string
 		{"", `""`},
 	}

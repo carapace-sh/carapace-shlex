@@ -39,7 +39,7 @@ func (bashFormat) EscapingQuoteEscapeChars() map[rune]bool {
 		'\n': true,
 	}
 }
-func (bashFormat) QuoteWord(s string) string { return posixQuoteWord(s) }
+func (bashFormat) QuoteWord(s string) string { return bashQuoteWord(s) }
 func (bashFormat) TripleQuoteSupport() bool  { return false }
 func (bashFormat) RawPrefixSupport() bool    { return false }
 

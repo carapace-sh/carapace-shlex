@@ -455,13 +455,13 @@ func TestVerify_QuoteWord(t *testing.T) {
 		{`with$dollar`, `"with\$dollar"`},
 		{`with` + "`" + `backtick`, `"with\` + "`" + `backtick"`},
 		{`with
-newline`, `"with\` + "\n" + `newline"`},
+newline`, "\"with\"'\n'\"newline\""},
 		// Empty string
 		{"", `""`},
 	}
 
 	for _, tc := range tests {
-		got := posixQuoteWord(tc.input)
+		got := bashQuoteWord(tc.input)
 		if got != tc.want {
 			t.Errorf("posixQuoteWord(%q) = %q, want %q", tc.input, got, tc.want)
 		}

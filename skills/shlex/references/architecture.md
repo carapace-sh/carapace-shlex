@@ -219,12 +219,13 @@ This replaces carapace's regex-based quoting detection in `zsh/action.go` (4 reg
 
 | Format | Quoting style |
 |--------|--------------|
-| bash/zsh/oil/tcsh | double-quote wrapping with `\$ \` \" \\` escapes |
-| fish | double-quote wrapping with `\" \$ \\` + newline escapes |
+| bash/zsh/oil | double-quote wrapping with `\$ \` \" \\` escapes; literal newline via quote close/reopen (`"'<LF>'"`) |
+| tcsh | double-quote wrapping; newline as backslash-newline (tcsh preserves `\<LF>` inside `"..."`) |
+| fish | double-quote wrapping with `\" \$ \\` escapes; raw literal newline |
 | elvish | single-quote wrapping with `''` for literal `'` |
 | powershell | single-quote wrapping with `''` for literal `'` |
 | nushell | double-quote wrapping with `\" \\` escapes |
-| xonsh | Python single-quote wrapping with `\' \\` escapes |
+| xonsh | Python single-quote wrapping with `\' \\` + `\n` escapes |
 | cmd | double-quote wrapping with `^"` for literal `"` |
 | hilbish | backslash-escaped barewords (`charEscapeMap` plus `\`, `;`, tab) |
 | lua | double-quote wrapping; ASCII identifiers stay bare, otherwise `"`, `\\`, newline escapes |
@@ -310,9 +311,11 @@ This is a known limitation of the lexer. For completion purposes it doesn't affe
 
 ### Line continuation (`\<newline>`)
 
-POSIX shells (bash, zsh, tcsh, oil), fish, and xonsh implement `lineContinuationEscaper`. When the escape character (backslash) is followed by `\n` or `\r`, both the escape char and the newline are consumed — they are not added to the token's `Value` or `RawValue`. This applies:
+POSIX shells (bash, zsh, oil), fish, and xonsh implement `lineContinuationEscaper`. When the escape character (backslash) is followed by `\n` or `\r`, both the escape char and the newline are consumed — they are not added to the token's `Value` or `RawValue`. This applies:
 - Outside quotes (`ESCAPING_STATE`): the word continues on the next line
-- Inside double quotes (`ESCAPING_QUOTED_STATE`): the string continues on the next line
+- Inside double quotes (`ESCAPING_QUOTED_STATE`): the string continues on the next line (bash/zsh/oil and fish drop the newline there — matching the real shells)
+
+tcsh implements the interface for outside quotes only: inside double quotes it preserves backslash-newline (unlike bash), so `format_tcsh` opts out via `IsLineContinuationInsideQuotes() bool` (checked by `lineContinuationInsideQuotes()` in format.go).
 
 For CRLF input, the `\r` is consumed and an optional following `\n` is also consumed.
 

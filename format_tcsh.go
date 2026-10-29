@@ -51,10 +51,17 @@ func (tcshFormat) TripleQuoteSupport() bool  { return false }
 func (tcshFormat) RawPrefixSupport() bool    { return false }
 
 // IsLineContinuation implements lineContinuationEscaper. Tcsh treats
-// backslash followed by \n or \r as a line continuation.
+// backslash followed by \n or \r as a line continuation, but only outside
+// quotes; inside double quotes it preserves backslash-newline (unlike
+// bash, which drops it there).
 func (tcshFormat) IsLineContinuation(r rune) bool {
 	return r == '\n' || r == '\r'
 }
+
+// IsLineContinuationInsideQuotes opts tcsh out of treating escape+newline
+// as a line continuation inside double quotes; see
+// lineContinuationInsideQuotes.
+func (tcshFormat) IsLineContinuationInsideQuotes() bool { return false }
 
 // PostProcess reclassifies ( and ) as substitution delimiters and merges
 // $ + ( into a single opener token for POSIX command substitution.

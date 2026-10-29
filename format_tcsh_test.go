@@ -310,14 +310,15 @@ func TestTcshFormat_LineContinuationOutsideQuotes(t *testing.T) {
 }
 
 func TestTcshFormat_LineContinuationInDoubleQuotes(t *testing.T) {
-	// tcsh: \<newline> inside "..." is a line continuation — both consumed.
+	// tcsh preserves backslash-newline inside "..." unlike bash: the escape
+	// is consumed and the newline kept (verified against a real tcsh).
 	input := "echo \"line1" + "\\" + "\n" + "line2\""
 	tokens, err := Split(input, Tcsh)
 	if err != nil {
 		t.Fatal(err)
 	}
 	words := tokens.Words().Strings()
-	if len(words) != 2 || words[1] != "line1line2" {
-		t.Errorf("tcsh line continuation in double: Words = %v, want [echo line1line2]", words)
+	if len(words) != 2 || words[1] != "line1\nline2" {
+		t.Errorf("tcsh quoted newline: Words = %v, want [echo line1\\nline2]", words)
 	}
 }
