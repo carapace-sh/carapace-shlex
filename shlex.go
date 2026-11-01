@@ -1206,12 +1206,15 @@ func Quote(word string, format Format) string {
 // string literals whose surrounding quote characters the caller supplies,
 // e.g. when a generated template already carries the quotes. It is the
 // interior variant of Quote. Unknown format names fall back to the default
-// format. Formats without a dedicated string-interior rule (cmd, nushell,
-// tcsh, and others) also fall back; the result may not be valid for those
+// format. Formats without a dedicated string-interior rule (cmd, tcsh,
+// and others) also fall back; the result may not be valid for those
 // formats' own string literals (e.g. a newline close/reopen sequence is a
 // syntax error in tcsh). The bash/zsh/oil result is meant to be
 // embedded in double quotes by the caller: newlines are represented by a
-// quote close/reopen sequence instead of backslash-newline.
+// quote close/reopen sequence instead of backslash-newline. The nushell
+// result is meant to be embedded in double quotes: it uses only escape
+// sequences from nushell's own set, as unrecognized escapes are parse
+// errors there.
 func Escape(word string, format Format) string {
 	switch format {
 	case Default, Bash, Zsh, Oil:
@@ -1220,6 +1223,8 @@ func Escape(word string, format Format) string {
 		return fishStringEscape(word)
 	case Elvish:
 		return elvishStringEscape(word)
+	case Nushell:
+		return nushellStringEscape(word)
 	case Powershell:
 		return powershellStringEscape(word)
 	case Xonsh:
