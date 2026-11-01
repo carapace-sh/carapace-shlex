@@ -24,6 +24,12 @@ func TestEscape(t *testing.T) {
 		{name: "tcsh newline", format: Tcsh, input: "a\nb", expected: "a\\\nb"},
 		{name: "fish newline stays raw", format: Fish, input: "a\nb", expected: "a\nb"},
 		{name: "xonsh newline escape", format: Xonsh, input: "a\nb", expected: `a\nb`},
+		{name: "xonsh CR escape", format: Xonsh, input: "a\rb", expected: `a\rb`},
+		{name: "lua CR escape", format: Lua, input: "a\rb", expected: `a\rb`},
+		{name: "nushell", format: Nushell, input: `a\b"c$d`, expected: `a\\b\"c$d`},
+		{name: "nushell dollar/tick stays literal", format: Nushell, input: "a`b$c", expected: "a`b$c"},
+		{name: "nushell newline escape", format: Nushell, input: "a\nb", expected: `a\nb`},
+		{name: "nushell tab/CR escape", format: Nushell, input: "a\tb\rc", expected: `a\tb\rc`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

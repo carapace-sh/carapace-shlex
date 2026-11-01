@@ -263,6 +263,33 @@ func nushellQuoteWord(s string) string {
 	return b.String()
 }
 
+// nushellStringEscape escapes the content of a nushell double-quoted
+// string (the characters \ and "), with control characters written
+// using nushell's own escape sequences, without supplying the quotes.
+// Unlike tcsh, nushell treats $ and ` as literal inside double quotes,
+// so they are left as-is; because unrecognized escapes are parse errors
+// in nushell, only sequences from the nushell escape set are emitted.
+func nushellStringEscape(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '\\':
+			b.WriteString(`\\`)
+		case '"':
+			b.WriteString(`\"`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // powershellQuoteWord quotes a word for PowerShell.
 // Uses single-quote wrapping (verbatim, ” for literal ').
 func powershellQuoteWord(s string) string {
@@ -312,9 +339,11 @@ func xonshQuoteWord(s string) string {
 
 // xonshStringEscape escapes the content of a xonsh (Python)
 // single-quoted string with backslash escapes for quote, backslash and
-// newline (a raw newline is a syntax error in a Python string literal)
-// without supplying the quotes. Note that the shlex lexer does not
-// unescape \n (Value differs from the actual xonsh value).
+// newline (a raw newline is a syntax error in a Python string literal,
+// and a raw carriage return is normalized to a newline by the tokenizer
+// while reading the source) without supplying the quotes. Note that the
+// shlex lexer does not unescape \n (Value differs from the actual xonsh
+// value).
 func xonshStringEscape(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -325,6 +354,8 @@ func xonshStringEscape(s string) string {
 			b.WriteString(`\\`)
 		case '\n':
 			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
 		default:
 			b.WriteRune(r)
 		}
