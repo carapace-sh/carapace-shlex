@@ -65,7 +65,9 @@ func (luaFormat) QuoteInsertion(state LexerState, value string) string {
 }
 
 // luaEscapeInterior escapes value for the inside of a Lua string literal:
-// the string's own quote character, the backslash, and newlines as \n.
+// the string's own quote character, the backslash, and line breaks as \n
+// and \r (a raw CR is a "unfinished string" syntax error in Lua, like a
+// raw LF).
 func luaEscapeInterior(value string, quote rune) string {
 	var b strings.Builder
 	for _, r := range value {
@@ -77,6 +79,8 @@ func luaEscapeInterior(value string, quote rune) string {
 			b.WriteString(`\\`)
 		case '\n':
 			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
 		default:
 			b.WriteRune(r)
 		}

@@ -339,9 +339,11 @@ func xonshQuoteWord(s string) string {
 
 // xonshStringEscape escapes the content of a xonsh (Python)
 // single-quoted string with backslash escapes for quote, backslash and
-// newline (a raw newline is a syntax error in a Python string literal)
-// without supplying the quotes. Note that the shlex lexer does not
-// unescape \n (Value differs from the actual xonsh value).
+// newline (a raw newline is a syntax error in a Python string literal,
+// and a raw carriage return is normalized to a newline by the tokenizer
+// while reading the source) without supplying the quotes. Note that the
+// shlex lexer does not unescape \n (Value differs from the actual xonsh
+// value).
 func xonshStringEscape(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -352,6 +354,8 @@ func xonshStringEscape(s string) string {
 			b.WriteString(`\\`)
 		case '\n':
 			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
 		default:
 			b.WriteRune(r)
 		}
